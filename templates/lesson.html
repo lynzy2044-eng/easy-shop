@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<section>
+  <h1>{{ lesson.title }}</h1>
+  <p class="muted">
+    {{ "Basic" if lesson.track == "basic" else "Advanced" }}
+    {% if lesson.is_free %}<span class="badge free" style="margin-left:8px">ฟรี</span>{% endif %}
+  </p>
+  <iframe src="{{ lesson.video_url }}" allowfullscreen
+          allow="accelerometer; autoplay; encrypted-media; picture-in-picture"></iframe>
+  <p style="margin-top:16px">
+    <a class="btn ghost" href="{{ url_for('index') }}">← กลับหน้าหลัก</a>
+    <a class="btn ghost" href="{{ url_for('free_lessons') }}">บทเรียนฟรีทั้งหมด</a>
+  </p>
+</section>
+{% endblock %}

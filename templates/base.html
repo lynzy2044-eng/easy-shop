@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>{{ shop_name }}</title>
+<style>
+/* ---- โหลดฟอนต์ Anuphan ---- */
+@font-face {
+  font-family: 'Anuphan';
+  src: url('{{ url_for("static", filename="fonts/Anuphan-VariableFont_wght.ttf") }}') format('truetype');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root{
+  --bg:#f8fafc;
+  --surface:#ffffff;
+  --text:#0f172a;
+  --muted:#64748b;
+  --line:#e2e8f0;
+  --primary:#2563eb;
+  --primary-dark:#1e40af;
+  --primary-soft:#eff6ff;
+  --ok:#059669;
+  --ok-soft:#ecfdf5;
+  --err:#dc2626;
+  --err-soft:#fef2f2;
+  --radius:16px;
+  --radius-sm:10px;
+  --shadow:0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+  --shadow-hover:0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+  --transition:all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; 
+  font-family:'Anuphan', system-ui, -apple-system, sans-serif;
+  background:var(--bg); 
+  color:var(--text); 
+  line-height:1.6; 
+  font-size:16px;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1100px; margin:0 auto; padding:20px;}
+a{text-decoration:none; transition:var(--transition);}
+
+/* ---- Navbar (จัดเรียงบรรทัดเดียว) ---- */
+nav {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(255,255,255,.95);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+  width: 100%;
+}
+.nav-container {
+  max-width: 1100px; margin: 0 auto; padding: 14px 20px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.brand {
+  font-weight: 800; font-size: 20px; color: var(--text) !important;
+  letter-spacing: -.02em; white-space: nowrap;
+}
+
+/* ลิงก์เมนูสำหรับคอมพิวเตอร์ (บังคับอยู่บรรทัดเดียว) */
+.nav-links {
+  display: flex; 
+  flex-wrap: nowrap; /* ห้ามตัดขึ้นบรรทัดใหม่ */
+  gap: 8px; 
+  align-items: center;
+  white-space: nowrap;
+}
+.nav-links a:not(.btn) {
+  padding: 8px 12px; 
+  border-radius: var(--radius-sm); 
+  color: var(--muted);
+  font-size: 15px; 
+  font-weight: 600;
+  white-space: nowrap; 
+}
+.nav-links a:not(.btn):hover { 
+  background: var(--primary-soft); 
+  color: var(--primary-dark); 
+}
+.nav-links .btn {
+  padding: 8px 20px; 
+  font-size: 15px;
+  white-space: nowrap;
+  width: auto; /* ให้ปุ่มไม่กว้างเต็มจอในคอม */
+}
+
+/* ปุ่ม 3 ขีด ( Hamburger ) ซ่อนไว้ในคอม */
+.menu-toggle {
+  display: none; background: none; border: none; cursor: pointer;
+  padding: 8px; color: var(--text); border-radius: 8px;
+  transition: var(--transition);
+}
+.menu-toggle:hover { background: var(--line); }
+
+/* ---- Responsive Navbar (มือถือ/แท็บเล็ต) ---- */
+@media (max-width: 900px) { 
+  .menu-toggle { display: block; }
+  .nav-links {
+    position: absolute; top: 100%; left: 0; right: 0;
+    background: var(--surface); border-bottom: 1px solid var(--line);
+    flex-direction: column; align-items: stretch; gap: 0; padding: 10px;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+    clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+    transition: clip-path 0.3s ease-in-out;
+    white-space: normal; 
+  }
+  .nav-links.active { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+  .nav-links a:not(.btn) { 
+    padding: 14px 16px; font-size: 16px; 
+    border-bottom: 1px solid var(--line); border-radius: 0;
+  }
+  .nav-links .btn { margin-top: 10px; width: 100%; padding: 14px; }
+  .wrap { padding: 16px; }
+}
+
+/* ---- Typography & Layout ---- */
+h1{font-size:clamp(24px, 4vw, 32px); line-height:1.3; margin:0 0 12px; font-weight:800;}
+h2{font-size:clamp(20px, 3vw, 24px); margin:0 0 16px; font-weight:700;}
+h3{font-size:18px; margin:0 0 8px; font-weight:700;}
+.muted{color:var(--muted);}
+
+/* ---- Grid & Cards ---- */
+.grid{
+  display:grid; gap:16px; 
+  grid-template-columns:repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+.card{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:24px; box-shadow:var(--shadow); transition:var(--transition);
+  display:flex; flex-direction:column;
+}
+.card:hover{ transform:translateY(-4px); box-shadow:var(--shadow-hover); border-color:#cbd5e1; }
+.card p{flex-grow:1;}
+.card .btn{margin-top:auto;}
+.price{font-size:32px; font-weight:800; color:var(--primary); margin:8px 0;}
+
+/* ---- Buttons (ล็อกสีให้ชัดเจน ไม่ให้เพี้ยน) ---- */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  background:var(--primary) !important; color:#fff !important; 
+  padding:14px 24px; border-radius:var(--radius-sm); border:0; cursor:pointer;
+  font-size:16px; font-weight:600; font-family:inherit; width: 100%;
+  transition:var(--transition); box-shadow:0 2px 4px rgba(37,99,235,.2);
+}
+.btn:hover{background:var(--primary-dark) !important; transform:translateY(-1px);}
+.btn:active{transform:translateY(0) scale(.98);}
+.btn.ghost{background:transparent !important; border:2px solid var(--line); color:var(--text) !important; box-shadow:none;}
+.btn.ghost:hover{border-color:var(--primary); color:var(--primary) !important; background:var(--primary-soft) !important;}
+
+/* ---- Forms ---- */
+input {
+  width:100%; padding:14px 16px; border-radius:var(--radius-sm);
+  border:1px solid var(--line); background:#f8fafc; color:var(--text);
+  font-size:16px; font-family:inherit; margin-bottom:16px; transition:var(--transition);
+}
+input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(--primary-soft); background:#fff;}
+
+/* ---- Flash Messages (แจ้งเตือนพร้อมอนิเมชั่น) ---- */
+.flash-container {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  z-index: 9999; width: calc(100% - 40px); max-width: 400px;
+  display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+}
+.flash {
+  pointer-events: auto; padding: 16px; border-radius: var(--radius-sm);
+  background: var(--surface); border: 1px solid var(--line);
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+  font-weight: 600; font-size: 15px;
+  display: flex; align-items: center; justify-content: space-between;
+  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  cursor: pointer;
+}
+.flash.ok { border-left: 6px solid var(--ok); color: var(--ok); background: var(--ok-soft); }
+.flash.err { border-left: 6px solid var(--err); color: var(--err); background: var(--err-soft); }
+.flash.hide { animation: fadeOutRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+@keyframes slideDown { 0% { opacity: 0; transform: translateY(-20px); } 100% { opacity: 1; transform: translateY(0); } }
+@keyframes fadeOutRight { 0% { opacity: 1; transform: translateX(0); } 100% { opacity: 0; transform: translateX(20px); } }
+
+/* ---- Hero Section ---- */
+.hero{
+  background:linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
+  border:1px solid #bfdbfe; border-radius:var(--radius); padding:32px 24px; margin-bottom:24px;
+}
+
+/* ---- Modals (สำหรับหน้าใส่สลิป) ---- */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  animation: fadeIn 0.3s ease forwards;
+}
+.modal-content {
+  background: var(--surface); border-radius: 24px; width: 100%; max-width: 440px;
+  padding: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+  animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  max-height: 90vh; overflow-y: auto;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scaleIn { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+
+.btn-close {
+  background: var(--bg); border: none; width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  color: var(--muted); font-size: 20px; font-weight: bold; transition: var(--transition);
+}
+.btn-close:hover { background: var(--line); color: var(--text); }
+</style>
+</head>
+<body>
+
+<!-- Flash Messages Container -->
+<div class="flash-container" id="flashContainer">
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, m in msgs %}
+      <div class="flash {{ cat }}" onclick="this.classList.add('hide')">
+        <span>{{ m }}</span>
+      </div>
+    {% endfor %}
+  {% endwith %}
+</div>
+
+<!-- Navbar -->
+<nav>
+  <div class="nav-container">
+    <a class="brand" href="{{ url_for('index') }}">{{ shop_name }}</a>
+    
+    <!-- ปุ่มแฮมเบอร์เกอร์ (เฉพาะมือถือ) -->
+    <button class="menu-toggle" id="menuToggle" aria-label="เปิดเมนู">
+      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
+      </svg>
+    </button>
+
+    <!-- ลิงก์เมนู -->
+    <div class="nav-links" id="navLinks">
+      <a href="{{ url_for('index') }}">หน้าแรก</a>
+      <a href="{{ url_for('free_lessons') }}">เรียนฟรี</a>
+      <a href="{{ url_for('index') }}#packages">แพ็กเกจ</a>
+      
+      {% if user %}
+        <a href="{{ url_for('account') }}">บัญชีของฉัน</a>
+        <a href="{{ url_for('logout') }}" style="color:var(--err)">ออกจากระบบ</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">เข้าสู่ระบบ (อีเมล)</a>
+        <a class="btn" href="{{ url_for('register') }}">สมัครสมาชิก</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<main class="wrap">
+  {% block content %}{% endblock %}
+</main>
+
+<script>
+  // สลับเมนูมือถือ (Hamburger Menu)
+  const menuToggle = document.getElementById('menuToggle');
+  const navLinks = document.getElementById('navLinks');
+  
+  if (menuToggle && navLinks) {
+    menuToggle.addEventListener('click', () => {
+      navLinks.classList.toggle('active');
+    });
+  }
+
+  // ลบ Flash Message อัตโนมัติเมื่อผ่านไป 4 วินาที
+  setTimeout(() => {
+    const flashes = document.querySelectorAll('.flash');
+    flashes.forEach((el, index) => {
+      setTimeout(() => {
+        el.classList.add('hide');
+        setTimeout(() => el.remove(), 300); 
+      }, index * 200); 
+    });
+  }, 4000);
+</script>
+</body>
+</html>

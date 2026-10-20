@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>บัญชีของฉัน</h1>
+<p class="muted" style="margin-bottom: 24px;">ข้อมูลการเข้าเรียนและประวัติการสั่งซื้อของคุณ</p>
+
+<div class="grid">
+  <div class="card">
+    <h3>สิทธิ์การเรียน</h3>
+    {% if owned %}
+      <p>คุณเปิดคอร์สแล้ว: <strong>{{ owned|map('capitalize')|join(', ') }}</strong></p>
+    {% else %}
+      <p class="muted">ยังไม่มีสิทธิ์เรียนเต็ม <a href="{{ url_for('index') }}#packages">เลือกแพ็กเกจ</a></p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>ประวัติการสั่งซื้อ</h3>
+    {% for o in orders %}
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--line); padding:12px 0;">
+        <div>
+          <strong>{{ packages[o.package].name }}</strong><br>
+          <span class="muted" style="font-size:14px;">{{ "%.2f"|format(o.amount_satang / 100) }} ฿</span>
+        </div>
+        <div>
+          {% if o.status == 'paid' %}<span style="color:var(--ok); font-weight:700;">ชำระแล้ว</span>
+          {% elif o.status == 'pending' %}<a href="{{ url_for('pay', order_id=o.id) }}" class="btn" style="padding:6px 12px; font-size:12px;">ชำระเงิน</a>
+          {% else %}<span class="muted">หมดอายุ</span>{% endif %}
+        </div>
+      </div>
+    {% else %}
+      <p class="muted">ยังไม่มีออเดอร์</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

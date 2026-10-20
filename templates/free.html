@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<section>
+  <h1>บทเรียนฟรี</h1>
+  <p class="muted">ทดลองเรียนได้ทุกบทแรกของแต่ละคอร์ส — เข้าสู่ระบบเพื่อเริ่ม</p>
+</section>
+
+<section>
+  <div class="grid">
+    {% for l in lessons if l.is_free %}
+    <a class="card free-card {% if not user %}lock{% endif %}"
+       href="{{ url_for('lesson', lesson_id=l.id) }}">
+      <span class="badge free">ฟรี</span>
+      <h3 style="margin-top:10px">{{ l.title }}</h3>
+      <div class="muted">{{ "Basic" if l.track == "basic" else "Advanced" }}</div>
+    </a>
+    {% else %}
+    <p class="muted">ยังไม่มีบทเรียนฟรี</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
