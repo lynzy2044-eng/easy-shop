@@ -441,10 +441,9 @@ def account():
     )
 
 
-# สร้างฐานข้อมูลอัตโนมัติเมื่อเริ่มรัน (เว้นแต่จะอยู่บน Vercel ที่เขียนไฟล์ไม่ได้)
-if not os.environ.get('VERCEL'):
-    with app.app_context():
-        db.create_all()
+# สร้างตารางฐานข้อมูลอัตโนมัติเมื่อเริ่มรัน (รวมถึงบน Vercel ด้วย)
+with app.app_context():
+    db.create_all()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=False)
