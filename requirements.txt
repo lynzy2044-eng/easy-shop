@@ -7,3 +7,4 @@ gunicorn
 google-auth
 google-auth-oauthlib
 psycopg2-binary
+psycopg[binary]
