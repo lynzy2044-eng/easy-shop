@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- โหลดสคริปต์ของ Google -->
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- โหลดสคริปต์ของ Google (เอา async defer ออกเพื่อให้โหลดเสร็จก่อน) -->
+<script src="https://accounts.google.com/gsi/client"></script>
 
 <div style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 16px;">
   <div style="background: #ffffff; border-radius: 24px; padding: 32px; width: 100%; max-width: 400px; box-shadow: 0 20px 40px -12px rgba(37, 99, 235, 0.15); border: 1px solid #e2e8f0; position: relative; overflow: hidden;">
@@ -52,7 +52,7 @@
 
     <!-- ปุ่ม Google Sign-In แบบกำหนดเอง -->
     <div style="position: relative; z-index: 1; width: 100%;">
-      <button id="googleBtn" type="button" style="width: 100%; background: #ffffff; color: #3c4043; border: 1px solid #dadce0; padding: 14px; border-radius: 50px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background 0.2s, box-shadow 0.2s;" onmouseover="this.style.background='#f8fafc'; this.style.boxShadow='0 1px 2px 0 rgba(60,64,67,0.3)'" onmouseout="this.style.background='#ffffff'; this.style.boxShadow='none'">
+      <button id="googleBtn" type="button" onclick="signInWithGoogle()" style="width: 100%; background: #ffffff; color: #3c4043; border: 1px solid #dadce0; padding: 14px; border-radius: 50px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background 0.2s, box-shadow 0.2s;" onmouseover="this.style.background='#f8fafc'; this.style.boxShadow='0 1px 2px 0 rgba(60,64,67,0.3)'" onmouseout="this.style.background='#ffffff'; this.style.boxShadow='none'">
         <svg width="20" height="20" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -74,37 +74,41 @@
   </div>
 </div>
 
-<!-- สคริปต์แบบ OAuth2 (เสถียรที่สุด) -->
+<!-- สคริปต์จัดการ Google Login -->
 <script>
   const GOOGLE_CLIENT_ID = "{{ config.GOOGLE_CLIENT_ID }}";
+  let googleClient = null;
 
-  window.onload = function () {
+  // เริ่มต้นการตั้งค่าทันทีที่สคริปต์โหลดเสร็จ
+  try {
     if (typeof google === 'undefined') {
-      console.error("Google SDK ยังโหลดไม่เสร็จ");
-      return;
-    }
-
-    // ตั้งค่า OAuth2 Client
-    const client = google.accounts.oauth2.initCodeClient({
-      client_id: GOOGLE_CLIENT_ID,
-      scope: 'email profile openid',
-      ux_mode: 'popup',
-      callback: (response) => {
-        if (response.code) {
-          // ส่ง Code ไปให้หลังบ้านแลกเป็น Token
-          sendCodeToBackend(response.code);
-        }
-      },
-    });
-
-    // ผูกปุ่มให้เปิด Popup ของ Google
-    const btn = document.getElementById("googleBtn");
-    if (btn) {
-      btn.addEventListener("click", () => {
-        client.requestCode();
+      console.error("ไม่สามารถโหลดสคริปต์ Google ได้ (อาจโดน Adblock บล็อก)");
+    } else {
+      googleClient = google.accounts.oauth2.initCodeClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: 'email profile openid',
+        ux_mode: 'popup', // ใช้ popup ในการล็อกอิน
+        callback: (response) => {
+          if (response.code) {
+            sendCodeToBackend(response.code);
+          } else if (response.error) {
+            alert("Google ปฏิเสธการเข้าถึง: " + response.error);
+          }
+        },
       });
     }
-  };
+  } catch (error) {
+    console.error("Google Init Error:", error);
+  }
+
+  function signInWithGoogle() {
+    if (!googleClient) {
+      alert("ระบบ Google ยังโหลดไม่เสร็จ หรือถูกบล็อกโดย Adblock กรุณารีเฟรชหน้าเว็บ");
+      return;
+    }
+    // สั่งให้เปิด Popup ล็อกอิน
+    googleClient.requestCode();
+  }
 
   function sendCodeToBackend(code) {
     fetch("/auth/google", {
