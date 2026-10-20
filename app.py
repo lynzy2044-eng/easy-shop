@@ -13,6 +13,7 @@ from flask import (Flask, abort, flash, jsonify, redirect, render_template,
 from flask_sqlalchemy import SQLAlchemy
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
+from google_auth_oauthlib.flow import Flow
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -26,7 +27,8 @@ app.config.update(
     SECRET_KEY=os.getenv("SECRET_KEY") or secrets.token_hex(32),
     SQLALCHEMY_DATABASE_URI=os.getenv("DATABASE_URL", "sqlite:///shop.db"),
     MAX_CONTENT_LENGTH=5 * 1024 * 1024,
-    GOOGLE_CLIENT_ID=os.getenv("GOOGLE_CLIENT_ID", "").replace("http://nip.io ", ""),
+    GOOGLE_CLIENT_ID=os.getenv("GOOGLE_CLIENT_ID", ""),
+    GOOGLE_CLIENT_SECRET=os.getenv("GOOGLE_CLIENT_SECRET", ""),
 )
 db = SQLAlchemy(app)
 
@@ -245,42 +247,65 @@ def login():
 
 @app.route("/auth/google", methods=["POST"])
 def auth_google():
-    """รับ credential (JWT) จาก Google Identity Services แล้วล็อกอิน/สมัครอัตโนมัติ"""
-    if not app.config["GOOGLE_CLIENT_ID"]:
+    """รับ Code จาก Google OAuth2 แล้วแลกเป็นข้อมูล User"""
+    if not app.config["GOOGLE_CLIENT_ID"] or not app.config["GOOGLE_CLIENT_SECRET"]:
         return jsonify(ok=False, error="google_not_configured"), 500
 
     data = request.get_json(silent=True) or {}
-    token = data.get("credential")
-    if not token:
-        return jsonify(ok=False, error="no_token"), 400
+    code = data.get("code")
+    if not code:
+        return jsonify(ok=False, error="no_code"), 400
 
     try:
-        idinfo = id_token.verify_oauth2_token(
-            token,
-            google_requests.Request(),
-            app.config["GOOGLE_CLIENT_ID"],
+        # สร้าง Flow เพื่อแลก Code เป็น Token
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                    "client_id": app.config["GOOGLE_CLIENT_ID"],
+                    "client_secret": app.config["GOOGLE_CLIENT_SECRET"],
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                }
+            },
+            scopes=["openid", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"],
         )
-    except ValueError:
-        return jsonify(ok=False, error="invalid_token"), 401
-
-    if not idinfo.get("email_verified", False):
-        return jsonify(ok=False, error="email_not_verified"), 401
-
-    email = idinfo["email"].strip().lower()
-
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        # สร้างบัญชีใหม่ด้วยรหัสผ่านสุ่ม (ผู้ใช้ล็อกอินผ่าน Google เท่านั้น)
-        user = User(
-            email=email,
-            password_hash=generate_password_hash(secrets.token_hex(16)),
+        # บังคับ redirect_uri ให้ตรงกับที่ตั้งค่าไว้ (ใช้ 'postmessage' สำหรับ popup)
+        flow.redirect_uri = "postmessage"
+        
+        # แลก Code เป็น Token
+        flow.fetch_token(code=code)
+        
+        # ดึงข้อมูลจาก ID Token
+        credentials = flow.credentials
+        id_info = id_token.verify_oauth2_token(
+            credentials.id_token, 
+            google_requests.Request(), 
+            app.config["GOOGLE_CLIENT_ID"]
         )
-        db.session.add(user)
-        db.session.commit()
+        
+        email = id_info["email"].strip().lower()
+        email_verified = id_info.get("email_verified", False)
 
-    session.clear()
-    session["uid"] = user.id
-    return jsonify(ok=True, redirect=url_for("index"))
+        if not email_verified:
+            return jsonify(ok=False, error="email_not_verified"), 401
+
+        # ค้นหาหรือสร้าง User ใหม่
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            user = User(
+                email=email,
+                password_hash=generate_password_hash(secrets.token_hex(16)),
+            )
+            db.session.add(user)
+            db.session.commit()
+
+        session.clear()
+        session["uid"] = user.id
+        return jsonify(ok=True, redirect=url_for("index"))
+
+    except Exception as e:
+        print(f"Google Auth Error: {e}")
+        return jsonify(ok=False, error="auth_failed"), 401
 
 
 @app.route("/logout")
@@ -410,9 +435,10 @@ def account():
     )
 
 
-# สร้างฐานข้อมูลอัตโนมัติเมื่อเริ่มรัน
-with app.app_context():
-    db.create_all()
+# สร้างฐานข้อมูลอัตโนมัติเมื่อเริ่มรัน (ไม่สร้างบน Vercel)
+if not os.environ.get('VERCEL'):
+    with app.app_context():
+        db.create_all()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=False)
