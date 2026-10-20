@@ -25,11 +25,17 @@ load_dotenv()
 app = Flask(__name__)
 app.config.update(
     SECRET_KEY=os.getenv("SECRET_KEY") or secrets.token_hex(32),
+    # ใช้ DATABASE_URL จาก Environment Variable (เช่น Neon PostgreSQL)
     SQLALCHEMY_DATABASE_URI=os.getenv("DATABASE_URL", "sqlite:///shop.db"),
     MAX_CONTENT_LENGTH=5 * 1024 * 1024,
     GOOGLE_CLIENT_ID=os.getenv("GOOGLE_CLIENT_ID", ""),
     GOOGLE_CLIENT_SECRET=os.getenv("GOOGLE_CLIENT_SECRET", ""),
 )
+
+# แก้ไข URL ของ PostgreSQL ให้ Flask-SQLAlchemy รู้จัก (บางที Vercel ให้มาเป็น postgres://)
+if app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgres://"):
+    app.config["SQLALCHEMY_DATABASE_URI"] = app.config["SQLALCHEMY_DATABASE_URI"].replace("postgres://", "postgresql://", 1)
+
 db = SQLAlchemy(app)
 
 SHOP_NAME = os.getenv("SHOP_NAME", "CapCut PC Course")
@@ -435,7 +441,7 @@ def account():
     )
 
 
-# สร้างฐานข้อมูลอัตโนมัติเมื่อเริ่มรัน (ไม่สร้างบน Vercel)
+# สร้างฐานข้อมูลอัตโนมัติเมื่อเริ่มรัน (เว้นแต่จะอยู่บน Vercel ที่เขียนไฟล์ไม่ได้)
 if not os.environ.get('VERCEL'):
     with app.app_context():
         db.create_all()
