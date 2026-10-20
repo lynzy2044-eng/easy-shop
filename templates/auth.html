@@ -7,10 +7,8 @@
 <div style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 16px;">
   <div style="background: #ffffff; border-radius: 24px; padding: 32px; width: 100%; max-width: 400px; box-shadow: 0 20px 40px -12px rgba(37, 99, 235, 0.15); border: 1px solid #e2e8f0; position: relative; overflow: hidden;">
 
-    <!-- แสงฟุ้งๆ ด้านหลัง (Glow Effect) -->
     <div style="position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 200px; height: 200px; background: rgba(37, 99, 235, 0.15); filter: blur(60px); border-radius: 50%;"></div>
 
-    <!-- หัวข้อ -->
     <div style="text-align: center; margin-bottom: 32px; position: relative; z-index: 1;">
       <h2 style="color: #0f172a; margin: 0 0 8px; font-size: 24px; font-weight: 800;">
         {{ "สมัครสมาชิก" if mode == "register" else "เข้าสู่ระบบ" }}
@@ -21,7 +19,6 @@
       </p>
     </div>
 
-    <!-- ฟอร์มล็อกอินปกติ -->
     <form method="post" style="position: relative; z-index: 1;">
       <div style="position: relative; margin-bottom: 16px;">
         <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
@@ -77,64 +74,75 @@
   </div>
 </div>
 
-<!-- สคริปต์จัดการ Google Login (ฉบับแก้ไข 100%) -->
+<!-- สคริปต์จัดการ Google Login (ฉบับดักจับ Error) -->
 <script>
-  // ฝัง Client ID ของคุณลงไปตรงๆ เลยเพื่อไม่ให้ดึงจาก {{ }} พลาด
-  const GOOGLE_CLIENT_ID = "927329120035-pifi1g6sjv2tuldlh1v2ur6t98ctgkg0.apps.googleusercontent.com";
+  // ใช้ฟังก์ชันจากหลังบ้าน Flask โดยตรง (ถ้าหลังบ้านว่าง จะได้รู้)
+  const GOOGLE_CLIENT_ID = "{{ config.GOOGLE_CLIENT_ID }}";
+
   let googleClient = null;
 
-  // ฟังก์ชันนี้จะคอยเช็กเรื่อยๆ ว่าสคริปต์ Google โหลดเสร็จหรือยัง
-  function initGoogle() {
-    if (typeof google !== 'undefined' && google.accounts) {
-      try {
-        googleClient = google.accounts.oauth2.initCodeClient({
-          client_id: GOOGLE_CLIENT_ID,
-          scope: 'email profile openid',
-          ux_mode: 'popup',
-          callback: (response) => {
-            if (response.code) {
-              // ส่ง Code ไปหลังบ้าน
-              fetch("/auth/google", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ code: response.code })
-              })
-              .then(res => res.json())
-              .then(data => {
-                if (data.ok) {
-                  window.location.href = data.redirect || "/";
-                } else {
-                  alert("เข้าสู่ระบบไม่สำเร็จ: " + (data.error || "Unknown"));
-                }
-              })
-              .catch(err => alert("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้"));
-            }
-          },
-        });
-      } catch (error) {
-        console.error("Google Init Error:", error);
-      }
-    } else {
-      // ถ้ายังโหลดไม่เสร็จ ให้รอ 200ms แล้วเช็กใหม่
-      setTimeout(initGoogle, 200);
-    }
-  }
-
-  // เริ่มต้นทำงาน
   window.onload = function() {
-    initGoogle();
-    
-    // ผูกปุ่มกด
     const btn = document.getElementById("googleBtn");
-    if (btn) {
-      btn.addEventListener("click", function() {
-        if (googleClient) {
-          googleClient.requestCode();
-        } else {
-          alert("ระบบ Google ยังโหลดไม่เสร็จ กรุณารอสักครู่แล้วลองใหม่ครับ");
-        }
-      });
+    
+    // ถ้าค่า Client ID หลังบ้านว่างเปล่า ให้แจ้งเตือน
+    if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.trim() === "") {
+      console.error("❌ GOOGLE_CLIENT_ID is empty! กรุณาตั้งค่าใน Vercel Environment Variables");
+      btn.onclick = () => alert("ระบบยังไม่ได้ตั้งค่า Client ID กรุณาแจ้งแอดมิน");
+      return;
     }
+
+    // คอยเช็กว่าสคริปต์ Google โหลดเสร็จหรือยัง
+    function initGoogle() {
+      if (typeof google !== 'undefined' && google.accounts) {
+        try {
+          googleClient = google.accounts.oauth2.initCodeClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: 'email profile openid',
+            ux_mode: 'popup',
+            callback: (response) => {
+              if (response.code) {
+                fetch("/auth/google", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ code: response.code })
+                })
+                .then(res => res.json())
+                .then(data => {
+                  if (data.ok) {
+                    window.location.href = data.redirect || "/";
+                  } else {
+                    alert("เข้าสู่ระบบไม่สำเร็จ: " + (data.error || "Unknown"));
+                  }
+                })
+                .catch(err => alert("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้"));
+              } else if (response.error) {
+                alert("Google แจ้งข้อผิดพลาด: " + response.error);
+              }
+            },
+          });
+        } catch (error) {
+          console.error("Google Init Error:", error);
+          alert("ตั้งค่า Google ผิดพลาด: " + error.message);
+        }
+      } else {
+        setTimeout(initGoogle, 200); // ถ้ายังไม่เสร็จให้รอแล้วเช็กใหม่
+      }
+    }
+    
+    initGoogle();
+
+    // เมื่อกดปุ่ม
+    btn.addEventListener("click", function() {
+      if (googleClient) {
+        try {
+          googleClient.requestCode();
+        } catch (err) {
+          alert("ไม่สามารถเปิดหน้าต่าง Google ได้ (อาจโดนบล็อก Popup) กรุณาอนุญาต Popup สำหรับเว็บนี้ครับ");
+        }
+      } else {
+        alert("ระบบ Google ยังโหลดไม่เสร็จ กรุณารอสักครู่แล้วลองใหม่ครับ");
+      }
+    });
   };
 </script>
 
