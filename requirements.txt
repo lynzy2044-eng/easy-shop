@@ -5,3 +5,5 @@ requests
 qrcode[pil]
 gunicorn
 google-auth
+google-auth-oauthlib
+psycopg2-binary
