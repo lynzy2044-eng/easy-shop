@@ -7,10 +7,8 @@
 <div style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 16px;">
   <div style="background: #ffffff; border-radius: 24px; padding: 32px; width: 100%; max-width: 400px; box-shadow: 0 20px 40px -12px rgba(37, 99, 235, 0.15); border: 1px solid #e2e8f0; position: relative; overflow: hidden;">
 
-    <!-- แสงฟุ้งๆ ด้านหลัง -->
     <div style="position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 200px; height: 200px; background: rgba(37, 99, 235, 0.15); filter: blur(60px); border-radius: 50%;"></div>
 
-    <!-- หัวข้อ -->
     <div style="text-align: center; margin-bottom: 32px; position: relative; z-index: 1;">
       <h2 style="color: #0f172a; margin: 0 0 8px; font-size: 24px; font-weight: 800;">
         {{ "สมัครสมาชิก" if mode == "register" else "เข้าสู่ระบบ" }}
@@ -21,9 +19,7 @@
       </p>
     </div>
 
-    <!-- ฟอร์มล็อกอินปกติ -->
     <form method="post" style="position: relative; z-index: 1;">
-      <!-- ช่องอีเมล -->
       <div style="position: relative; margin-bottom: 16px;">
         <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
           <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
@@ -33,7 +29,6 @@
                onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
       </div>
 
-      <!-- ช่องรหัสผ่าน -->
       <div style="position: relative; margin-bottom: 24px;">
         <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
           <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
@@ -43,21 +38,19 @@
                onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
       </div>
 
-      <!-- ปุ่ม Submit สีฟ้า -->
       <button type="submit" style="width: 100%; background: #2563eb; color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);" onmouseover="this.style.background='#1e40af'" onmouseout="this.style.background='#2563eb'">
         {{ "สมัครสมาชิก" if mode == "register" else "เข้าสู่ระบบ" }}
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
       </button>
     </form>
 
-    <!-- เส้นคั่น -->
     <div style="display: flex; align-items: center; margin: 24px 0; color: #94a3b8; font-size: 13px;">
       <div style="flex: 1; height: 1px; background: #e2e8f0;"></div>
       <span style="padding: 0 12px;">หรือ</span>
       <div style="flex: 1; height: 1px; background: #e2e8f0;"></div>
     </div>
 
-    <!-- ปุ่ม Google Sign-In แบบกำหนดเอง (ไม่ใช้ iframe ของ Google เพื่อให้คุมสไตล์ได้ 100%) -->
+    <!-- ปุ่ม Google Sign-In แบบกำหนดเอง -->
     <div style="position: relative; z-index: 1; width: 100%;">
       <button id="googleBtn" type="button" style="width: 100%; background: #ffffff; color: #3c4043; border: 1px solid #dadce0; padding: 14px; border-radius: 50px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background 0.2s, box-shadow 0.2s;" onmouseover="this.style.background='#f8fafc'; this.style.boxShadow='0 1px 2px 0 rgba(60,64,67,0.3)'" onmouseout="this.style.background='#ffffff'; this.style.boxShadow='none'">
         <svg width="20" height="20" viewBox="0 0 24 24">
@@ -70,7 +63,6 @@
       </button>
     </div>
 
-    <!-- ลิงก์สลับหน้าสมัคร/ล็อกอิน -->
     <div style="text-align: center; margin-top: 24px; font-size: 14px; color: #64748b; position: relative; z-index: 1;">
       {% if mode == "register" %}
         มีบัญชีแล้ว? <a href="{{ url_for('login') }}" style="color: #2563eb; font-weight: 600; text-decoration: none;">เข้าสู่ระบบ</a>
@@ -82,42 +74,43 @@
   </div>
 </div>
 
-<!-- สคริปต์จัดการ Google Login (แบบ Manual) -->
+<!-- สคริปต์แบบ OAuth2 (เสถียรที่สุด) -->
 <script>
-  // ดึง Client ID จากหลังบ้าน (ถ้าหลังบ้านว่าง ให้แจ้งเตือนใน Console)
   const GOOGLE_CLIENT_ID = "{{ config.GOOGLE_CLIENT_ID }}";
-  
-  if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID === "None") {
-    console.error("❌ GOOGLE_CLIENT_ID is missing! กรุณาตั้งค่าใน .env หรือ Vercel Environment Variables");
-  }
 
-  // เริ่มต้นระบบ Google
   window.onload = function () {
     if (typeof google === 'undefined') {
       console.error("Google SDK ยังโหลดไม่เสร็จ");
       return;
     }
 
-    google.accounts.id.initialize({
+    // ตั้งค่า OAuth2 Client
+    const client = google.accounts.oauth2.initCodeClient({
       client_id: GOOGLE_CLIENT_ID,
-      callback: handleCredentialResponse
+      scope: 'email profile openid',
+      ux_mode: 'popup',
+      callback: (response) => {
+        if (response.code) {
+          // ส่ง Code ไปให้หลังบ้านแลกเป็น Token
+          sendCodeToBackend(response.code);
+        }
+      },
     });
 
-    // ผูกปุ่มที่เราออกแบบเอง ให้เรียกใช้ Popup ของ Google
+    // ผูกปุ่มให้เปิด Popup ของ Google
     const btn = document.getElementById("googleBtn");
     if (btn) {
       btn.addEventListener("click", () => {
-        google.accounts.id.prompt(); // เปิดหน้าต่างล็อกอินของ Google
+        client.requestCode();
       });
     }
   };
 
-  // ฟังก์ชันรับข้อมูลหลังล็อกอินสำเร็จ
-  function handleCredentialResponse(response) {
+  function sendCodeToBackend(code) {
     fetch("/auth/google", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ credential: response.credential })
+      body: JSON.stringify({ code: code })
     })
     .then(res => res.json())
     .then(data => {
