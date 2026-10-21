@@ -439,7 +439,11 @@ def pay(order_id):
         return redirect(url_for("index") + "#packages")
 
     expected = order.amount_satang / 100
-    payload = promptpay_payload(PROMPTPAY_PHONE, expected)
+    pay_from_balance = min(user.balance, expected)
+    amount_to_pay = round(expected - pay_from_balance, 2)
+    
+    # สร้าง QR สำหรับยอดที่ต้องจ่ายจริง (หลังหักเงินในกระเป๋าแล้ว)
+    payload = promptpay_payload(PROMPTPAY_PHONE, amount_to_pay if amount_to_pay > 0 else 0.01)
     qr_code = qr_data_uri(payload)
 
     if request.method == "POST":
@@ -452,10 +456,11 @@ def pay(order_id):
                 flash("กรุณาแนบรูปสลิป", "err")
             else:
                 try:
-                    slip = verify_slip(file.read(), file.filename, expected_amount=expected, receiver_phone=PROMPTPAY_PHONE)
+                    slip = verify_slip(file.read(), file.filename, expected_amount=amount_to_pay, receiver_phone=PROMPTPAY_PHONE)
                     if Order.query.filter_by(slip_ref=slip.trans_ref).first():
                         raise SlipError("duplicate", "สลิปนี้ถูกใช้ไปแล้ว")
                     
+                    user.balance -= pay_from_balance
                     order.status = "paid"
                     order.paid_at = utcnow()
                     order.slip_ref = slip.trans_ref
@@ -481,10 +486,11 @@ def pay(order_id):
                 if Order.query.filter_by(slip_ref=voucher_hash).first():
                     flash("❌ ซองอั่งเปานี้ถูกใช้ไปแล้ว", "err")
                 else:
-                    change = result - expected
+                    change = result - amount_to_pay
                     if change > 0:
                         user.balance += change
-                        
+                    
+                    user.balance -= pay_from_balance
                     order.status = "paid"
                     order.paid_at = utcnow()
                     order.slip_ref = voucher_hash
@@ -494,7 +500,7 @@ def pay(order_id):
                     flash(f"✅ ชำระเงินสำเร็จ (ทอนเงินคืนกระเป๋า {change:.2f} บาท)", "ok")
                     return redirect(url_for("account"))
 
-    return render_template("pay.html", order=order, package=PACKAGES[order.package], amount=expected, qr=qr_code)
+    return render_template("pay.html", order=order, package=PACKAGES[order.package], amount=expected, amount_to_pay=amount_to_pay, pay_from_balance=pay_from_balance, qr=qr_code)
 
 
 @app.route("/account")
