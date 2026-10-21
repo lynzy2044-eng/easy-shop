@@ -385,6 +385,36 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 .font-anuphan-all, .font-anuphan-all * {
   font-family: 'Anuphan', sans-serif !important;
 }
+
+/* ✅ Mobile Bottom Auth Bar (เฉพาะคนที่ยังไม่ล็อกอิน) */
+.mobile-auth-bar {
+  display: none; /* ซ่อนไว้บนคอมพิวเตอร์ */
+}
+
+@media (max-width: 900px) {
+  .mobile-auth-bar {
+    display: flex;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 999;
+    background: #4b5563; /* สีเทาเข้มตามภาพ */
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+    padding-bottom: env(safe-area-inset-bottom); /* รองรับ iPhone ที่มีแถบด้านล่าง */
+  }
+  .mobile-auth-bar a {
+    flex: 1;
+    text-align: center;
+    padding: 16px 0;
+    color: #ffffff !important;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: 'Anuphan', sans-serif;
+    transition: background 0.2s;
+  }
+  .mobile-auth-bar a:active {
+    background: rgba(255,255,255,0.1);
+  }
+  /* เพิ่มระยะห่างด้านล่างให้เนื้อหาไม่ถูกแถบทับ */
+  body { padding-bottom: 60px; }
+}
 </style>
 </head>
 <body>
@@ -509,6 +539,12 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
       </div>
     </div>
   </div>
+</div>
+{% else %}
+<!-- ✅ แถบเมนูล่างสำหรับมือถือ (แสดงเฉพาะตอนที่ยังไม่ล็อกอิน) -->
+<div class="mobile-auth-bar">
+  <a href="{{ url_for('register') }}">สมัครสมาชิก</a>
+  <a href="{{ url_for('login') }}">เข้าสู่ระบบ</a>
 </div>
 {% endif %}
 
