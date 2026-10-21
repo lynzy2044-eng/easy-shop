@@ -1,26 +1,35 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- การ์ดโปรไฟล์: แบนเนอร์ + รูปโปรไฟล์ + ชื่อ + ปุ่มปรับแต่ง -->
+<!-- การ์ดโปรไฟล์: แบนเนอร์ 8:3 + รูปโปรไฟล์ (กดเพื่อเปลี่ยน) + ชื่อ + ปุ่มปรับแต่ง -->
 <div class="card" style="margin-bottom: 24px; padding: 0; overflow: hidden;">
   <div class="profile-banner"
-       style="border-radius: 16px 16px 0 0; height: 150px;{% if profile.banner %} background-image: url('{{ profile.banner }}');{% endif %}"></div>
+       style="border-radius: 16px 16px 0 0; aspect-ratio: 8 / 3; height: auto;{% if profile.banner %} background-image: url('{{ profile.banner }}');{% endif %}"></div>
 
-  <div style="display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; padding: 0 24px 24px; margin-top: -44px;">
-    {% if profile.avatar_url %}
-      <img class="avatar lg" src="{{ profile.avatar_url }}" alt="" referrerpolicy="no-referrer" style="margin: 0;">
-    {% else %}
-      <span class="avatar lg" style="margin: 0;">{{ profile.initial }}</span>
-    {% endif %}
+  <div style="display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; padding: 0 24px 24px;">
+    <button type="button" data-open="avatarModal" aria-label="เปลี่ยนรูปโปรไฟล์"
+            style="position: relative; margin-top: -44px; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 50%; flex-shrink: 0;">
+      {% if profile.avatar_url %}
+        <img class="avatar lg" src="{{ profile.avatar_url }}" alt="" referrerpolicy="no-referrer" style="margin: 0;">
+      {% else %}
+        <span class="avatar lg" style="margin: 0;">{{ profile.initial }}</span>
+      {% endif %}
+      <span style="position: absolute; right: 2px; bottom: 2px; width: 28px; height: 28px; border-radius: 50%;
+                   background: var(--primary); color: #fff; border: 2px solid #fff;
+                   display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,.25);">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"></path>
+        </svg>
+      </span>
+    </button>
 
-    <div style="flex: 1; min-width: 180px; padding-bottom: 6px;">
+    <div style="flex: 1; min-width: 180px; padding-top: 12px;">
       <div class="muted" style="font-family: 'AnuphanAll', 'Anuphan', sans-serif; font-size: 16px; font-weight: 700;">{{ user.username }}</div>
     </div>
 
-    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <div style="display: flex; gap: 8px; flex-wrap: wrap; padding-top: 12px;">
       <button type="button" class="btn" data-open="customizeModal" style="width: auto; padding: 10px 18px; font-size: 14px;">ปรับแต่งโปรไฟล์</button>
       <button type="button" class="btn ghost" data-open="colorModal" style="width: auto; padding: 10px 18px; font-size: 14px;">เปลี่ยนสีชื่อ</button>
-      <button type="button" class="btn ghost" data-open="avatarModal" style="width: auto; padding: 10px 18px; font-size: 14px;">เปลี่ยนรูปโปรไฟล์</button>
     </div>
   </div>
 </div>
@@ -58,13 +67,13 @@
   </div>
 </div>
 
-<!-- ป๊อปอัปเปลี่ยนรูปโปรไฟล์ -->
+<!-- ป๊อปอัปเปลี่ยนรูปโปรไฟล์ (ตัดเป็น 1:1 ให้อัตโนมัติ) -->
 <div class="pop-overlay" id="avatarModal" hidden>
   <div class="pop-box">
     <button type="button" class="pop-close" data-close aria-label="ปิด">✕</button>
     <div style="padding: 28px 24px 24px; text-align: center;">
       <h3 style="margin: 0 0 4px;">เปลี่ยนรูปโปรไฟล์</h3>
-      <p class="muted" style="margin: 0 0 18px; font-size: 14px;">เลือกรูปจากเครื่อง ระบบจะตัดเป็นวงกลมให้อัตโนมัติ</p>
+      <p class="muted" style="margin: 0 0 18px; font-size: 14px;">ขนาด 1:1 ถ้ารูปไม่ใช่สี่เหลี่ยมจัตุรัส ระบบจะครอปตรงกลางให้อัตโนมัติ</p>
 
       <div style="display: flex; justify-content: center; margin-bottom: 18px;">
         {% if profile.avatar_url %}
