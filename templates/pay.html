@@ -20,7 +20,24 @@
 
   .icon { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
 
-  .hidden { display: none !important; }
+  /* ==================================================== */
+  /* ✨ เพิ่ม Animation ยืดหดให้เนื้อหาใน Modal */
+  /* ==================================================== */
+  .tab-content-wrapper {
+    display: grid;
+    /* ใช้ Grid ในการจำลองความสูงที่เปลี่ยนไปมา */
+    grid-template-rows: 1fr; 
+    transition: grid-template-rows 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  .tab-pane {
+    overflow: hidden; /* ซ่อนส่วนที่เกินความสูงเพื่อให้แอนิเมชันทำงาน */
+  }
+
+  .hidden-pane {
+    grid-template-rows: 0fr; /* ยุบความสูงลงเหลือ 0 */
+  }
+  /* ==================================================== */
 
   .qr-box { background: #0f172a; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 16px; }
   .qr-head { display: flex; justify-content: space-between; color: #fff; font-size: 14px; margin-bottom: 16px; }
@@ -72,11 +89,13 @@
   }
   .enough p { color: var(--ok); font-weight: 700; font-size: 17px; margin: 0 0 16px; }
 
-  /* ---- แถบเลื่อนแบบมือถือ: ซ่อนไว้ และโชว์เฉพาะตอนเลื่อน ---- */
+  /* ---- แถบเลื่อนแบบมือถือ ---- */
   .modal-content {
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
     transition: scrollbar-color 0.3s ease;
+    /* 🌟 เพิ่ม Transition ให้กับตัว Modal เผื่อในอนาคต */
+    transition: max-height 0.4s ease; 
   }
   .modal-content.is-scrolling {
     scrollbar-color: #cbd5e1 transparent;
@@ -116,73 +135,77 @@
     </div>
 
     <!-- ==================================================== -->
-    <!-- แท็บที่ 1: พร้อมเพย์ -->
+    <!-- ✨ ห่อด้วย tab-content-wrapper เพื่อทำ Animation -->
     <!-- ==================================================== -->
-    <div id="sec-p">
-      {% if amount_to_pay > 0 %}
-      <div class="qr-box">
-        <div class="qr-head">
-          <span>สแกน QR พร้อมเพย์</span>
-          <span class="amt">฿{{ "%.2f"|format(amount_to_pay) }}</span>
+    <div class="tab-content-wrapper" id="tabWrapper">
+      
+      <!-- แท็บที่ 1: พร้อมเพย์ -->
+      <div id="sec-p" class="tab-pane">
+        {% if amount_to_pay > 0 %}
+        <div class="qr-box">
+          <div class="qr-head">
+            <span>สแกน QR พร้อมเพย์</span>
+            <span class="amt">฿{{ "%.2f"|format(amount_to_pay) }}</span>
+          </div>
+          <div class="qr-img">
+            <img src="{{ qr }}" alt="PromptPay QR">
+          </div>
+          <div class="qr-note">สแกนแล้วโอน {{ "%.2f"|format(amount_to_pay) }} บาท ระบบจะตรวจสอบทันที</div>
         </div>
-        <div class="qr-img">
-          <img src="{{ qr }}" alt="PromptPay QR">
+
+        <p class="hint">โอนเงินตามยอดด้านบน แล้วแนบสลิปเพื่อให้ระบบตรวจสอบอัตโนมัติ</p>
+        <form method="post" enctype="multipart/form-data" onsubmit="showLoading(this)">
+          <input type="hidden" name="method" value="verify_slip">
+
+          <label for="slipUpload" class="slip-drop">
+            <img id="slipPreview" class="preview" src="" alt="">
+            <div id="uploadPlaceholder" style="display:flex; flex-direction:column; align-items:center;">
+              <svg width="32" height="32" fill="none" stroke="var(--muted)" stroke-width="2" viewBox="0 0 24 24" style="margin-bottom:8px;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+              </svg>
+              <span style="font-weight:600; font-size:15px;">กดเพื่ออัปโหลดรูปสลิป</span>
+              <span style="font-size:13px; color:var(--muted); margin-top:4px;">JPG, PNG ขนาดไม่เกิน 5MB</span>
+            </div>
+            <input type="file" name="slip" id="slipUpload" accept="image/*" required style="display:none;" onchange="previewSlip(event)">
+          </label>
+
+          <button class="submit" type="submit">
+            <img class="spinner" src="{{ url_for('static', filename='icons/spinner-blue.gif') }}" alt="">
+            <span>ยืนยัน</span>
+          </button>
+        </form>
+
+        {% else %}
+        <!-- กรณีที่เงินในกระเป๋าเพียงพอแล้ว -->
+        <div class="enough">
+          <p>ยอดเงินในกระเป๋าของคุณเพียงพอแล้ว</p>
+          <form method="post" onsubmit="showLoading(this)">
+            <input type="hidden" name="method" value="pay_with_balance">
+            <button class="submit" type="submit" style="background: var(--ok); box-shadow: 0 4px 14px rgba(5,150,105,.35);">
+              <img class="spinner" src="{{ url_for('static', filename='icons/spinner-blue.gif') }}" alt="">
+              <span>ยืนยันเพื่อซื้อคอร์สด้วยเงินในกระเป๋า</span>
+            </button>
+          </form>
         </div>
-        <div class="qr-note">สแกนแล้วโอน {{ "%.2f"|format(amount_to_pay) }} บาท ระบบจะตรวจสอบทันที</div>
+        {% endif %}
       </div>
 
-      <p class="hint">โอนเงินตามยอดด้านบน แล้วแนบสลิปเพื่อให้ระบบตรวจสอบอัตโนมัติ</p>
-      <form method="post" enctype="multipart/form-data" onsubmit="showLoading(this)">
-        <input type="hidden" name="method" value="verify_slip">
-
-        <label for="slipUpload" class="slip-drop">
-          <img id="slipPreview" class="preview" src="" alt="">
-          <div id="uploadPlaceholder" style="display:flex; flex-direction:column; align-items:center;">
-            <svg width="32" height="32" fill="none" stroke="var(--muted)" stroke-width="2" viewBox="0 0 24 24" style="margin-bottom:8px;">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-            </svg>
-            <span style="font-weight:600; font-size:15px;">กดเพื่ออัปโหลดรูปสลิป</span>
-            <span style="font-size:13px; color:var(--muted); margin-top:4px;">JPG, PNG ขนาดไม่เกิน 5MB</span>
-          </div>
-          <input type="file" name="slip" id="slipUpload" accept="image/*" required style="display:none;" onchange="previewSlip(event)">
-        </label>
-
-        <button class="submit" type="submit">
-          <img class="spinner" src="{{ url_for('static', filename='icons/spinner-blue.gif') }}" alt="">
-          <span>ยืนยัน</span>
-        </button>
-      </form>
-
-      {% else %}
-      <!-- กรณีที่เงินในกระเป๋าเพียงพอแล้ว -->
-      <div class="enough">
-        <p>ยอดเงินในกระเป๋าของคุณเพียงพอแล้ว</p>
+      <!-- แท็บที่ 2: TrueMoney -->
+      <div id="sec-t" class="tab-pane hidden-pane">
+        <p class="hint">วางลิงก์ซองอั่งเปา TrueMoney ที่ต้องการใช้ชำระเงิน</p>
         <form method="post" onsubmit="showLoading(this)">
-          <input type="hidden" name="method" value="pay_with_balance">
-          <button class="submit" type="submit" style="background: var(--ok); box-shadow: 0 4px 14px rgba(5,150,105,.35);">
+          <input type="hidden" name="method" value="truemoney">
+          <input type="url" class="field" name="truemoney_link"
+                 placeholder="https://gift.truemoney.com/campaign/?v=..." required>
+          <button class="submit" type="submit">
             <img class="spinner" src="{{ url_for('static', filename='icons/spinner-blue.gif') }}" alt="">
-            <span>ยืนยันเพื่อซื้อคอร์สด้วยเงินในกระเป๋า</span>
+            <span>ยืนยัน</span>
           </button>
         </form>
       </div>
-      {% endif %}
-    </div>
 
-    <!-- ==================================================== -->
-    <!-- แท็บที่ 2: TrueMoney -->
-    <!-- ==================================================== -->
-    <div id="sec-t" class="hidden">
-      <p class="hint">วางลิงก์ซองอั่งเปา TrueMoney ที่ต้องการใช้ชำระเงิน</p>
-      <form method="post" onsubmit="showLoading(this)">
-        <input type="hidden" name="method" value="truemoney">
-        <input type="url" class="field" name="truemoney_link"
-               placeholder="https://gift.truemoney.com/campaign/?v=..." required>
-        <button class="submit" type="submit">
-          <img class="spinner" src="{{ url_for('static', filename='icons/spinner-blue.gif') }}" alt="">
-          <span>ยืนยัน</span>
-        </button>
-      </form>
     </div>
+    <!-- ==================================================== -->
 
     <p class="hint" style="text-align:center; margin: 16px 0 0; font-size:12px;">หากระบบไม่ตอบสนอง โปรดรอสักครู่แล้วลองใหม่</p>
 
@@ -198,11 +221,23 @@
 
 <script>
   function switchTab(tab) {
+    const wrapper = document.getElementById('tabWrapper');
+    const secP = document.getElementById('sec-p');
+    const secT = document.getElementById('sec-t');
+
+    // อัปเดตปุ่ม
     document.querySelectorAll('.pay-tab').forEach(function (btn) {
       btn.classList.toggle('active', btn.dataset.tab === tab);
     });
-    document.getElementById('sec-p').classList.toggle('hidden', tab !== 'p');
-    document.getElementById('sec-t').classList.toggle('hidden', tab !== 't');
+
+    // สลับการแสดงผลด้วย Animation Grid
+    if (tab === 'p') {
+      secP.classList.remove('hidden-pane');
+      secT.classList.add('hidden-pane');
+    } else {
+      secP.classList.add('hidden-pane');
+      secT.classList.remove('hidden-pane');
+    }
   }
 
   function showLoading(form) {
@@ -230,7 +265,7 @@
     }
   }
 
-  // แสดงแถบเลื่อนตอนกำลังเลื่อน แล้วซ่อนหลังหยุดเลื่อนประมาณ 0.6 วินาที
+  // แสดงแถบเลื่อนตอนกำลังเลื่อน แล้วซ่อนหลังหยุดเลื่อน
   (function () {
     const modal = document.getElementById('payModal');
     let timer = null;
