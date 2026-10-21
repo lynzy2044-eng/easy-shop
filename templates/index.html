@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+  .menu-icon {
+    width: 28px; height: 28px; object-fit: contain; display: block;
+  }
+</style>
 
 <!-- Hero Section (ดึงข้อมูลจาก Database) -->
 <section class="hero" style="{% if hero_img %}background-image: url('{{ hero_img }}'); background-size: cover; background-position: center; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5);{% endif %}">
@@ -12,10 +17,12 @@
 <section style="margin-bottom: 40px;">
   <h2>เมนูทั้งหมด</h2>
   <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));">
-    
+
     <!-- ซื้อคอร์ส -->
     <a href="#packages" class="dash-card">
-      <div class="dash-icon" style="background: #eff6ff; color: #2563eb;">🛒</div>
+      <div class="dash-icon" style="background: #eff6ff;">
+        <img class="menu-icon" src="{{ url_for('static', filename='icons/cart.gif') }}" alt="">
+      </div>
       <div>
         <h3 style="margin: 0 0 4px;">ซื้อคอร์สเรียน</h3>
         <p class="muted" style="margin: 0; font-size: 14px;">เลือกแพ็กเกจที่ใช่สำหรับคุณ</p>
@@ -24,7 +31,9 @@
 
     <!-- เรียนฟรี -->
     <a href="{{ url_for('free_lessons') }}" class="dash-card">
-      <div class="dash-icon" style="background: #ecfdf5; color: #059669;">🎓</div>
+      <div class="dash-icon" style="background: #ecfdf5;">
+        <img class="menu-icon" src="{{ url_for('static', filename='icons/verified.gif') }}" alt="">
+      </div>
       <div>
         <h3 style="margin: 0 0 4px;">คอร์สเรียนฟรี</h3>
         <p class="muted" style="margin: 0; font-size: 14px;">ทดลองเรียนก่อนตัดสินใจ</p>
@@ -33,16 +42,20 @@
 
     <!-- เติมเงิน -->
     <a href="{{ url_for('topup') }}" class="dash-card">
-      <div class="dash-icon" style="background: #fffbeb; color: #d97706;">💳</div>
+      <div class="dash-icon" style="background: #fffbeb;">
+        <img class="menu-icon" src="{{ url_for('static', filename='icons/wallet.png') }}" alt="">
+      </div>
       <div>
         <h3 style="margin: 0 0 4px;">เติมเงินเข้ากระเป๋า</h3>
         <p class="muted" style="margin: 0; font-size: 14px;">ผ่าน TrueMoney วอเล็ต</p>
       </div>
     </a>
 
-    <!-- แจ้งปัญหา -->
+    <!-- ติดต่อแจ้งปัญหา -->
     <a href="{{ url_for('contact') }}" class="dash-card">
-      <div class="dash-icon" style="background: #fef2f2; color: #dc2626;">📞</div>
+      <div class="dash-icon" style="background: #fef2f2;">
+        <img class="menu-icon" src="{{ url_for('static', filename='icons/announce.gif') }}" alt="">
+      </div>
       <div>
         <h3 style="margin: 0 0 4px;">ติดต่อแจ้งปัญหา</h3>
         <p class="muted" style="margin: 0; font-size: 14px;">แจ้งแอดมินหรือสอบถามข้อมูล</p>
