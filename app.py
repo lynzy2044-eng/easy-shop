@@ -26,7 +26,6 @@ load_dotenv()
 app = Flask(__name__)
 app.config.update(
     SECRET_KEY=os.getenv("SECRET_KEY") or secrets.token_hex(32),
-    # ใช้ DATABASE_URL จาก Environment Variable (เช่น Neon PostgreSQL)
     SQLALCHEMY_DATABASE_URI=os.getenv("DATABASE_URL", "sqlite:///shop.db"),
     MAX_CONTENT_LENGTH=10 * 1024 * 1024, # 10MB สำหรับอัปโหลดแบนเนอร์
     GOOGLE_CLIENT_ID=os.getenv("GOOGLE_CLIENT_ID", ""),
