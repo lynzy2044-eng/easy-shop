@@ -264,6 +264,7 @@ def inject_globals():
         "btn_font_size": f"{get_setting('btn_font_size', '16')}px",
         "btn_radius": f"{get_setting('btn_radius', '12')}px",
         "profile": profile_for(user),
+        "google_client_id": app.config["GOOGLE_CLIENT_ID"],
     }
 
 
@@ -791,6 +792,26 @@ def profile_banner():
         if not mime.startswith("image/"):
             return jsonify(ok=False, error="not_image"), 400
         p.banner = f"data:{mime};base64," + base64.b64encode(file.read()).decode("utf-8")
+    db.session.add(p)
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.route("/profile/avatar", methods=["POST"])
+@login_required
+def profile_avatar():
+    user = current_user()
+    p = db.session.get(UserProfile, user.id) or UserProfile(user_id=user.id)
+    if request.form.get("remove"):
+        p.avatar_url = ""
+    else:
+        file = request.files.get("avatar")
+        if not file or not file.filename:
+            return jsonify(ok=False, error="no_file"), 400
+        mime = file.mimetype or ""
+        if not mime.startswith("image/"):
+            return jsonify(ok=False, error="not_image"), 400
+        p.avatar_url = f"data:{mime};base64," + base64.b64encode(file.read()).decode("utf-8")
     db.session.add(p)
     db.session.commit()
     return jsonify(ok=True)
