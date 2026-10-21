@@ -4,8 +4,10 @@
   .menu-icon {
     width: 28px; height: 28px; object-fit: contain; display: block;
   }
-  .menu-icon.hover-gif { position: relative; }
-  .menu-icon .anim { display: none; }
+  .menu-icon .still,
+  .menu-icon img {
+    width: 100%; height: 100%; object-fit: contain;
+  }
 </style>
 
 <!-- Hero Section (ดึงข้อมูลจาก Database) -->
@@ -24,7 +26,7 @@
     <a href="#packages" class="dash-card">
       <div class="dash-icon" style="background: #eff6ff;">
         <span class="menu-icon hover-gif" data-still="{{ url_for('static', filename='icons/still/cart-still.png') }}" data-anim="{{ url_for('static', filename='icons/cart.gif') }}">
-          <img class="still" src="{{ url_for('static', filename='icons/still/cart-still.png') }}" alt="" style="width:100%; height:100%; object-fit:contain;">
+          <img class="still" src="{{ url_for('static', filename='icons/still/cart-still.png') }}" alt="">
         </span>
       </div>
       <div>
@@ -37,7 +39,7 @@
     <a href="{{ url_for('free_lessons') }}" class="dash-card">
       <div class="dash-icon" style="background: #ecfdf5;">
         <span class="menu-icon hover-gif" data-still="{{ url_for('static', filename='icons/still/verified-still.png') }}" data-anim="{{ url_for('static', filename='icons/verified.gif') }}">
-          <img class="still" src="{{ url_for('static', filename='icons/still/verified-still.png') }}" alt="" style="width:100%; height:100%; object-fit:contain;">
+          <img class="still" src="{{ url_for('static', filename='icons/still/verified-still.png') }}" alt="">
         </span>
       </div>
       <div>
@@ -50,25 +52,25 @@
     <a href="{{ url_for('topup') }}" class="dash-card">
       <div class="dash-icon" style="background: #fffbeb;">
         <span class="menu-icon">
-          <img src="{{ url_for('static', filename='icons/wallet.png') }}" alt="" style="width:100%; height:100%; object-fit:contain;">
+          <img src="{{ url_for('static', filename='icons/wallet.png') }}" alt="">
         </span>
       </div>
       <div>
-        <h3 style="margin: 0 0 4px;">เติมเงิน</h3>
-        <p class="muted" style="margin: 0; font-size: 14px;">PromptPay & TrueMoney Wallet</p>
+        <h3 style="margin: 0 0 4px;">เติมเงินเข้ากระเป๋า</h3>
+        <p class="muted" style="margin: 0; font-size: 14px;">ผ่าน TrueMoney วอเล็ต</p>
       </div>
     </a>
 
-    <!-- ติดต่อแจ้งปัญหา -->
+    <!-- ติดต่อแอดมิน -->
     <a href="{{ url_for('contact') }}" class="dash-card">
       <div class="dash-icon" style="background: #fef2f2;">
         <span class="menu-icon hover-gif" data-still="{{ url_for('static', filename='icons/still/announce-still.png') }}" data-anim="{{ url_for('static', filename='icons/announce.gif') }}">
-          <img class="still" src="{{ url_for('static', filename='icons/still/announce-still.png') }}" alt="" style="width:100%; height:100%; object-fit:contain;">
+          <img class="still" src="{{ url_for('static', filename='icons/still/announce-still.png') }}" alt="">
         </span>
       </div>
       <div>
         <h3 style="margin: 0 0 4px;">ติดต่อแอดมิน</h3>
-        <p class="muted" style="margin: 0; font-size: 14px;">แจ้งแอดมินหรือสอบถามข้อมูล</p>
+        <p class="muted" style="margin: 0; font-size: 14px;">สอบถามข้อมูลหรือแจ้งปัญหา</p>
       </div>
     </a>
 
