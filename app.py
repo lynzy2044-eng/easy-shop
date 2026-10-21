@@ -44,7 +44,8 @@ SHOP_NAME = os.getenv("SHOP_NAME", "CapCut PC Course")
 PROMPTPAY_PHONE = os.getenv("PROMPTPAY_PHONE", "")
 ORDER_TTL = timedelta(minutes=30)
 
-# ดึงอีเมลแอดมินและแปลงเป็นตัวพิมพ์เล็กเพื่อความแม่นยำ
+# รายชื่อแอดมิน: ค่าจาก ADMIN_EMAIL (เช่น lynzy2044) รวมกับบัญชี dev จาก DEV_USERNAME
+# ใส่หลายคนได้โดยคั่นด้วยคอมมา เช่น ADMIN_EMAIL=lynzy2044,someone
 ADMIN_USERNAMES = {
     name.strip().lower()
     for name in (os.getenv("ADMIN_EMAIL", "") + "," + os.getenv("DEV_USERNAME", "")).split(",")
@@ -168,6 +169,18 @@ def login_required(view):
     return wrapper
 
 
+def is_admin_user(user):
+    return bool(user) and user.username.strip().lower() in ADMIN_USERNAMES
+
+
+def clamp_int(raw, lo, hi, default):
+    try:
+        value = int(float(raw))
+    except (TypeError, ValueError):
+        return default
+    return max(lo, min(hi, value))
+
+
 def admin_required(view):
     @wraps(view)
     def wrapper(*args, **kwargs):
@@ -175,10 +188,8 @@ def admin_required(view):
         if not user:
             flash("กรุณาเข้าสู่ระบบก่อน", "err")
             return redirect(url_for("login"))
-        
-        # ตรวจสอบสิทธิ์แบบไม่สนตัวพิมพ์เล็ก-ใหญ่
-        if user.username.strip().lower() != ADMIN_EMAIL:
-            flash(f"❌ คุณไม่มีสิทธิ์เข้าถึงหน้านี้ (Username ที่ใช้คือ: {user.username})", "err")
+        if not is_admin_user(user):
+            flash("❌ คุณไม่มีสิทธิ์เข้าถึงหน้านี้", "err")
             return redirect(url_for("index"))
         return view(*args, **kwargs)
     return wrapper
@@ -205,21 +216,18 @@ def qr_data_uri(text):
 @app.context_processor
 def inject_globals():
     user = current_user()
-    # ตรวจสอบสิทธิ์แอดมินเพื่อส่งไปให้หน้าเว็บ (ใช้โชว์ปุ่ม)
-    is_admin = False
-    if user and ADMIN_EMAIL:
-        is_admin = user.username.strip().lower() == ADMIN_EMAIL
-
     return {
         "user": user,
         "shop_name": SHOP_NAME,
-        "is_admin": is_admin,
-        # ส่งค่าจาก CMS ไปให้หน้าเว็บ
+        "is_admin": is_admin_user(user),
+        # ค่าจาก CMS ที่ส่งไปหน้าเว็บ
         "hero_title": get_setting("hero_title", "เรียนตัดต่อ CapCut PC ตั้งแต่ศูนย์"),
         "hero_subtitle": get_setting("hero_subtitle", "จนทำงานได้สไตล์ของตัวเอง ทดลองเรียนฟรีได้ทุกบทแรก"),
         "hero_img": get_setting("hero_img", ""),
         "btn_text": get_setting("btn_text", "ดูแพ็กเกจเลย"),
-        "btn_size": get_setting("btn_size", "14px 32px")
+        "btn_size": f"{get_setting('btn_pad_y', '14')}px {get_setting('btn_pad_x', '32')}px",
+        "btn_font_size": f"{get_setting('btn_font_size', '16')}px",
+        "btn_radius": f"{get_setting('btn_radius', '12')}px",
     }
 
 
@@ -233,32 +241,85 @@ def file_too_large(_e):
 @app.route("/admin")
 @admin_required
 def admin_dashboard():
-    total_topup = db.session.query(db.func.sum(TopupHistory.amount)).scalar() or 0
-    tm_total = db.session.query(db.func.sum(TopupHistory.amount)).filter_by(method="truemoney").scalar() or 0
-    pp_total = db.session.query(db.func.sum(TopupHistory.amount)).filter_by(method="promptpay").scalar() or 0
+    def topup_sum(method=None):
+        q = db.session.query(db.func.coalesce(db.func.sum(TopupHistory.amount), 0.0))
+        if method:
+            q = q.filter(TopupHistory.method == method)
+        return float(q.scalar() or 0)
+
+    def topup_count(method=None):
+        q = TopupHistory.query
+        if method:
+            q = q.filter_by(method=method)
+        return q.count()
+
+    # ยอดขายจริง = ออเดอร์ที่ชำระแล้ว (รวมส่วนที่จ่ายจากกระเป๋า)
+    order_total = db.session.query(
+        db.func.coalesce(db.func.sum(Order.amount_satang), 0)
+    ).filter_by(status="paid").scalar() / 100
+    order_count = Order.query.filter_by(status="paid").count()
+
+    paid_rows = (
+        db.session.query(Order, User)
+        .join(User, User.id == Order.user_id)
+        .filter(Order.status == "paid")
+        .order_by(Order.paid_at.desc())
+        .limit(50)
+        .all()
+    )
+    paid_orders = [
+        {
+            "paid_at": o.paid_at,
+            "username": u.username,
+            "package": PACKAGES[o.package]["name"],
+            "amount": o.amount_satang / 100,
+        }
+        for o, u in paid_rows
+    ]
 
     histories = TopupHistory.query.order_by(TopupHistory.created_at.desc()).limit(50).all()
-    users = User.query.order_by(User.created_at.desc()).all()
 
-    return render_template("admin.html", total=total_topup, tm=tm_total, pp=pp_total, histories=histories, users=users)
+    btn = {
+        "pad_y": get_setting("btn_pad_y", "14"),
+        "pad_x": get_setting("btn_pad_x", "32"),
+        "font_size": get_setting("btn_font_size", "16"),
+        "radius": get_setting("btn_radius", "12"),
+    }
+
+    return render_template(
+        "admin.html",
+        total=topup_sum(), tm=topup_sum("truemoney"), pp=topup_sum("promptpay"),
+        tm_count=topup_count("truemoney"), pp_count=topup_count("promptpay"),
+        order_total=order_total, order_count=order_count,
+        paid_orders=paid_orders, histories=histories,
+        user_count=User.query.count(), btn=btn,
+    )
 
 
 @app.route("/admin/settings", methods=["POST"])
 @admin_required
 def admin_settings():
-    set_setting("hero_title", request.form.get("hero_title", ""))
-    set_setting("hero_subtitle", request.form.get("hero_subtitle", ""))
-    set_setting("btn_text", request.form.get("btn_text", ""))
-    set_setting("btn_size", request.form.get("btn_size", "14px 32px"))
+    set_setting("hero_title", request.form.get("hero_title", "").strip())
+    set_setting("hero_subtitle", request.form.get("hero_subtitle", "").strip())
+    set_setting("btn_text", request.form.get("btn_text", "").strip() or "ดูแพ็กเกจเลย")
 
-    # อัปโหลดรูปแบนเนอร์
+    # ขนาดปุ่ม (ตรวจช่วงค่าไม่ให้หลุดจนพัง)
+    set_setting("btn_pad_y", str(clamp_int(request.form.get("btn_pad_y"), 0, 60, 14)))
+    set_setting("btn_pad_x", str(clamp_int(request.form.get("btn_pad_x"), 0, 120, 32)))
+    set_setting("btn_font_size", str(clamp_int(request.form.get("btn_font_size"), 10, 40, 16)))
+    set_setting("btn_radius", str(clamp_int(request.form.get("btn_radius"), 0, 60, 12)))
+
+    if request.form.get("remove_hero_img"):
+        set_setting("hero_img", "")
+
     file = request.files.get("hero_img")
     if file and file.filename:
-        # แปลงรูปเป็น Base64 เก็บใน DB (วิธีง่ายสุดสำหรับ Vercel)
-        img_bytes = file.read()
-        b64 = base64.b64encode(img_bytes).decode('utf-8')
-        ext = file.filename.split('.')[-1]
-        set_setting("hero_img", f"data:image/{ext};base64,{b64}")
+        mime = file.mimetype or ""
+        if not mime.startswith("image/"):
+            flash("❌ กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น", "err")
+            return redirect(url_for("admin_dashboard"))
+        b64 = base64.b64encode(file.read()).decode("utf-8")
+        set_setting("hero_img", f"data:{mime};base64,{b64}")
 
     flash("✅ อัปเดตหน้าเว็บเรียบร้อยแล้ว", "ok")
     return redirect(url_for("admin_dashboard"))
@@ -645,9 +706,24 @@ def account():
     )
 
 
+def ensure_dev_account():
+    """สร้างหรือซิงก์บัญชี dev ตาม env: DEV_USERNAME และ DEV_PASSWORD"""
+    dev_user = os.getenv("DEV_USERNAME", "").strip().lower()
+    dev_pass = os.getenv("DEV_PASSWORD", "")
+    if not dev_user or not dev_pass:
+        return
+    user = User.query.filter_by(username=dev_user).first()
+    if not user:
+        db.session.add(User(username=dev_user, password_hash=generate_password_hash(dev_pass)))
+    elif not check_password_hash(user.password_hash, dev_pass):
+        user.password_hash = generate_password_hash(dev_pass)
+    db.session.commit()
+
+
 # สร้างตารางฐานข้อมูลอัตโนมัติเมื่อเริ่มรัน (รวมถึงบน Vercel ด้วย)
 with app.app_context():
     db.create_all()
+    ensure_dev_account()
 
 
 if __name__ == "__main__":
