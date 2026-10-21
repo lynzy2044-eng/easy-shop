@@ -22,6 +22,7 @@
   /* ✅ บังคับสีหัวข้อ (h3) ให้เป็นสีดำ */
   .dash-card h3 {
     color: #000000 !important;
+    transition: color 0.2s ease;
   }
 
   /* ✅ บังคับสีคำอธิบายย่อย (p) ให้เป็นสีดำ */
@@ -30,16 +31,29 @@
   }
 
   /* ============================================================
-     ✨ ล็อคขนาดเป๊ะๆ ไม่มีเบลอ หัวข้ออยู่กลาง คำอธิบายโผล่ตอน Hover
+     ✨ เอฟเฟกต์โฟกัส: อันที่ชี้ขยาย อันอื่นเบลอและหดเล็กลง
      ============================================================ */
   @media (hover: hover) and (pointer: fine) {
-    /* ล็อคความสูงการ์ดเป๊ะๆ ไม่ให้กระตุก */
+    /* ตัวกริดหลัก ต้องใส่ position: relative เพื่อให้ z-index ของการ์ดทำงาน */
+    .dashboard-grid {
+      position: relative;
+    }
+
+    /* --- สถานะปกติ (ยังไม่ชี้) --- */
     .dash-card {
       position: relative;
       height: 104px;
       align-items: center;
-      overflow: hidden;
-      /* ไม่ใส่ filter หรือ transform ที่ตัวการ์ด เพื่อไม่ให้เบลอ */
+      padding: 16px 20px;
+      z-index: 1; /* ให้อยู่เลเยอร์ปกติ */
+      
+      /* แอนิเมชันตอนเข้า/ออก */
+      transition: 
+        transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1),
+        filter 0.35s ease,
+        opacity 0.35s ease,
+        box-shadow 0.35s ease,
+        border-color 0.35s ease;
     }
 
     .dash-card .dash-text {
@@ -55,12 +69,11 @@
       font-size: 18px;
       font-weight: 700;
       line-height: 1.4;
-      /* ใช้ transform เลื่อนแค่หัวข้อขึ้นนิดเดียว */
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
       transform: translateY(0);
     }
 
-    /* ใช้ Grid ซ่อนคำอธิบาย ป้องกันตัวหนังสือถูกบีบจนเบลอ */
+    /* ใช้ Grid ซ่อนคำอธิบาย */
     .dash-card .dash-desc {
       margin: 0;
       font-size: 14px;
@@ -68,7 +81,7 @@
       color: #000;
       display: grid;
       grid-template-rows: 0fr;
-      transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: grid-template-rows 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
     }
 
     .dash-card .dash-desc > span {
@@ -76,27 +89,49 @@
       display: block;
     }
 
-    /* --- ตอนเอาเมาส์ชี้ --- */
-    /* 1. ขยับหัวข้อขึ้นนิดนึงเพื่อเปิดที่ให้คำอธิบาย */
+    /* =======================================================
+       เงื่อนไขที่ 1: "เมื่อเอาเมาส์ไปวางในกริด"
+       ให้การ์ดทุกใบ "หดเล็กลง + เบลอ + จางลง"
+       ======================================================= */
+    .dashboard-grid:has(.dash-card:hover) .dash-card {
+      transform: scale(0.92);
+      filter: blur(3px) grayscale(20%);
+      opacity: 0.6;
+    }
+
+    /* =======================================================
+       เงื่อนไขที่ 2: "เมื่อชี้ที่การ์ดใบนั้นโดยเฉพาะ"
+       ให้กลับมาขยายใหญ่ + ไม่เบลอ + ลอยขึ้น
+       ======================================================= */
+    .dash-card:hover {
+      transform: scale(1.05) translateY(-5px); /* ขยาย 5% และลอยขึ้น */
+      filter: blur(0) grayscale(0%); /* ล้างค่าเบลอทิ้ง */
+      opacity: 1;
+      z-index: 10; /* ดันให้ลอยทับใบอื่น */
+      box-shadow: 0 12px 24px -8px rgba(37, 99, 235, 0.25); /* เงาฟุ้งๆ */
+      border-color: var(--primary);
+    }
+
+    /* ให้หัวข้อขยับขึ้นนิดนึงเพื่อโชว์คำอธิบาย */
     .dash-card:hover .dash-title {
       transform: translateY(-10px);
     }
 
-    /* 2. คำอธิบายค่อยๆ เผยออกมา */
+    /* ให้คำอธิบายโผล่ */
     .dash-card:hover .dash-desc {
       grid-template-rows: 1fr;
     }
 
-    /* 3. ไอคอนขยับขยายนิดหน่อย (ไม่มีผลกับตัวหนังสือ) */
+    /* ไอคอนขยายเล็กน้อย */
     .dash-card .dash-icon {
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
     }
     .dash-card:hover .dash-icon {
-      transform: scale(1.08);
+      transform: scale(1.1);
     }
   }
 
-  /* มือถือ/ทัชสกรีน: แสดงผลปกติ ไม่มีแอนิเมชัน */
+  /* มือถือ/ทัชสกรีน: แสดงผลปกติ ไม่มี Effect ซูม */
   @media (hover: none), (pointer: coarse) {
     .dash-card .dash-title { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
     .dash-card .dash-desc { margin: 0; font-size: 14px; color: #000; }
@@ -113,7 +148,9 @@
 <!-- Dashboard Menus -->
 <section style="margin-bottom: 40px;">
   <h2>เมนูทั้งหมด</h2>
-  <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));">
+  
+  <!-- 🔴 เพิ่ม class dashboard-grid เข้าไปเพื่อใช้เป็นตัวอ้างอิง -->
+  <div class="grid dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));">
 
     <!-- ซื้อคอร์ส -->
     <a href="#packages" class="dash-card">
