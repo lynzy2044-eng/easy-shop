@@ -31,18 +31,14 @@
   }
 
   /* ============================================================
-     ✨ Hover Reveal (แก้ปัญหาเบลอ)
+     ✨ Hover Reveal (เวอร์ชันแก้เบลอ 100% ด้วย CSS Grid)
      ============================================================ */
   @media (hover: hover) and (pointer: fine) {
-    /* ล็อกความสูงการ์ดไม่ให้กระตุก */
     .dash-card {
       position: relative;
-      height: 104px; /* ปรับตัวเลขนี้ได้ตามความเหมาะสม */
       align-items: center;
-      overflow: hidden;
-      /* เปิด Hardware Acceleration ให้ตัวหนังสือคมชัด */
-      transform: translateZ(0);
-      -webkit-font-smoothing: subpixel-antialiased;
+      min-height: 104px;
+      padding: 16px 20px; /* กำหนด Padding ให้คงที่ */
     }
 
     .dash-card .dash-text {
@@ -51,9 +47,6 @@
       justify-content: center;
       flex: 1;
       min-width: 0;
-      /* ขยับข้อความขึ้นโดยใช้ transform3d */
-      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-      transform: translate3d(0, 0, 0);
     }
 
     .dash-card .dash-title {
@@ -61,36 +54,37 @@
       font-size: 18px;
       font-weight: 700;
       line-height: 1.4;
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      transform: translate3d(0, 0, 0);
+      will-change: transform; /* ให้ GPU ช่วยเรนเดอร์ตัวหนังสือ */
     }
 
+    /* ใช้ Grid ซ่อนคำอธิบาย เพื่อไม่ให้เบราว์เซอร์บีบตัวหนังสือ */
     .dash-card .dash-desc {
       margin: 0;
       font-size: 14px;
       line-height: 1.5;
       color: #000;
-      /* ซ่อนคำอธิบายโดยใช้ max-height และ opacity */
-      max-height: 0;
-      opacity: 0;
-      transition: 
-        max-height 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-        opacity 0.3s ease,
-        margin-top 0.35s ease;
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* ตัวห่อชั้นใน ต้องใส่ overflow hidden */
+    .dash-card .dash-desc > span {
       overflow: hidden;
+      display: block;
     }
 
     /* เมื่อ Hover */
-    .dash-card:hover .dash-text,
-    .dash-card:focus-visible .dash-text {
-      /* เลื่อนกล่องข้อความขึ้น 10px */
+    .dash-card:hover .dash-title,
+    .dash-card:focus-visible .dash-title {
       transform: translate3d(0, -10px, 0);
     }
 
     .dash-card:hover .dash-desc,
     .dash-card:focus-visible .dash-desc {
-      /* ให้คำอธิบายโผล่ขึ้นมา */
-      max-height: 40px;
-      opacity: 1;
-      margin-top: 4px;
+      grid-template-rows: 1fr;
     }
 
     /* ไอคอนขยับเล็กน้อยให้ดูมีชีวิต */
@@ -131,7 +125,7 @@
       </div>
       <div class="dash-text">
         <h3 class="dash-title">ซื้อคอร์สเรียน</h3>
-        <p class="dash-desc">เลือกแพ็กเกจที่ใช่สำหรับคุณ</p>
+        <p class="dash-desc"><span>เลือกแพ็กเกจที่ใช่สำหรับคุณ</span></p>
       </div>
     </a>
 
@@ -144,7 +138,7 @@
       </div>
       <div class="dash-text">
         <h3 class="dash-title">คอร์สเรียนฟรี</h3>
-        <p class="dash-desc">ทดลองเรียนก่อนตัดสินใจ</p>
+        <p class="dash-desc"><span>ทดลองเรียนก่อนตัดสินใจ</span></p>
       </div>
     </a>
 
@@ -157,7 +151,7 @@
       </div>
       <div class="dash-text">
         <h3 class="dash-title">เติมเงินเข้ากระเป๋า</h3>
-        <p class="dash-desc">ผ่าน TrueMoney วอเล็ต</p>
+        <p class="dash-desc"><span>ผ่าน TrueMoney วอเล็ต</span></p>
       </div>
     </a>
 
@@ -170,7 +164,7 @@
       </div>
       <div class="dash-text">
         <h3 class="dash-title">ติดต่อแอดมิน</h3>
-        <p class="dash-desc">สอบถามข้อมูลหรือแจ้งปัญหา</p>
+        <p class="dash-desc"><span>สอบถามข้อมูลหรือแจ้งปัญหา</span></p>
       </div>
     </a>
 
