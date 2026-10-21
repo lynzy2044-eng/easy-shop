@@ -48,7 +48,7 @@ body{
 .wrap{max-width:1100px; margin:0 auto; padding:20px;}
 a{text-decoration:none; transition:var(--transition);}
 
-/* ---- Navbar (จัดเรียงบรรทัดเดียว) ---- */
+/* ---- Navbar ---- */
 nav {
   position: sticky; top: 0; z-index: 50;
   background: rgba(255,255,255,.95);
@@ -65,10 +65,10 @@ nav {
   letter-spacing: -.02em; white-space: nowrap;
 }
 
-/* ลิงก์เมนูสำหรับคอมพิวเตอร์ (บังคับอยู่บรรทัดเดียว) */
+/* ลิงก์เมนูสำหรับคอมพิวเตอร์ */
 .nav-links {
   display: flex; 
-  flex-wrap: nowrap; /* ห้ามตัดขึ้นบรรทัดใหม่ */
+  flex-wrap: nowrap; 
   gap: 8px; 
   align-items: center;
   white-space: nowrap;
@@ -89,10 +89,10 @@ nav {
   padding: 8px 20px; 
   font-size: 15px;
   white-space: nowrap;
-  width: auto; /* ให้ปุ่มไม่กว้างเต็มจอในคอม */
+  width: auto;
 }
 
-/* ปุ่ม 3 ขีด ( Hamburger ) ซ่อนไว้ในคอม */
+/* ปุ่ม 3 ขีด ( Hamburger ) */
 .menu-toggle {
   display: none; background: none; border: none; cursor: pointer;
   padding: 8px; color: var(--text); border-radius: 8px;
@@ -100,7 +100,7 @@ nav {
 }
 .menu-toggle:hover { background: var(--line); }
 
-/* ---- Responsive Navbar (มือถือ/แท็บเล็ต) ---- */
+/* ---- Responsive Navbar ---- */
 @media (max-width: 900px) { 
   .menu-toggle { display: block; }
   .nav-links {
@@ -142,7 +142,7 @@ h3{font-size:18px; margin:0 0 8px; font-weight:700;}
 .card .btn{margin-top:auto;}
 .price{font-size:32px; font-weight:800; color:var(--primary); margin:8px 0;}
 
-/* ---- Buttons (ล็อกสีให้ชัดเจน ไม่ให้เพี้ยน) ---- */
+/* ---- Buttons ---- */
 .btn{
   display:inline-flex; align-items:center; justify-content:center; gap:8px;
   background:var(--primary) !important; color:#fff !important; 
@@ -163,7 +163,7 @@ input {
 }
 input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(--primary-soft); background:#fff;}
 
-/* ---- Flash Messages (แจ้งเตือนพร้อมอนิเมชั่น) ---- */
+/* ---- Flash Messages ---- */
 .flash-container {
   position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
   z-index: 9999; width: calc(100% - 40px); max-width: 400px;
@@ -187,10 +187,13 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 /* ---- Hero Section ---- */
 .hero{
   background:linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
-  border:1px solid #bfdbfe; border-radius:var(--radius); padding:32px 24px; margin-bottom:24px;
+  border:1px solid #bfdbfe; border-radius:var(--radius); padding:40px 24px; margin-bottom:24px; text-align: center;
 }
+.hero h1 { font-size: clamp(28px, 5vw, 40px); margin-bottom: 16px; color: var(--primary-dark); }
+.hero p { font-size: 18px; color: var(--muted); margin-bottom: 24px; }
+.hero .btn { width: auto; padding: 14px 32px; margin: 0 auto; }
 
-/* ---- Modals (สำหรับหน้าใส่สลิป) ---- */
+/* ---- Modals ---- */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 100;
   background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
@@ -212,6 +215,14 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   color: var(--muted); font-size: 20px; font-weight: bold; transition: var(--transition);
 }
 .btn-close:hover { background: var(--line); color: var(--text); }
+
+/* ---- Dashboard Menu Styles ---- */
+.dash-card {
+  display: flex; align-items: center; gap: 16px; padding: 24px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--line); transition: var(--transition); cursor: pointer;
+}
+.dash-card:hover { border-color: var(--primary); box-shadow: var(--shadow-hover); transform: translateY(-2px); }
+.dash-icon { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -232,24 +243,24 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   <div class="nav-container">
     <a class="brand" href="{{ url_for('index') }}">{{ shop_name }}</a>
     
-    <!-- ปุ่มแฮมเบอร์เกอร์ (เฉพาะมือถือ) -->
     <button class="menu-toggle" id="menuToggle" aria-label="เปิดเมนู">
       <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
       </svg>
     </button>
 
-    <!-- ลิงก์เมนู -->
     <div class="nav-links" id="navLinks">
       <a href="{{ url_for('index') }}">หน้าแรก</a>
-      <a href="{{ url_for('free_lessons') }}">เรียนฟรี</a>
-      <a href="{{ url_for('index') }}#packages">แพ็กเกจ</a>
+      <a href="{{ url_for('index') }}#packages">ซื้อคอร์ส</a>
+      <a href="{{ url_for('free_lessons') }}">คอร์สเรียนฟรี</a>
+      <a href="{{ url_for('topup') }}">เติมเงิน</a>
+      <a href="{{ url_for('contact') }}">ติดต่อแจ้งปัญหา</a>
       
       {% if user %}
-        <a href="{{ url_for('account') }}">บัญชีของฉัน</a>
+        <a href="{{ url_for('account') }}">บัญชีของฉัน ({{ "%.2f"|format(user.balance) }} ฿)</a>
         <a href="{{ url_for('logout') }}" style="color:var(--err)">ออกจากระบบ</a>
       {% else %}
-        <a href="{{ url_for('login') }}">เข้าสู่ระบบ (อีเมล)</a>
+        <a href="{{ url_for('login') }}">เข้าสู่ระบบ</a>
         <a class="btn" href="{{ url_for('register') }}">สมัครสมาชิก</a>
       {% endif %}
     </div>
@@ -262,7 +273,6 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 </main>
 
 <script>
-  // สลับเมนูมือถือ (Hamburger Menu)
   const menuToggle = document.getElementById('menuToggle');
   const navLinks = document.getElementById('navLinks');
   
@@ -272,7 +282,6 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
     });
   }
 
-  // ลบ Flash Message อัตโนมัติเมื่อผ่านไป 4 วินาที
   setTimeout(() => {
     const flashes = document.querySelectorAll('.flash');
     flashes.forEach((el, index) => {
