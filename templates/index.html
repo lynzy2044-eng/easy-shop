@@ -9,23 +9,20 @@
     width: 100%; height: 100%; object-fit: contain;
   }
 
-  /* ✅ แก้ไขสีหัวข้อเมนู: บังคับเป็นสีน้ำเงินเข้ม และไม่ให้เป็นสีม่วงเมื่อเคยกด */
+  /* ✅ บังคับสีลิงก์และหัวข้อให้เป็น #330099 ทั้งก่อนกด หลังกด และตอนเอาเมาส์ชี้ */
   a.dash-card,
   a.dash-card:link,
   a.dash-card:visited,
   a.dash-card:hover,
   a.dash-card:active {
     text-decoration: none !important;
+    color: #330099 !important; /* บังคับสีที่ตัวลิงก์หลัก */
   }
 
+  /* บังคับสีที่หัวข้อ (h3) ภายในลิงก์อีกชั้นเพื่อความชัวร์ */
   .dash-card h3 {
-    color: #1e40af !important; /* สีน้ำเงินเข้ม (Primary Dark) */
+    color: #330099 !important; 
     transition: color 0.2s ease;
-  }
-  
-  /* (ทางเลือก) ถ้าอยากให้ตอนเอาเมาส์ชี้แล้วสว่างขึ้นนิดนึง เพื่อให้รู้ว่ากดได้ */
-  .dash-card:hover h3 {
-    color: #2563eb !important; /* สีน้ำเงินสด */
   }
 </style>
 
