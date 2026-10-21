@@ -27,10 +27,11 @@ app.config.update(
     SECRET_KEY=os.getenv("SECRET_KEY") or secrets.token_hex(32),
     # ใช้ DATABASE_URL จาก Environment Variable (เช่น Neon PostgreSQL)
     SQLALCHEMY_DATABASE_URI=os.getenv("DATABASE_URL", "sqlite:///shop.db"),
-    MAX_CONTENT_LENGTH=5 * 1024 * 1024,
+    MAX_CONTENT_LENGTH=10 * 1024 * 1024, # เพิ่มเป็น 10MB สำหรับอัปโหลดแบนเนอร์
     GOOGLE_CLIENT_ID=os.getenv("GOOGLE_CLIENT_ID", ""),
     GOOGLE_CLIENT_SECRET=os.getenv("GOOGLE_CLIENT_SECRET", ""),
-    PROMPTPAY_PHONE=os.getenv("PROMPTPAY_PHONE", "")
+    PROMPTPAY_PHONE=os.getenv("PROMPTPAY_PHONE", ""),
+    ADMIN_EMAIL=os.getenv("ADMIN_EMAIL", "") # อีเมลสำหรับเข้า Admin
 )
 
 # แก้ไข URL ของ PostgreSQL ให้ Flask-SQLAlchemy รู้จัก (บางที Vercel ให้มาเป็น postgres://)
@@ -42,6 +43,7 @@ db = SQLAlchemy(app)
 SHOP_NAME = os.getenv("SHOP_NAME", "CapCut PC Course")
 PROMPTPAY_PHONE = os.getenv("PROMPTPAY_PHONE", "")
 ORDER_TTL = timedelta(minutes=30)
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").strip().lower()
 
 # ราคาเป็นตัวอย่าง แก้ได้ตามต้องการ
 PACKAGES = {
@@ -115,7 +117,27 @@ class TopupHistory(db.Model):
     created_at = db.Column(db.DateTime, default=utcnow)
 
 
+class SiteSetting(db.Model):
+    """ตารางสำหรับเก็บข้อความและรูปภาพหน้าเว็บ (CMS)"""
+    key = db.Column(db.String(50), primary_key=True)
+    value = db.Column(db.Text, nullable=False)
+
+
 # ---------------------------------------------------------------- Helpers
+def get_setting(key, default=""):
+    setting = db.session.get(SiteSetting, key)
+    return setting.value if setting else default
+
+
+def set_setting(key, value):
+    setting = db.session.get(SiteSetting, key)
+    if setting:
+        setting.value = value
+    else:
+        db.session.add(SiteSetting(key=key, value=value))
+    db.session.commit()
+
+
 def current_user():
     uid = session.get("uid")
     return db.session.get(User, uid) if uid else None
@@ -140,6 +162,19 @@ def login_required(view):
     return wrapper
 
 
+def admin_required(view):
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        user = current_user()
+        if not user:
+            flash("กรุณาเข้าสู่ระบบก่อน", "err")
+            return redirect(url_for("login"))
+        if user.email.lower() != ADMIN_EMAIL:
+            abort(403)  # ห้ามเข้า
+        return view(*args, **kwargs)
+    return wrapper
+
+
 def new_order_amount(price_baht):
     """สุ่มสตางค์ 0.01-0.99 ที่ไม่ซ้ำกับออเดอร์ที่กำลังรอจ่าย"""
     cutoff = utcnow() - ORDER_TTL
@@ -160,13 +195,59 @@ def qr_data_uri(text):
 
 @app.context_processor
 def inject_globals():
-    return {"user": current_user(), "shop_name": SHOP_NAME}
+    user = current_user()
+    return {
+        "user": user,
+        "shop_name": SHOP_NAME,
+        "is_admin": user and user.email.lower() == ADMIN_EMAIL,
+        # ส่งค่าจาก CMS ไปให้หน้าเว็บ
+        "hero_title": get_setting("hero_title", "เรียนตัดต่อ CapCut PC ตั้งแต่ศูนย์"),
+        "hero_subtitle": get_setting("hero_subtitle", "จนทำงานได้สไตล์ของตัวเอง ทดลองเรียนฟรีได้ทุกบทแรก"),
+        "hero_img": get_setting("hero_img", ""),
+        "btn_text": get_setting("btn_text", "ดูแพ็กเกจเลย"),
+        "btn_size": get_setting("btn_size", "14px 32px")
+    }
 
 
 @app.errorhandler(413)
 def file_too_large(_e):
-    flash("ไฟล์รูปใหญ่เกิน 5 MB กรุณาลดขนาดรูปภาพ", "err")
+    flash("ไฟล์รูปใหญ่เกิน 10 MB กรุณาลดขนาดรูปภาพ", "err")
     return redirect(request.referrer or url_for("index"))
+
+
+# ---------------------------------------------------------------- Admin Routes
+@app.route("/admin")
+@admin_required
+def admin_dashboard():
+    total_topup = db.session.query(db.func.sum(TopupHistory.amount)).scalar() or 0
+    tm_total = db.session.query(db.func.sum(TopupHistory.amount)).filter_by(method="truemoney").scalar() or 0
+    pp_total = db.session.query(db.func.sum(TopupHistory.amount)).filter_by(method="promptpay").scalar() or 0
+
+    histories = TopupHistory.query.order_by(TopupHistory.created_at.desc()).limit(50).all()
+    users = User.query.order_by(User.created_at.desc()).all()
+
+    return render_template("admin.html", total=total_topup, tm=tm_total, pp=pp_total, histories=histories, users=users)
+
+
+@app.route("/admin/settings", methods=["POST"])
+@admin_required
+def admin_settings():
+    set_setting("hero_title", request.form.get("hero_title", ""))
+    set_setting("hero_subtitle", request.form.get("hero_subtitle", ""))
+    set_setting("btn_text", request.form.get("btn_text", ""))
+    set_setting("btn_size", request.form.get("btn_size", "14px 32px"))
+
+    # อัปโหลดรูปแบนเนอร์
+    file = request.files.get("hero_img")
+    if file and file.filename:
+        # แปลงรูปเป็น Base64 เก็บใน DB (วิธีง่ายสุดสำหรับ Vercel)
+        img_bytes = file.read()
+        b64 = base64.b64encode(img_bytes).decode('utf-8')
+        ext = file.filename.split('.')[-1]
+        set_setting("hero_img", f"data:image/{ext};base64,{b64}")
+
+    flash("✅ อัปเดตหน้าเว็บเรียบร้อยแล้ว", "ok")
+    return redirect(url_for("admin_dashboard"))
 
 
 # ---------------------------------------------------------------- Pages
@@ -174,12 +255,7 @@ def file_too_large(_e):
 def index():
     user = current_user()
     lessons = Lesson.query.order_by(Lesson.track, Lesson.position).all()
-    return render_template(
-        "index.html",
-        packages=PACKAGES,
-        lessons=lessons,
-        owned=owned_tracks(user),
-    )
+    return render_template("index.html", packages=PACKAGES, lessons=lessons, owned=owned_tracks(user))
 
 
 @app.route("/free")
@@ -287,18 +363,18 @@ def auth_google():
         )
         flow.redirect_uri = "postmessage"
         flow.fetch_token(code=code)
-        
+
         credentials = flow.credentials
         id_info = id_token.verify_oauth2_token(
-            credentials.id_token, 
-            google_requests.Request(), 
+            credentials.id_token,
+            google_requests.Request(),
             app.config["GOOGLE_CLIENT_ID"]
         )
-        
+
         email = id_info.get("email", "").strip().lower()
         if not email:
             raise ValueError("No email found in token")
-            
+
         email_verified = id_info.get("email_verified", False)
         if not email_verified:
             return jsonify(ok=False, error="email_not_verified"), 401
@@ -336,15 +412,15 @@ def topup():
     user = current_user()
     qr_code = None
     amount = None
-    
+
     if request.method == "POST":
         method = request.form.get("method")
-        
+
         # 1. TrueMoney
         if method == "truemoney":
             link = request.form.get("truemoney_link", "").strip()
             success, result, voucher_hash = redeem_truemoney(link)
-            
+
             if not success:
                 flash(f"❌ เติมเงินไม่สำเร็จ: {result}", "err")
             else:
@@ -358,7 +434,7 @@ def topup():
                     discord_notify("🧧 เติมเงิน TrueMoney สำเร็จ", fields={"ผู้ใช้": user.email, "ยอด": f"{amt:.2f} บาท"})
                     flash(f"✅ เติมเงินสำเร็จ {amt:.2f} บาท", "ok")
                     return redirect(url_for("topup"))
-                    
+
         # 2. PromptPay: สร้าง QR Code
         elif method == "generate_qr":
             try:
@@ -381,7 +457,7 @@ def topup():
             else:
                 try:
                     slip = verify_slip(file.read(), file.filename, expected_amount=expected, receiver_phone=PROMPTPAY_PHONE)
-                    
+
                     if TopupHistory.query.filter_by(ref=slip.trans_ref).first():
                         flash("❌ สลิปนี้ถูกใช้ไปแล้ว", "err")
                     else:
@@ -395,7 +471,7 @@ def topup():
                     flash(f"❌ สลิปไม่ถูกต้อง: {e.user_message}", "err")
                 except Exception as e:
                     flash(f"⚠️ เกิดข้อผิดพลาด: {str(e)}", "err")
-                
+
     history = TopupHistory.query.filter_by(user_id=user.id).order_by(TopupHistory.created_at.desc()).all()
     return render_template("topup.html", history=history, qr_code=qr_code, amount=amount)
 
@@ -441,14 +517,14 @@ def pay(order_id):
     expected = order.amount_satang / 100
     pay_from_balance = min(user.balance, expected)
     amount_to_pay = round(expected - pay_from_balance, 2)
-    
+
     # สร้าง QR สำหรับยอดที่ต้องจ่ายจริง (หลังหักเงินในกระเป๋าแล้ว)
     payload = promptpay_payload(PROMPTPAY_PHONE, amount_to_pay if amount_to_pay > 0 else 0.01)
     qr_code = qr_data_uri(payload)
 
     if request.method == "POST":
         method = request.form.get("method")
-        
+
         # 1. ชำระด้วยการแนบสลิป
         if method == "verify_slip":
             file = request.files.get("slip")
@@ -459,13 +535,13 @@ def pay(order_id):
                     slip = verify_slip(file.read(), file.filename, expected_amount=amount_to_pay, receiver_phone=PROMPTPAY_PHONE)
                     if Order.query.filter_by(slip_ref=slip.trans_ref).first():
                         raise SlipError("duplicate", "สลิปนี้ถูกใช้ไปแล้ว")
-                    
+
                     user.balance -= pay_from_balance
                     order.status = "paid"
                     order.paid_at = utcnow()
                     order.slip_ref = slip.trans_ref
                     db.session.commit()
-                    
+
                     discord_notify("💰 มีออเดอร์ใหม่ชำระแล้ว", fields={"แพ็กเกจ": PACKAGES[order.package]["name"], "ยอด": f"{expected:,.2f} บาท", "ผู้ซื้อ": user.email, "ออเดอร์": f"#{order.id}"})
                     flash("ชำระเงินสำเร็จ เริ่มเรียนได้เลย!", "ok")
                     return redirect(url_for("account"))
@@ -474,12 +550,12 @@ def pay(order_id):
                 except IntegrityError:
                     db.session.rollback()
                     flash("สลิปนี้ถูกใช้ไปแล้ว", "err")
-                    
+
         # 2. ชำระด้วย TrueMoney
         elif method == "truemoney":
             link = request.form.get("truemoney_link", "").strip()
             success, result, voucher_hash = redeem_truemoney(link)
-            
+
             if not success:
                 flash(f"❌ เติมเงินไม่สำเร็จ: {result}", "err")
             else:
@@ -489,13 +565,13 @@ def pay(order_id):
                     change = result - amount_to_pay
                     if change > 0:
                         user.balance += change
-                    
+
                     user.balance -= pay_from_balance
                     order.status = "paid"
                     order.paid_at = utcnow()
                     order.slip_ref = voucher_hash
                     db.session.commit()
-                    
+
                     discord_notify("💰 มีออเดอร์ใหม่ชำระแล้ว (TrueMoney)", fields={"แพ็กเกจ": PACKAGES[order.package]["name"], "ยอด": f"{expected:,.2f} บาท", "ผู้ซื้อ": user.email, "ออเดอร์": f"#{order.id}"})
                     flash(f"✅ ชำระเงินสำเร็จ (ทอนเงินคืนกระเป๋า {change:.2f} บาท)", "ok")
                     return redirect(url_for("account"))
