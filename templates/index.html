@@ -6,7 +6,7 @@
   }
   .menu-icon .still,
   .menu-icon img {
-    width: 100%; height: 100%; object-fit: contain;
+    width: 100%; height: 100%; object-fit: contain; display: block;
   }
 
   /* บังคับสีลิงก์หลักให้เป็นสีดำ */
@@ -27,14 +27,25 @@
     color: #000000 !important;
   }
 
-  .dash-card {
+  /* ---- ตัวการ์ด: ความสูงขยายตามเนื้อหาเสมอ ---- */
+  .dash-grid > a.dash-card {
     position: relative;
     box-sizing: border-box;
+    display: flex !important;
+    align-items: center;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    line-height: 1.5;
     transition: transform 0.35s ease, opacity 0.35s ease, filter 0.35s ease, box-shadow 0.35s ease;
   }
 
-  .dash-card > div:last-child {
-    position: relative;
+  .dash-grid > a.dash-card > div {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    min-width: 0;
   }
 
   .dash-card h3 {
@@ -44,20 +55,7 @@
   /* ---- เฉพาะอุปกรณ์ที่ใช้เมาส์ได้ ---- */
   @media (hover: hover) and (pointer: fine) {
 
-    /* ความสูงของการ์ดขยายตามเนื้อหา ไม่ใช้ความสูงคงที่จากกฎเดิม */
-    .dash-card,
-    .dash-card > div:last-child {
-      height: auto !important;
-      max-height: none !important;
-      overflow: visible !important;
-    }
-
-    .dash-card {
-      min-height: 120px;
-      padding-bottom: 20px;
-    }
-
-    /* ซ่อนคำอธิบายไว้ก่อน แต่ยังคงพื้นที่ในเลย์เอาต์ */
+    /* ซ่อนคำอธิบายไว้ก่อน แต่ยังคงพื้นที่ในเลย์เอาต์ เพื่อไม่ให้การ์ดขยับตอน hover */
     .dash-card p.muted {
       opacity: 0;
       pointer-events: none;
@@ -66,15 +64,15 @@
     }
 
     /* การ์ดอื่นตอนมีการ์ดใดถูกชี้อยู่: เบลอและเล็กลง */
-    .dash-grid:hover .dash-card {
+    .dash-grid:hover > a.dash-card {
       opacity: 0.55;
       filter: blur(1.5px);
       transform: scale(0.96);
     }
 
     /* การ์ดที่ถูกชี้: ขยายขึ้น ชัด และมีเงาเล็กน้อย */
-    .dash-grid .dash-card:hover,
-    .dash-grid .dash-card:focus-visible {
+    .dash-grid > a.dash-card:hover,
+    .dash-grid > a.dash-card:focus-visible {
       opacity: 1;
       filter: none;
       transform: scale(1.06);
@@ -83,14 +81,14 @@
     }
 
     /* หัวข้อขยับขึ้นเล็กน้อย */
-    .dash-card:hover h3,
-    .dash-card:focus-visible h3 {
-      transform: translateY(-8px);
+    .dash-grid > a.dash-card:hover h3,
+    .dash-grid > a.dash-card:focus-visible h3 {
+      transform: translateY(-6px);
     }
 
-    /* แสดงคำอธิบายในพื้นที่ที่จองไว้ */
-    .dash-card:hover p.muted,
-    .dash-card:focus-visible p.muted {
+    /* แสดงคำอธิบาย */
+    .dash-grid > a.dash-card:hover p.muted,
+    .dash-grid > a.dash-card:focus-visible p.muted {
       opacity: 1;
     }
   }
@@ -106,13 +104,15 @@
 <!-- Dashboard Menus -->
 <section style="margin-bottom: 40px;">
   <h2>เมนูทั้งหมด</h2>
-  <div class="grid dash-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));">
+  <div class="grid dash-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); grid-auto-rows: auto; align-items: stretch;">
 
     <!-- ซื้อคอร์ส -->
-    <a href="#packages" class="dash-card">
+    <a href="#packages" class="dash-card" data-hover-gif>
       <div class="dash-icon" style="background: #eff6ff;">
-        <span class="menu-icon hover-gif" data-still="{{ url_for('static', filename='icons/still/cart-still.png') }}" data-anim="{{ url_for('static', filename='icons/cart.gif') }}">
-          <img class="still" src="{{ url_for('static', filename='icons/still/cart-still.png') }}" alt="">
+        <span class="menu-icon">
+          <img class="still" src="{{ url_for('static', filename='icons/still/cart-still.png') }}" alt=""
+               data-still="{{ url_for('static', filename='icons/still/cart-still.png') }}"
+               data-anim="{{ url_for('static', filename='icons/cart.gif') }}">
         </span>
       </div>
       <div>
@@ -122,10 +122,12 @@
     </a>
 
     <!-- เรียนฟรี -->
-    <a href="{{ url_for('free_lessons') }}" class="dash-card">
+    <a href="{{ url_for('free_lessons') }}" class="dash-card" data-hover-gif>
       <div class="dash-icon" style="background: #ecfdf5;">
-        <span class="menu-icon hover-gif" data-still="{{ url_for('static', filename='icons/still/verified-still.png') }}" data-anim="{{ url_for('static', filename='icons/verified.gif') }}">
-          <img class="still" src="{{ url_for('static', filename='icons/still/verified-still.png') }}" alt="">
+        <span class="menu-icon">
+          <img class="still" src="{{ url_for('static', filename='icons/still/verified-still.png') }}" alt=""
+               data-still="{{ url_for('static', filename='icons/still/verified-still.png') }}"
+               data-anim="{{ url_for('static', filename='icons/verified.gif') }}">
         </span>
       </div>
       <div>
@@ -148,10 +150,12 @@
     </a>
 
     <!-- ติดต่อแอดมิน -->
-    <a href="{{ url_for('contact') }}" class="dash-card">
+    <a href="{{ url_for('contact') }}" class="dash-card" data-hover-gif>
       <div class="dash-icon" style="background: #fef2f2;">
-        <span class="menu-icon hover-gif" data-still="{{ url_for('static', filename='icons/still/announce-still.png') }}" data-anim="{{ url_for('static', filename='icons/announce.gif') }}">
-          <img class="still" src="{{ url_for('static', filename='icons/still/announce-still.png') }}" alt="">
+        <span class="menu-icon">
+          <img class="still" src="{{ url_for('static', filename='icons/still/announce-still.png') }}" alt=""
+               data-still="{{ url_for('static', filename='icons/still/announce-still.png') }}"
+               data-anim="{{ url_for('static', filename='icons/announce.gif') }}">
         </span>
       </div>
       <div>
@@ -179,19 +183,23 @@
 </section>
 
 <script>
-  // เล่น GIF เฉพาะตอนเอาเมาส์ชี้ (เฉพาะอุปกรณ์ที่ใช้เมาส์ได้)
-  // ปกติจะแสดงภาพนิ่งเฟรมแรก
+  // เล่น GIF เมื่อเอาเมาส์ชี้ที่การ์ด (เฉพาะอุปกรณ์ที่ใช้เมาส์ได้) ปกติแสดงภาพนิ่ง
   if (window.matchMedia('(hover: hover)').matches) {
-    document.querySelectorAll('.hover-gif').forEach(function (el) {
-      const still = el.querySelector('.still');
-      const animSrc = el.dataset.anim;
-      const stillSrc = el.dataset.still;
+    document.querySelectorAll('[data-hover-gif]').forEach(function (card) {
+      const img = card.querySelector('img.still');
+      if (!img) return;
+      const animSrc = img.dataset.anim;
+      const stillSrc = img.dataset.still;
 
-      el.addEventListener('mouseenter', function () {
-        still.src = animSrc;
+      // โหลด GIF ไว้ล่วงหน้า จะได้เล่นทันทีตอนชี้
+      const preload = new Image();
+      preload.src = animSrc;
+
+      card.addEventListener('mouseenter', function () {
+        img.src = animSrc;
       });
-      el.addEventListener('mouseleave', function () {
-        still.src = stillSrc;
+      card.addEventListener('mouseleave', function () {
+        img.src = stillSrc;
       });
     });
   }
