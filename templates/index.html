@@ -9,20 +9,25 @@
     width: 100%; height: 100%; object-fit: contain;
   }
 
-  /* ✅ บังคับสีลิงก์และหัวข้อให้เป็น #330099 ทั้งก่อนกด หลังกด และตอนเอาเมาส์ชี้ */
+  /* ✅ บังคับสีลิงก์หลักให้เป็นสีดำ (ทั้งก่อนกด หลังกด และตอนชี้) */
   a.dash-card,
   a.dash-card:link,
   a.dash-card:visited,
   a.dash-card:hover,
   a.dash-card:active {
     text-decoration: none !important;
-    color: #330099 !important; /* บังคับสีที่ตัวลิงก์หลัก */
+    color: #000000 !important; /* บังคับสีดำ */
   }
 
-  /* บังคับสีที่หัวข้อ (h3) ภายในลิงก์อีกชั้นเพื่อความชัวร์ */
+  /* ✅ บังคับสีหัวข้อ (h3) ให้เป็นสีดำ */
   .dash-card h3 {
-    color: #330099 !important; 
+    color: #000000 !important;
     transition: color 0.2s ease;
+  }
+
+  /* ✅ บังคับสีคำอธิบายย่อย (p) ให้เป็นสีดำ */
+  .dash-card p.muted {
+    color: #000000 !important;
   }
 </style>
 
