@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width: 1000px; margin: 40px auto; padding: 0 16px;">
+  
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+    <div>
+      <h1 style="margin: 0;">⚙️ ระบบหลังบ้าน (Admin)</h1>
+      <p class="muted" style="margin: 4px 0 0;">ยินดีต้อนรับ Developer: {{ user.email }}</p>
+    </div>
+    <a href="{{ url_for('index') }}" class="btn ghost" style="width: auto;">กลับหน้าเว็บ</a>
+  </div>
+
+  <!-- สรุปยอดเงิน -->
+  <div class="grid" style="margin-bottom: 32px;">
+    <div class="card" style="text-align: center; background: #ecfdf5; border-color: #a7f3d0;">
+      <h3 style="margin: 0 0 8px; color: #065f46;">รายได้รวมทั้งหมด</h3>
+      <p style="font-size: 32px; font-weight: 800; color: #059669; margin: 0;">{{ "%.2f"|format(total) }} ฿</p>
+    </div>
+    <div class="card" style="text-align: center; background: #eff6ff; border-color: #bfdbfe;">
+      <h3 style="margin: 0 0 8px; color: #1e40af;">ผ่านพร้อมเพย์</h3>
+      <p style="font-size: 32px; font-weight: 800; color: #2563eb; margin: 0;">{{ "%.2f"|format(pp) }} ฿</p>
+    </div>
+    <div class="card" style="text-align: center; background: #fffbeb; border-color: #fde68a;">
+      <h3 style="margin: 0 0 8px; color: #92400e;">ผ่าน TrueMoney</h3>
+      <p style="font-size: 32px; font-weight: 800; color: #d97706; margin: 0;">{{ "%.2f"|format(tm) }} ฿</p>
+    </div>
+  </div>
+
+  <!-- ฟอร์มแก้ไขหน้าเว็บ (CMS) -->
+  <div class="card" style="margin-bottom: 32px;">
+    <h3 style="margin-top: 0; margin-bottom: 16px; border-bottom: 1px solid var(--line); padding-bottom: 12px;">🎨 แก้ไขหน้าตาเว็บ (หน้าแรก)</h3>
+    <form method="post" action="{{ url_for('admin_settings') }}" enctype="multipart/form-data">
+      
+      <label style="display: block; margin-bottom: 8px; font-weight: 600;">หัวข้อหลัก (Hero Title)</label>
+      <input type="text" name="hero_title" value="{{ hero_title }}" style="margin-bottom: 16px;">
+
+      <label style="display: block; margin-bottom: 8px; font-weight: 600;">คำอธิบาย (Hero Subtitle)</label>
+      <textarea name="hero_subtitle" rows="3" style="width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--line); margin-bottom: 16px; font-family: inherit;">{{ hero_subtitle }}</textarea>
+
+      <label style="display: block; margin-bottom: 8px; font-weight: 600;">ข้อความบนปุ่ม</label>
+      <input type="text" name="btn_text" value="{{ btn_text }}" style="margin-bottom: 16px;">
+
+      <label style="display: block; margin-bottom: 8px; font-weight: 600;">ขนาดปุ่ม (Padding)</label>
+      <input type="text" name="btn_size" value="{{ btn_size }}" placeholder="เช่น 14px 32px" style="margin-bottom: 16px;">
+      <p class="muted" style="font-size: 12px; margin-top: -8px; margin-bottom: 16px;">(ปรับตัวเลขเพื่อให้ปุ่มใหญ่ขึ้นหรือเล็กลง เช่น 20px 40px)</p>
+
+      <label style="display: block; margin-bottom: 8px; font-weight: 600;">เปลี่ยนรูปภาพแบนเนอร์</label>
+      {% if hero_img %}
+        <img src="{{ hero_img }}" style="max-height: 120px; border-radius: 8px; margin-bottom: 12px; display: block;">
+      {% endif %}
+      <input type="file" name="hero_img" accept="image/*" style="margin-bottom: 24px; background: none; border: none; padding: 0;">
+
+      <button type="submit" class="btn" style="width: 100%;">บันทึกการเปลี่ยนแปลง</button>
+    </form>
+  </div>
+
+  <!-- ตารางประวัติการเติมเงิน -->
+  <div class="card">
+    <h3 style="margin-top: 0; margin-bottom: 16px;">📜 ประวัติการเติมเงินล่าสุด (50 รายการ)</h3>
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--line);">
+            <th style="padding: 12px 8px;">วันที่</th>
+            <th style="padding: 12px 8px;">ผู้ใช้</th>
+            <th style="padding: 12px 8px;">ช่องทาง</th>
+            <th style="padding: 12px 8px;">ยอดเงิน</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in histories %}
+          <tr style="border-bottom: 1px solid var(--line);">
+            <td style="padding: 12px 8px;">{{ h.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td style="padding: 12px 8px;">ID: {{ h.user_id }}</td>
+            <td style="padding: 12px 8px;">
+              {% if h.method == 'truemoney' %}<span style="color: #d97706;">TrueMoney</span>
+              {% else %}<span style="color: #2563eb;">PromptPay</span>{% endif %}
+            </td>
+            <td style="padding: 12px 8px; font-weight: bold; color: var(--ok);">+{{ "%.2f"|format(h.amount) }} ฿</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
