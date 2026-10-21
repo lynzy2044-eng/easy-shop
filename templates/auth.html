@@ -19,27 +19,19 @@
     </div>
 
     <form method="post" style="position: relative; z-index: 1;" id="authForm">
+      
       <!-- ช่อง Username -->
-      <div style="position: relative; margin-bottom: 16px;">
+      <div style="position: relative; margin-bottom: 8px;">
         <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
           <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
         </span>
-        <input type="text" name="username" required placeholder="Username (ภาษาอังกฤษ)"
+        <input type="text" name="username" id="username" required placeholder="Username (ภาษาอังกฤษ)"
                style="width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; color: #0f172a; padding: 16px 16px 16px 48px; border-radius: 12px; font-size: 16px; outline: none; transition: border 0.2s;"
-               onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+               oninput="checkUsername(this.value)">
       </div>
-
-      <!-- แจ้งเตือน Username ซ้ำ (แสดงเมื่อมี Error) -->
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for category, message in messages %}
-          {% if 'Username นี้ถูกใช้งานแล้ว' in message %}
-            <div style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; border-radius: 8px; padding: 12px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              <span style="font-size: 14px; font-weight: 600;">{{ message }}</span>
-            </div>
-          {% endif %}
-        {% endfor %}
-      {% endwith %}
+      
+      <!-- ข้อความแจ้งเตือน Username -->
+      <div id="username-msg" style="font-size: 13px; margin-bottom: 16px; min-height: 20px; padding-left: 4px;"></div>
 
       <!-- ช่องรหัสผ่าน -->
       <div style="position: relative; margin-bottom: {% if mode == 'register' %}16px{% else %}8px{% endif %};">
@@ -48,8 +40,7 @@
         </span>
         <input type="password" name="password" id="password" required minlength="6" placeholder="รหัสผ่าน"
                style="width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; color: #0f172a; padding: 16px 48px 16px 48px; border-radius: 12px; font-size: 16px; outline: none; transition: border 0.2s;"
-               onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"
-               oninput="checkStrength(this.value)">
+               oninput="checkStrength(this.value); checkMatch()">
         <!-- ปุ่มรูปตา -->
         <span onclick="togglePassword('password')" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; cursor: pointer;">
           <svg id="eyeIcon-password" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
@@ -69,17 +60,21 @@
       </div>
 
       <!-- ช่องยืนยันรหัสผ่าน -->
-      <div style="position: relative; margin-bottom: 24px;">
+      <div style="position: relative; margin-bottom: 8px;">
         <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
           <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
         </span>
         <input type="password" name="confirm_password" id="confirm_password" required minlength="6" placeholder="ยืนยันรหัสผ่าน"
                style="width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; color: #0f172a; padding: 16px 48px 16px 48px; border-radius: 12px; font-size: 16px; outline: none; transition: border 0.2s;"
-               onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+               oninput="checkMatch()">
         <span onclick="togglePassword('confirm_password')" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; cursor: pointer;">
           <svg id="eyeIcon-confirm_password" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
         </span>
       </div>
+      
+      <!-- ข้อความแจ้งเตือนการพิมพ์รหัสไม่ตรงกัน -->
+      <div id="match-msg" style="font-size: 13px; margin-bottom: 16px; min-height: 20px; padding-left: 4px;"></div>
+      
       {% else %}
       <div style="text-align: right; margin-bottom: 24px;">
         <a href="{{ url_for('forgot_password') }}" style="color: #64748b; font-size: 14px; text-decoration: none; font-weight: 500; transition: color 0.2s;" onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#64748b'">ลืมรหัสผ่าน?</a>
@@ -92,6 +87,7 @@
       </button>
     </form>
 
+    <!-- ส่วนปุ่ม Google -->
     <div style="display: flex; align-items: center; margin: 24px 0; color: #94a3b8; font-size: 13px;">
       <div style="flex: 1; height: 1px; background: #e2e8f0;"></div>
       <span style="padding: 0 12px;">หรือ</span>
@@ -122,6 +118,72 @@
 </div>
 
 <script>
+  // ---------------------------------------------------------
+  // 1. ระบบเช็ก Username ซ้ำ (Real-time AJAX)
+  // ---------------------------------------------------------
+  let usernameTimeout = null;
+  function checkUsername(val) {
+    const msgBox = document.getElementById("username-msg");
+    
+    // ถ้าช่องว่างให้ซ่อนข้อความ
+    if (!val.trim()) {
+      msgBox.innerText = "";
+      return;
+    }
+
+    msgBox.innerText = "⏳ กำลังตรวจสอบ...";
+    msgBox.style.color = "#64748b";
+
+    // หน่วงเวลา 0.5 วินาทีเพื่อไม่ให้ยิง API รัวเกินไป
+    clearTimeout(usernameTimeout);
+    usernameTimeout = setTimeout(() => {
+      fetch("/check_username", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: val })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.available) {
+          msgBox.innerText = data.message;
+          msgBox.style.color = "#059669"; // สีเขียว
+        } else {
+          msgBox.innerText = data.message;
+          msgBox.style.color = "#dc2626"; // สีแดง
+        }
+      })
+      .catch(() => {
+        msgBox.innerText = "";
+      });
+    }, 500);
+  }
+
+  // ---------------------------------------------------------
+  // 2. ระบบเช็กรหัสผ่านตรงกัน (Real-time)
+  // ---------------------------------------------------------
+  function checkMatch() {
+    const pass = document.getElementById("password").value;
+    const confirmPass = document.getElementById("confirm_password").value;
+    const msgBox = document.getElementById("match-msg");
+
+    // ถ้ายังไม่ได้กรอกช่องไหนเลย ให้ซ่อนไว้ก่อน
+    if (!pass || !confirmPass) {
+      msgBox.innerText = "";
+      return;
+    }
+
+    if (pass === confirmPass) {
+      msgBox.innerText = "✅ รหัสผ่านตรงกันแล้ว";
+      msgBox.style.color = "#059669";
+    } else {
+      msgBox.innerText = "❌ รหัสผ่านไม่ตรงกัน";
+      msgBox.style.color = "#dc2626";
+    }
+  }
+
+  // ---------------------------------------------------------
+  // 3. ระบบเปิด-ปิดตา และ วัดความปลอดภัย
+  // ---------------------------------------------------------
   function togglePassword(inputId) {
     const input = document.getElementById(inputId);
     const icon = document.getElementById('eyeIcon-' + inputId);
@@ -160,7 +222,7 @@
     }
 
     if (score <= 1) {
-      text.innerText = "ระดับความปลอดภัย: ต่ำ (ต้องมีตัวเลข+ตัวอักษร)";
+      text.innerText = "ระดับความปลอดภัย: ต่ำ";
       text.style.color = "#dc2626"; 
       bars[0].style.background = "#dc2626";
     } else if (score === 2) {
@@ -181,6 +243,9 @@
     }
   }
 
+  // ---------------------------------------------------------
+  // 4. ระบบ Google Login
+  // ---------------------------------------------------------
   const GOOGLE_CLIENT_ID = "{{ config.GOOGLE_CLIENT_ID }}";
   let googleClient = null;
 
