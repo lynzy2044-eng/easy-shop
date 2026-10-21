@@ -57,44 +57,47 @@
   /* ---------- Fixed Bottom Bar (สำหรับการแก้ไข) ---------- */
   .save-bar {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-    background: #fff; border-top: 1px solid #e2e8f0; padding: 16px 24px;
+    background: #fff; border-top: 1px solid #e2e8f0; padding: 12px 16px;
     display: flex; justify-content: space-between; align-items: center;
     box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
     transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .save-bar.show { transform: translateY(0); }
-  .save-bar .message { font-size: 15px; font-weight: 600; color: #0f172a; }
+  .save-bar .message { font-size: 14px; font-weight: 600; color: #0f172a; }
   
-  .save-actions { display: flex; gap: 12px; align-items: center; }
-  .save-actions .btn { width: auto; padding: 10px 24px; border-radius: 10px; }
-  .btn-cancel { background: #f1f5f9 !important; color: #64748b !important; box-shadow: none !important; }
+  .save-actions { display: flex; gap: 8px; align-items: center; }
+  .save-actions .btn { width: auto; padding: 8px 16px; border-radius: 8px; font-size: 14px; }
+  .btn-cancel { background: #f1f5f9 !important; color: #64748b !important; box-shadow: none !important; border: none !important; }
   .btn-cancel:hover { background: #e2e8f0 !important; color: #0f172a !important; }
 
-  /* ✅ Responsive: จัดให้เป็น 2 บรรทัดตามที่ต้องการเป๊ะๆ */
+  /* ✅ Responsive: จัดเรียงแบบ 2 บรรทัดเป๊ะๆ ตามรูป */
   @media (max-width: 500px) {
     .save-bar {
-      flex-direction: column; /* เรียงจากบนลงล่าง */
-      align-items: stretch;
-      padding: 16px;
-      gap: 12px; /* ระยะห่างระหว่างบรรทัด */
+      flex-direction: column !important; 
+      align-items: stretch !important;
+      padding: 12px 16px !important;
+      gap: 10px !important; 
     }
     .save-bar .message { 
-      text-align: center; 
-      font-size: 15px;
-      margin-bottom: 0;
+      text-align: center !important; 
+      font-size: 15px !important;
+      margin-bottom: 4px !important;
+      display: block !important;
     }
     .save-actions { 
-      width: 100%; 
-      display: flex; 
-      flex-direction: row; /* บังคับให้ปุ่มอยู่บรรทัดเดียวกัน */
-      gap: 10px; /* ระยะห่างระหว่างปุ่ม */
+      width: 100% !important; 
+      display: flex !important; 
+      flex-direction: row !important; /* บังคับให้เรียงแนวนอน */
+      gap: 10px !important;
     }
     .save-actions .btn { 
-      flex: 1; /* แบ่งพื้นที่ครึ่งนึงเท่ากัน */
-      padding: 12px 0; 
-      font-size: 15px; 
-      font-weight: 700;
-      border-radius: 10px;
+      flex: 1 !important; 
+      width: 100% !important; 
+      padding: 12px 0 !important; 
+      font-size: 15px !important; 
+      font-weight: 700 !important;
+      border-radius: 10px !important;
+      margin: 0 !important;
     }
   }
 
@@ -145,7 +148,7 @@
   .shake-effect { animation: shake 0.3s ease-in-out; }
 </style>
 
-<div class="account-page" style="min-height: 80vh; padding-bottom: 120px;">
+<div class="account-page" style="min-height: 80vh; padding-bottom: 100px;">
   
   <!-- Header Card (โปรไฟล์) -->
   <div class="profile-header-card" id="profileCard">
