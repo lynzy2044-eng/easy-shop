@@ -70,12 +70,32 @@
   .btn-cancel { background: #f1f5f9 !important; color: #64748b !important; box-shadow: none !important; }
   .btn-cancel:hover { background: #e2e8f0 !important; color: #0f172a !important; }
 
-  /* Responsive: จัดให้อยู่ในบรรทัดเดียว แต่เล็กลงในมือถือ */
+  /* Responsive: จัดเรียงแบบ 2 บรรทัดตามที่สั่ง */
   @media (max-width: 500px) {
-    .save-bar { flex-direction: row; padding: 10px 12px; gap: 8px; }
-    .save-bar .message { display: none; } /* ซ่อนข้อความเพื่อให้ปุ่มมีที่พอ */
-    .save-actions { width: 100%; justify-content: stretch; }
-    .save-actions .btn { flex: 1; padding: 10px 0; font-size: 14px; }
+    .save-bar {
+      flex-direction: column; /* เรียงจากบนลงล่าง */
+      align-items: stretch;
+      padding: 16px;
+      gap: 12px;
+    }
+    .save-bar .message { 
+      text-align: center; 
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+    .save-actions { 
+      width: 100%; 
+      display: flex; 
+      flex-direction: row; /* ให้ปุ่มอยู่บรรทัดเดียวกัน */
+      gap: 10px;
+    }
+    .save-actions .btn { 
+      flex: 1; /* แบ่งพื้นที่ครึ่งนึงเท่ากัน */
+      padding: 12px 0; 
+      font-size: 15px; 
+      font-weight: 700;
+      border-radius: 10px;
+    }
   }
 
   /* ---------- Crop Modal ---------- */
@@ -125,7 +145,7 @@
   .shake-effect { animation: shake 0.3s ease-in-out; }
 </style>
 
-<div class="account-page" style="min-height: 80vh; padding-bottom: 100px;">
+<div class="account-page" style="min-height: 80vh; padding-bottom: 120px;">
   
   <!-- Header Card (โปรไฟล์) -->
   <div class="profile-header-card" id="profileCard">
