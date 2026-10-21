@@ -424,7 +424,16 @@ def login():
             session.clear()
             session["uid"] = user.id
             flash("เข้าสู่ระบบสำเร็จ", "ok")
-            return redirect(url_for("index"))
+
+            # กลับไปหน้าเดิมที่ผู้ใช้พยายามเข้า (เช่น /topup) ถ้าไม่มี ให้ไปหน้าแรก
+            next_url = request.values.get("next", "")
+            if (
+                not next_url.startswith("/")
+                or next_url.startswith("//")
+                or "\\" in next_url
+            ):
+                next_url = url_for("index")
+            return redirect(next_url)
 
         flash("Username หรือรหัสผ่านไม่ถูกต้อง", "err")
     return render_template("auth.html", mode="login")
