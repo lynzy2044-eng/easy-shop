@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- การ์ดโปรไฟล์: แบนเนอร์ + รูปโปรไฟล์ + ปุ่มปรับแต่ง -->
+<!-- การ์ดโปรไฟล์: แบนเนอร์ + รูปโปรไฟล์ + ชื่อ + ปุ่มปรับแต่ง -->
 <div class="card" style="margin-bottom: 24px; padding: 0; overflow: hidden;">
   <div class="profile-banner"
        style="border-radius: 16px 16px 0 0; height: 150px;{% if profile.banner %} background-image: url('{{ profile.banner }}');{% endif %}"></div>
@@ -13,14 +13,14 @@
       <span class="avatar lg" style="margin: 0;">{{ profile.initial }}</span>
     {% endif %}
 
-    <div style="flex: 1; min-width: 180px; padding-bottom: 4px;">
-      <div class="profile-name" style="margin: 0 0 2px; text-align: left;">{{ profile.name }}</div>
-      <div class="muted" style="font-size: 14px;">{{ user.username }}</div>
+    <div style="flex: 1; min-width: 180px; padding-bottom: 6px;">
+      <div class="muted" style="font-family: 'AnuphanAll', 'Anuphan', sans-serif; font-size: 16px; font-weight: 700;">{{ user.username }}</div>
     </div>
 
     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
       <button type="button" class="btn" data-open="customizeModal" style="width: auto; padding: 10px 18px; font-size: 14px;">ปรับแต่งโปรไฟล์</button>
       <button type="button" class="btn ghost" data-open="colorModal" style="width: auto; padding: 10px 18px; font-size: 14px;">เปลี่ยนสีชื่อ</button>
+      <button type="button" class="btn ghost" data-open="avatarModal" style="width: auto; padding: 10px 18px; font-size: 14px;">เปลี่ยนรูปโปรไฟล์</button>
     </div>
   </div>
 </div>
@@ -57,4 +57,125 @@
     {% endfor %}
   </div>
 </div>
+
+<!-- ป๊อปอัปเปลี่ยนรูปโปรไฟล์ -->
+<div class="pop-overlay" id="avatarModal" hidden>
+  <div class="pop-box">
+    <button type="button" class="pop-close" data-close aria-label="ปิด">✕</button>
+    <div style="padding: 28px 24px 24px; text-align: center;">
+      <h3 style="margin: 0 0 4px;">เปลี่ยนรูปโปรไฟล์</h3>
+      <p class="muted" style="margin: 0 0 18px; font-size: 14px;">เลือกรูปจากเครื่อง ระบบจะตัดเป็นวงกลมให้อัตโนมัติ</p>
+
+      <div style="display: flex; justify-content: center; margin-bottom: 18px;">
+        {% if profile.avatar_url %}
+          <img id="avatarPreview" class="avatar lg" src="{{ profile.avatar_url }}" alt="" referrerpolicy="no-referrer" style="margin: 0;">
+          <span id="avatarInitial" class="avatar lg" style="margin: 0; display: none;">{{ profile.initial }}</span>
+        {% else %}
+          <img id="avatarPreview" class="avatar lg" alt="" style="margin: 0; display: none;">
+          <span id="avatarInitial" class="avatar lg" style="margin: 0;">{{ profile.initial }}</span>
+        {% endif %}
+      </div>
+
+      <input type="file" id="avatarInput" accept="image/*" hidden>
+
+      <div style="display: flex; gap: 10px; margin-bottom: 14px;">
+        <button type="button" class="btn ghost" id="pickAvatar" style="width: 100%;">เลือกรูป</button>
+        <button type="button" class="btn ghost" id="removeAvatar" style="width: 100%;">ลบรูป</button>
+      </div>
+
+      <button type="button" class="btn" id="saveAvatar" style="width: 100%;">บันทึกรูปโปรไฟล์</button>
+
+      <p id="avatarError" style="color: var(--err); font-size: 14px; margin: 10px 0 0;"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const input = document.getElementById('avatarInput');
+  if (!input) return;
+
+  const img = document.getElementById('avatarPreview');
+  const initial = document.getElementById('avatarInitial');
+  const err = document.getElementById('avatarError');
+  let blob = null;
+  let removeFlag = false;
+
+  function showImage(src) {
+    img.src = src;
+    img.style.display = 'inline-flex';
+    if (initial) initial.style.display = 'none';
+  }
+
+  function showInitial() {
+    img.removeAttribute('src');
+    img.style.display = 'none';
+    if (initial) initial.style.display = 'inline-flex';
+  }
+
+  document.getElementById('pickAvatar').addEventListener('click', function () {
+    err.textContent = '';
+    input.click();
+  });
+
+  input.addEventListener('change', function () {
+    const file = input.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      err.textContent = 'กรุณาเลือกไฟล์รูปภาพ';
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.onload = function () {
+      // ตัดเป็นสี่เหลี่ยมจัตุรัสตรงกลาง แล้วย่อเป็น 256 พิกเซล
+      const S = 256;
+      const side = Math.min(im.width, im.height);
+      const sx = (im.width - side) / 2;
+      const sy = (im.height - side) / 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = S;
+      canvas.height = S;
+      canvas.getContext('2d').drawImage(im, sx, sy, side, side, 0, 0, S, S);
+      canvas.toBlob(function (b) {
+        blob = b;
+        removeFlag = false;
+        showImage(URL.createObjectURL(b));
+        URL.revokeObjectURL(url);
+      }, 'image/jpeg', 0.9);
+    };
+    im.onerror = function () {
+      err.textContent = 'เปิดรูปนี้ไม่ได้ ลองไฟล์อื่น';
+    };
+    im.src = url;
+  });
+
+  document.getElementById('removeAvatar').addEventListener('click', function () {
+    blob = null;
+    removeFlag = true;
+    showInitial();
+  });
+
+  document.getElementById('saveAvatar').addEventListener('click', async function () {
+    if (!blob && !removeFlag) {
+      err.textContent = 'กรุณาเลือกรูปหรือกดลบก่อนบันทึก';
+      return;
+    }
+    const fd = new FormData();
+    if (blob) fd.append('avatar', blob, 'avatar.jpg');
+    else fd.append('remove', '1');
+    try {
+      const res = await fetch("{{ url_for('profile_avatar') }}", { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.ok) {
+        location.reload();
+        return;
+      }
+      err.textContent = 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง';
+    } catch (e) {
+      err.textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+    }
+  });
+})();
+</script>
 {% endblock %}
