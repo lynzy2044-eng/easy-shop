@@ -423,7 +423,6 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
           </a>
         {% endif %}
 
-        <a href="{{ url_for('logout') }}" style="color:var(--err)">ออกจากระบบ</a>
       {% else %}
         <a href="{{ url_for('login') }}">เข้าสู่ระบบ</a>
         <a class="btn" href="{{ url_for('register') }}">สมัครสมาชิก</a>
