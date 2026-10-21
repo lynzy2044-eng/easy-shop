@@ -57,27 +57,25 @@
   /* ---------- Fixed Bottom Bar (สำหรับการแก้ไข) ---------- */
   .save-bar {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-    background: #fff; border-top: 1px solid #e2e8f0; padding: 16px 24px;
+    background: #fff; border-top: 1px solid #e2e8f0; padding: 12px 16px;
     display: flex; justify-content: space-between; align-items: center;
     box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
     transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .save-bar.show { transform: translateY(0); }
-  .save-bar .message { font-size: 15px; font-weight: 600; color: #0f172a; }
+  .save-bar .message { font-size: 14px; font-weight: 600; color: #0f172a; }
   
-  .save-actions { display: flex; gap: 12px; align-items: center; }
-  .save-actions .btn { width: auto; padding: 10px 24px; border-radius: 10px; }
+  .save-actions { display: flex; gap: 8px; align-items: center; }
+  .save-actions .btn { width: auto; padding: 8px 16px; border-radius: 8px; font-size: 14px; }
   .btn-cancel { background: #f1f5f9 !important; color: #64748b !important; box-shadow: none !important; }
   .btn-cancel:hover { background: #e2e8f0 !important; color: #0f172a !important; }
 
-  /* Responsive: จัดเรียงปุ่มในแถบ Save Bar สำหรับมือถือ */
+  /* Responsive: จัดให้อยู่ในบรรทัดเดียว แต่เล็กลงในมือถือ */
   @media (max-width: 500px) {
-    .save-bar {
-      flex-direction: column; align-items: stretch; gap: 12px; padding: 16px;
-    }
-    .save-bar .message { text-align: center; margin-bottom: 4px; }
-    .save-actions { flex-direction: column; width: 100%; }
-    .save-actions .btn { width: 100%; padding: 14px; font-size: 16px; }
+    .save-bar { flex-direction: row; padding: 10px 12px; gap: 8px; }
+    .save-bar .message { display: none; } /* ซ่อนข้อความเพื่อให้ปุ่มมีที่พอ */
+    .save-actions { width: 100%; justify-content: stretch; }
+    .save-actions .btn { flex: 1; padding: 10px 0; font-size: 14px; }
   }
 
   /* ---------- Crop Modal ---------- */
@@ -116,9 +114,18 @@
   .btn-crop-save { background: var(--primary); color: #fff; }
 
   body.modal-open { overflow: hidden; }
+
+  /* แอนิเมชันสั่นจอ */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    50% { transform: translateX(8px); }
+    75% { transform: translateX(-4px); }
+  }
+  .shake-effect { animation: shake 0.3s ease-in-out; }
 </style>
 
-<div class="account-page" style="min-height: 80vh; padding-bottom: 120px;" id="accountPage">
+<div class="account-page" style="min-height: 80vh; padding-bottom: 100px;">
   
   <!-- Header Card (โปรไฟล์) -->
   <div class="profile-header-card" id="profileCard">
@@ -296,10 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // ----- ระบบสั่นจอ (JavaScript ล้วน) -----
   function triggerShake() {
-    // 1. สั่นหน้าจอมือถือ (ถ้ารองรับ)
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]); 
-
-    // 2. สั่น Element ด้วย JavaScript (ไม่พึ่ง CSS)
     if (profileCard) {
       let shakes = 0;
       const interval = setInterval(() => {
@@ -314,12 +318,10 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // ----- ดักจับการกดย้อนกลับ (History API) -----
-  // ใส่ State เปล่าๆ ไว้ 1 อัน เพื่อดักการกด Back
   history.pushState(null, null, location.href);
   window.onpopstate = function () {
     if (hasUnsavedChanges && !isSaving) {
       triggerShake();
-      // ดันประวัติกลับไปเป็นหน้าเดิม (ไม่ให้ออก)
       history.pushState(null, null, location.href);
     }
   };
@@ -328,7 +330,6 @@ document.addEventListener('DOMContentLoaded', function() {
   document.body.addEventListener('click', function(e) {
     const link = e.target.closest('a');
     if (link && hasUnsavedChanges && !isSaving) {
-      // ถ้าเป็นลิงก์ทั่วไป (ไม่ใช่ Modal)
       if (!link.closest('.pop-overlay')) {
         e.preventDefault();
         e.stopPropagation();
@@ -375,7 +376,6 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('btnDiscardChanges').addEventListener('click', () => {
     editState = { avatar: null, banner: null };
     
-    // Revert Avatar
     if (originalAvatar) {
       imgAvatarPreview.src = originalAvatar;
       imgAvatarPreview.style.display = 'block';
@@ -385,7 +385,6 @@ document.addEventListener('DOMContentLoaded', function() {
       if (initialAvatarPreview) initialAvatarPreview.style.display = 'flex';
     }
     
-    // Revert Banner
     if (originalBanner) {
       divBannerPreview.style.backgroundImage = `url('${originalBanner}')`;
     } else {
