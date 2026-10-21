@@ -386,7 +386,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   font-family: 'Anuphan', sans-serif !important;
 }
 
-/* ✅ Mobile Bottom Auth Bar (เฉพาะคนที่ยังไม่ล็อกอิน) */
+/* ✅ Mobile Bottom Auth Bar (ดีไซน์ใหม่สวยงาม) */
 .mobile-auth-bar {
   display: none; /* ซ่อนไว้บนคอมพิวเตอร์ */
 }
@@ -395,25 +395,57 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   .mobile-auth-bar {
     display: flex;
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 999;
-    background: #4b5563; /* สีเทาเข้มตามภาพ */
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
-    padding-bottom: env(safe-area-inset-bottom); /* รองรับ iPhone ที่มีแถบด้านล่าง */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--line);
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom)); /* รองรับ iPhone */
+    gap: 12px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
   }
-  .mobile-auth-bar a {
+  
+  /* ปุ่มสมัครสมาชิก (Ghost) */
+  .mobile-auth-bar .btn-signup {
     flex: 1;
-    text-align: center;
-    padding: 16px 0;
-    color: #ffffff !important;
-    font-size: 16px;
-    font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent;
+    color: var(--primary);
+    font-size: 15px;
+    font-weight: 700;
     font-family: 'Anuphan', sans-serif;
-    transition: background 0.2s;
+    border: 1.5px solid var(--primary);
+    border-radius: 10px;
+    padding: 12px 0;
+    text-decoration: none;
+    transition: all 0.2s;
   }
-  .mobile-auth-bar a:active {
-    background: rgba(255,255,255,0.1);
+  .mobile-auth-bar .btn-signup:active {
+    background: var(--primary-soft);
   }
+
+  /* ปุ่มเข้าสู่ระบบ (Primary) */
+  .mobile-auth-bar .btn-login {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--primary);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Anuphan', sans-serif;
+    border: 1.5px solid var(--primary);
+    border-radius: 10px;
+    padding: 12px 0;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    transition: all 0.2s;
+  }
+  .mobile-auth-bar .btn-login:active {
+    background: var(--primary-dark);
+    transform: scale(0.98);
+  }
+
   /* เพิ่มระยะห่างด้านล่างให้เนื้อหาไม่ถูกแถบทับ */
-  body { padding-bottom: 60px; }
+  body { padding-bottom: 80px; }
 }
 </style>
 </head>
@@ -541,10 +573,10 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   </div>
 </div>
 {% else %}
-<!-- ✅ แถบเมนูล่างสำหรับมือถือ (แสดงเฉพาะตอนที่ยังไม่ล็อกอิน) -->
+<!-- ✅ แถบเมนูล่างสำหรับมือถือ (ดีไซน์ใหม่) -->
 <div class="mobile-auth-bar">
-  <a href="{{ url_for('register') }}">สมัครสมาชิก</a>
-  <a href="{{ url_for('login') }}">เข้าสู่ระบบ</a>
+  <a href="{{ url_for('register') }}" class="btn-signup">สมัครสมาชิก</a>
+  <a href="{{ url_for('login') }}" class="btn-login">เข้าสู่ระบบ</a>
 </div>
 {% endif %}
 
