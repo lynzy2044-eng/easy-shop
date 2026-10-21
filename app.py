@@ -348,6 +348,26 @@ def login():
     return render_template("auth.html", mode="login")
 
 
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        new_password = request.form.get("new_password", "")
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            flash("❌ ไม่พบอีเมลนี้ในระบบ กรุณาตรวจสอบอีกครั้ง", "err")
+        elif len(new_password) < 6:
+            flash("❌ รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร", "err")
+        else:
+            user.password_hash = generate_password_hash(new_password)
+            db.session.commit()
+            flash("✅ เปลี่ยนรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบด้วยรหัสใหม่", "ok")
+            return redirect(url_for("login"))
+            
+    return render_template("forgot.html")
+
+
 @app.route("/auth/google", methods=["POST"])
 def auth_google():
     """รับ Code จาก Google OAuth2 แล้วแลกเป็นข้อมูล User"""
@@ -490,24 +510,6 @@ def topup():
 def contact():
     return render_template("contact.html")
 
-@app.route("/forgot-password", methods=["GET", "POST"])
-def forgot_password():
-    if request.method == "POST":
-        email = request.form.get("email", "").strip().lower()
-        new_password = request.form.get("new_password", "")
-
-        user = User.query.filter_by(email=email).first()
-        if not user:
-            flash("❌ ไม่พบอีเมลนี้ในระบบ กรุณาตรวจสอบอีกครั้ง", "err")
-        elif len(new_password) < 6:
-            flash("❌ รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร", "err")
-        else:
-            user.password_hash = generate_password_hash(new_password)
-            db.session.commit()
-            flash("✅ เปลี่ยนรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบด้วยรหัสใหม่", "ok")
-            return redirect(url_for("login"))
-            
-    return render_template("forgot.html")
 
 # ---------------------------------------------------------------- Checkout & Account
 @app.route("/checkout/<package>")
