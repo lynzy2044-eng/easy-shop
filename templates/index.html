@@ -27,7 +27,6 @@
     color: #000000 !important;
   }
 
-  /* ---- การ์ดเมนู: ใช้ transform/opacity เท่านั้น ไม่ทำให้หน้าเด้ง ---- */
   .dash-card {
     position: relative;
     transition: transform 0.35s ease, opacity 0.35s ease, filter 0.35s ease, box-shadow 0.35s ease;
@@ -43,6 +42,18 @@
 
   /* ---- เฉพาะอุปกรณ์ที่ใช้เมาส์ได้ ---- */
   @media (hover: hover) and (pointer: fine) {
+
+    /* จองพื้นที่ให้คำอธิบายไว้ตั้งแต่แรก เพื่อไม่ให้ข้อความล้นหรือหน้าขยับตอน hover */
+    .dash-card > div:last-child {
+      min-height: 96px;
+    }
+
+    /* ซ่อนคำอธิบายไว้ก่อน แต่ยังคงพื้นที่ในเลย์เอาต์ */
+    .dash-card p.muted {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
 
     /* การ์ดอื่นตอนมีการ์ดใดถูกชี้อยู่: เบลอและเล็กลง */
     .dash-grid:hover .dash-card {
@@ -61,24 +72,13 @@
       box-shadow: 0 12px 28px rgba(37, 99, 235, 0.18);
     }
 
-    /* หัวข้อขยับขึ้นเล็กน้อยเพื่อเปิดที่ให้คำอธิบาย */
+    /* หัวข้อขยับขึ้นเล็กน้อย */
     .dash-card:hover h3,
     .dash-card:focus-visible h3 {
-      transform: translateY(-10px);
+      transform: translateY(-8px);
     }
 
-    /* คำอธิบายวางซ้อนใต้หัวข้อ ไม่ดันเลย์เอาต์ */
-    .dash-card p.muted {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 100%;
-      margin: 4px 0 0 !important;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-
+    /* แสดงคำอธิบายในพื้นที่ที่จองไว้ */
     .dash-card:hover p.muted,
     .dash-card:focus-visible p.muted {
       opacity: 1;
