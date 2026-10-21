@@ -10,7 +10,6 @@
   .profile-header-card {
     background: #fff; border-radius: 24px; overflow: hidden;
     box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 32px; position: relative;
-    transition: transform 0.1s ease; /* สำหรับแอนิเมชันสั่น */
   }
   .banner-area {
     width: 100%; aspect-ratio: 8 / 3; position: relative;
@@ -117,18 +116,9 @@
   .btn-crop-save { background: var(--primary); color: #fff; }
 
   body.modal-open { overflow: hidden; }
-
-  /* แอนิเมชันสั่นจอ */
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-8px); }
-    50% { transform: translateX(8px); }
-    75% { transform: translateX(-4px); }
-  }
-  .shake-effect { animation: shake 0.3s ease-in-out; }
 </style>
 
-<div class="account-page" style="min-height: 80vh; padding-bottom: 120px;">
+<div class="account-page" style="min-height: 80vh; padding-bottom: 120px;" id="accountPage">
   
   <!-- Header Card (โปรไฟล์) -->
   <div class="profile-header-card" id="profileCard">
@@ -304,37 +294,48 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // ----- ระบบสั่นจอ (แทนการเด้ง Popup) -----
+  // ----- ระบบสั่นจอ (JavaScript ล้วน) -----
   function triggerShake() {
-    profileCard.classList.add('shake-effect');
-    setTimeout(() => profileCard.classList.remove('shake-effect'), 300);
-    
-    // สั่นหน้าจอมือถือ (ถ้ารองรับ)
-    if (navigator.vibrate) navigator.vibrate(100);
+    // 1. สั่นหน้าจอมือถือ (ถ้ารองรับ)
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100]); 
+
+    // 2. สั่น Element ด้วย JavaScript (ไม่พึ่ง CSS)
+    if (profileCard) {
+      let shakes = 0;
+      const interval = setInterval(() => {
+        profileCard.style.transform = `translateX(${shakes % 2 === 0 ? -8 : 8}px)`;
+        shakes++;
+        if (shakes > 5) {
+          clearInterval(interval);
+          profileCard.style.transform = 'translateX(0)';
+        }
+      }, 50);
+    }
   }
 
-  // 1. ดักจับการกดปุ่มย้อนกลับของ Browser (History API)
+  // ----- ดักจับการกดย้อนกลับ (History API) -----
+  // ใส่ State เปล่าๆ ไว้ 1 อัน เพื่อดักการกด Back
   history.pushState(null, null, location.href);
   window.onpopstate = function () {
     if (hasUnsavedChanges && !isSaving) {
       triggerShake();
-      // ดันประวัติกลับไปเพื่อไม่ให้ออกจากหน้า
+      // ดันประวัติกลับไปเป็นหน้าเดิม (ไม่ให้ออก)
       history.pushState(null, null, location.href);
     }
   };
 
-  // 2. ดักจับการคลิกลิงก์ในเว็บ (เช่น กด "ย้อนกลับ" หรือเมนูอื่นๆ)
+  // ----- ดักจับการคลิกลิงก์ออกจากหน้านี้ -----
   document.body.addEventListener('click', function(e) {
     const link = e.target.closest('a');
     if (link && hasUnsavedChanges && !isSaving) {
-      // ถ้าเป็นลิงก์ที่ไม่ได้อยู่ใน Modal ให้สั่นจอและบล็อกการคลิก
+      // ถ้าเป็นลิงก์ทั่วไป (ไม่ใช่ Modal)
       if (!link.closest('.pop-overlay')) {
         e.preventDefault();
         e.stopPropagation();
         triggerShake();
       }
     }
-  }, true); // ใช้ Capture Phase เพื่อดักก่อนที่ลิงก์จะทำงาน
+  }, true);
 
   // ----- DOM Elements -----
   const inputAvatar = document.getElementById('inputAvatar');
