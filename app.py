@@ -45,7 +45,11 @@ PROMPTPAY_PHONE = os.getenv("PROMPTPAY_PHONE", "")
 ORDER_TTL = timedelta(minutes=30)
 
 # ดึงอีเมลแอดมินและแปลงเป็นตัวพิมพ์เล็กเพื่อความแม่นยำ
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").strip().lower()
+ADMIN_USERNAMES = {
+    name.strip().lower()
+    for name in (os.getenv("ADMIN_EMAIL", "") + "," + os.getenv("DEV_USERNAME", "")).split(",")
+    if name.strip()
+}
 
 # ราคาเป็นตัวอย่าง แก้ได้ตามต้องการ
 PACKAGES = {
