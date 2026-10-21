@@ -64,7 +64,6 @@
 html{-webkit-text-size-adjust:100%}
 body{
   margin:0;
-  /* ตัวอักษร A-Z ใช้ Montserrat, ที่เหลือ (ไทย ตัวเลข วงเล็บ เครื่องหมาย) ใช้ Anuphan */
   font-family:'Montserrat', 'Anuphan', system-ui, -apple-system, sans-serif;
   background:var(--bg);
   color:var(--text);
@@ -103,7 +102,7 @@ nav {
   letter-spacing: -.02em; white-space: nowrap;
 }
 
-/* ---- ชื่อผู้ใช้ + รูปโปรไฟล์ (ไฮไลท์ด้วยสีของผู้ใช้) ---- */
+/* ---- ชื่อผู้ใช้ + รูปโปรไฟล์ ---- */
 .user-chip {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 4px 6px 4px 4px; border-radius: 999px;
@@ -124,7 +123,7 @@ nav {
   background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
 }
 
-/* รูปโปรไฟล์ (วงกลมมีขอบสีไฮไลท์) */
+/* รูปโปรไฟล์ */
 .avatar {
   width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
   border: 2px solid var(--accent); background: var(--accent); color: #fff;
@@ -277,7 +276,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 }
 .btn-close:hover { background: var(--line); color: var(--text); }
 
-/* ---- ป๊อปอัปทั้งหมดของโปรไฟล์ (พื้นหลังเบลอ) ---- */
+/* ---- ป๊อปอัปทั้งหมดของโปรไฟล์ ---- */
 .pop-overlay {
   position: fixed; inset: 0; z-index: 200;
   background: rgba(15, 23, 42, 0.35);
@@ -313,12 +312,6 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   font-family: 'AnuphanAll', 'Anuphan', sans-serif;
 }
 
-/* ช่องดูตัวอย่างแบนเนอร์ */
-.banner-preview {
-  aspect-ratio: 8 / 3; border-radius: 16px; border: 1px solid var(--line);
-  background: linear-gradient(135deg, var(--accent), var(--accent-soft)) center / cover no-repeat;
-}
-
 /* วงล้อสี */
 .wheel-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; }
 .wheel {
@@ -343,7 +336,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   background: var(--surface); border: 1px dashed var(--line);
 }
 
-/* ---- Notice popup (แจ้งผลการทำงาน) ---- */
+/* ---- Notice popup ---- */
 .notice-overlay {
   position: fixed; inset: 0; z-index: 9999;
   background: rgba(15, 23, 42, 0.35);
@@ -386,7 +379,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   font-family: 'Anuphan', sans-serif !important;
 }
 
-/* ✅ Mobile Bottom Auth Bar (ดีไซน์ใหม่สวยงาม) */
+/* ✅ Mobile Auth Bar (ย้ายมาไว้ใต้ Navbar) */
 .mobile-auth-bar {
   display: none; /* ซ่อนไว้บนคอมพิวเตอร์ */
 }
@@ -394,58 +387,49 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 @media (max-width: 900px) {
   .mobile-auth-bar {
     display: flex;
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 999;
+    position: sticky; /* ให้ติดอยู่ใต้ Navbar เวลาเลื่อน */
+    top: 61px; /* ความสูงของ Navbar (ประมาณ 60px) */
+    z-index: 40;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border-top: 1px solid var(--line);
-    padding: 12px 16px;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom)); /* รองรับ iPhone */
-    gap: 12px;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+    border-bottom: 1px solid var(--line);
+    padding: 10px 16px;
+    gap: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.02);
   }
   
-  /* ปุ่มสมัครสมาชิก (Ghost) */
   .mobile-auth-bar .btn-signup {
     flex: 1;
     display: flex; align-items: center; justify-content: center;
     background: transparent;
     color: var(--primary);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     font-family: 'Anuphan', sans-serif;
     border: 1.5px solid var(--primary);
-    border-radius: 10px;
-    padding: 12px 0;
+    border-radius: 8px;
+    padding: 10px 0;
     text-decoration: none;
     transition: all 0.2s;
   }
-  .mobile-auth-bar .btn-signup:active {
-    background: var(--primary-soft);
-  }
+  .mobile-auth-bar .btn-signup:active { background: var(--primary-soft); }
 
-  /* ปุ่มเข้าสู่ระบบ (Primary) */
   .mobile-auth-bar .btn-login {
     flex: 1;
     display: flex; align-items: center; justify-content: center;
     background: var(--primary);
     color: #fff;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     font-family: 'Anuphan', sans-serif;
     border: 1.5px solid var(--primary);
-    border-radius: 10px;
-    padding: 12px 0;
+    border-radius: 8px;
+    padding: 10px 0;
     text-decoration: none;
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
     transition: all 0.2s;
   }
-  .mobile-auth-bar .btn-login:active {
-    background: var(--primary-dark);
-    transform: scale(0.98);
-  }
-
-  /* เพิ่มระยะห่างด้านล่างให้เนื้อหาไม่ถูกแถบทับ */
-  body { padding-bottom: 80px; }
+  .mobile-auth-bar .btn-login:active { background: var(--primary-dark); transform: scale(0.98); }
 }
 </style>
 </head>
@@ -498,6 +482,14 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   </div>
 </nav>
 
+{% if not user %}
+<!-- ✅ แถบเมนูสำหรับมือถือ (ย้ายมาไว้ใต้ Navbar แล้ว) -->
+<div class="mobile-auth-bar">
+  <a href="{{ url_for('register') }}" class="btn-signup">สมัครสมาชิก</a>
+  <a href="{{ url_for('login') }}" class="btn-login">เข้าสู่ระบบ</a>
+</div>
+{% endif %}
+
 <!-- Main Content -->
 <main class="wrap">
   {% if request.endpoint and request.endpoint != 'index' %}
@@ -513,7 +505,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 </main>
 
 {% if user %}
-<!-- ป๊อปอัปโปรไฟล์ (เพิ่มคลาส font-anuphan-all) -->
+<!-- ป๊อปอัปโปรไฟล์ -->
 <div class="pop-overlay font-anuphan-all" id="profileModal" hidden>
   <div class="pop-box">
     <button type="button" class="pop-close" data-close aria-label="ปิด">✕</button>
@@ -528,7 +520,6 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
       <div class="muted" style="font-size:14px;">{{ user.username }}</div>
       <div style="margin:14px 0 18px; font-weight:700;">ยอดเงินในกระเป๋า {{ "%.2f"|format(user.balance) }} ฿</div>
       
-      <!-- ปุ่มเดียว: ไปหน้าโปรไฟล์ -->
       <a class="btn" href="{{ url_for('account') }}" style="margin-bottom: 10px;">โปรไฟล์ของฉัน</a>
       
       <a href="{{ url_for('logout') }}" style="display:block; margin-top:16px; color:var(--err); font-weight:600;">ออกจากระบบ</a>
@@ -571,12 +562,6 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
       </div>
     </div>
   </div>
-</div>
-{% else %}
-<!-- ✅ แถบเมนูล่างสำหรับมือถือ (ดีไซน์ใหม่) -->
-<div class="mobile-auth-bar">
-  <a href="{{ url_for('register') }}" class="btn-signup">สมัครสมาชิก</a>
-  <a href="{{ url_for('login') }}" class="btn-login">เข้าสู่ระบบ</a>
 </div>
 {% endif %}
 
@@ -634,7 +619,6 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
     return { h: h, s: s * 100, l: l * 100 };
   }
 
-  // ใช้สีไฮไลท์ใหม่ทันทีโดยไม่ต้องรีเฟรช
   function applyAccent(hex) {
     const root = document.documentElement;
     root.style.setProperty('--accent', hex);
@@ -682,7 +666,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
     const range = document.getElementById('lightRange');
     const sample = document.getElementById('colorSample');
     const saveBtn = document.getElementById('saveColor');
-    const R = 94; // รัศมีที่ตำแหน่งปุ่มบนวงล้อ (220 / 2 - 16)
+    const R = 94;
 
     let hue = 0;
     let current = ACCENT;
@@ -751,7 +735,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
     resetToCurrent();
   })();
 
-  // ---------- ป๊อปอัปแจ้งผลการทำงาน (จาก flash message) ----------
+  // ---------- ป๊อปอัปแจ้งผลการทำงาน ----------
   (function () {
     const items = {{ msgs|tojson }};
     if (!items.length) return;
@@ -762,7 +746,6 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
       : "{{ url_for('static', filename='icons/check-ok.png') }}";
     const titleText = hasErr ? 'เกิดข้อผิดพลาด' : 'สำเร็จ';
 
-    // ตัดอิโมจิและสัญลักษณ์นำหน้าออกจากข้อความ
     const EMOJI_PREFIX = /^[\s\p{Extended_Pictographic}\u200d\ufe0f\u20e3]+/u;
     const clean = function (s) { return s.replace(EMOJI_PREFIX, '').trim(); };
 
