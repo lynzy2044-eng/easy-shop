@@ -1,4 +1,4 @@
-"""ระบบชำระเงิน: สร้าง PromptPay QR และตรวจสลิปผ่าน API (SlipOK / EasySlip)"""
+"""ระบบชำระเงิน: สร้าง PromptPay QR, ตรวจสลิป, และแลกซอง TrueMoney"""
 from __future__ import annotations
 
 import mimetypes
@@ -6,8 +6,11 @@ import os
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlparse, parse_qs
 
 import requests
+import cloudscraper
+import certifi
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -19,6 +22,7 @@ SLIPOK_API_KEY = os.getenv("SLIPOK_API_KEY", "")
 SLIPOK_BRANCH_ID = os.getenv("SLIPOK_BRANCH_ID", "")
 EASYSLIP_API_KEY = os.getenv("EASYSLIP_API_KEY", "")
 SLIP_MAX_AGE_MINUTES = int(os.getenv("SLIP_MAX_AGE_MINUTES", "60"))
+TRUEMONEY_PHONE = os.getenv("PROMPTPAY_PHONE", "") # ใช้เบอร์เดียวกับพร้อมเพย์
 
 EASYSLIP_URL = "https://developer.easyslip.com/api/v1/verify"
 SLIPOK_ERRORS = {
@@ -29,15 +33,11 @@ SLIPOK_ERRORS = {
     1012: "สลิปนี้ถูกใช้ไปแล้ว",
 }
 
-
 class SlipError(Exception):
-    """error ที่แสดงให้ผู้ใช้เห็นได้ (user_message เป็นภาษาไทย)"""
-
     def __init__(self, code: str, user_message: str):
         super().__init__(f"{code}: {user_message}")
         self.code = code
         self.user_message = user_message
-
 
 @dataclass
 class SlipResult:
@@ -47,11 +47,9 @@ class SlipResult:
     receiver_name: str = ""
     receiver_accounts: list = field(default_factory=list)
 
-
 # ---------------------------------------------------------------- PromptPay
 def _tlv(tag: str, value: str) -> str:
     return f"{tag}{len(value):02d}{value}"
-
 
 def _crc16(data: str) -> str:
     crc = 0xFFFF
@@ -62,16 +60,13 @@ def _crc16(data: str) -> str:
             crc &= 0xFFFF
     return f"{crc:04X}"
 
-
 def _normalize_target(target: str) -> str:
     digits = re.sub(r"\D", "", target)
-    if len(digits) == 10 and digits.startswith("0"):  # เบอร์มือถือ
+    if len(digits) == 10 and digits.startswith("0"):
         return "0066" + digits[1:]
-    return digits  # เลขบัตรประชาชน 13 หลัก
-
+    return digits
 
 def promptpay_payload(target: str, amount: float) -> str:
-    """สร้างข้อความ EMVCo สำหรับ QR พร้อมเพย์ (ยอดคงที่)"""
     merchant = _tlv("00", "A000000677010111") + _tlv("01", _normalize_target(target))
     data = (
         _tlv("00", "01")
@@ -84,6 +79,54 @@ def promptpay_payload(target: str, amount: float) -> str:
     )
     return data + _crc16(data)
 
+# ---------------------------------------------------------------- TrueMoney
+def redeem_truemoney(voucher_link: str) -> tuple[bool, float | str]:
+    """แลกซอง TrueMoney คืนค่า (สำเร็จ?, ยอดเงินหรือข้อความ error)"""
+    if not TRUEMONEY_PHONE:
+        return False, "ระบบยังไม่ได้ตั้งค่าเบอร์ TrueMoney ใน .env"
+
+    u = urlparse(voucher_link.strip().replace(' ', ''))
+    if u.scheme != "https" or u.netloc != "gift.truemoney.com" or not u.path.startswith("/campaign"):
+        return False, "ลิ้งค์อั่งเปาไม่ถูกต้อง หรือรูปแบบไม่ถูกต้อง"
+
+    qs = parse_qs(u.query)
+    voucher_hash = (qs.get("v") or [None])[0]
+
+    if not voucher_hash or not re.fullmatch(r"[A-Za-z0-9]{18,64}", voucher_hash):
+        return False, "ลิ้งค์อั่งเปาไม่ถูกต้อง หรือรูปแบบไม่ถูกต้อง"
+
+    scraper = cloudscraper.create_scraper()
+    try:
+        resp = scraper.post(
+            url=f'https://gift.truemoney.com/campaign/vouchers/{voucher_hash}/redeem',
+            headers={
+                'User-Agent': (
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                    'AppleWebKit/537.36 (KHTML, like Gecko) '
+                    'Chrome/98.0.4758.102 Safari/537.36'
+                )
+            },
+            json={
+                'mobile': TRUEMONEY_PHONE,
+                'voucher_hash': voucher_hash
+            },
+            verify=certifi.where(),
+            timeout=15
+        )
+        data = resp.json()
+    except Exception as e:
+        return False, f"เชื่อมต่อ TrueMoney ไม่ได้: {e}"
+
+    status_code = data.get('status', {}).get('code', 'UNKNOWN')
+    if status_code != 'SUCCESS':
+        error_message = data.get('status', {}).get('message', 'เกิดข้อผิดพลาดจาก API')
+        return False, error_message
+
+    amount_str = data.get('data', {}).get('my_ticket', {}).get('amount_baht')
+    if not amount_str:
+        return False, "ไม่พบจำนวนเงินในซอง"
+
+    return True, float(amount_str), voucher_hash
 
 # ---------------------------------------------------------------- Slip API
 def _get(d, *keys):
@@ -93,7 +136,6 @@ def _get(d, *keys):
         d = d.get(k)
     return d
 
-
 def _parse_iso(s):
     if not s:
         return None
@@ -102,9 +144,7 @@ def _parse_iso(s):
     except ValueError:
         return None
 
-
 def _mask_match(masked: str, full: str) -> bool:
-    """เทียบเลขที่ธนาคารปิดบาง เช่น 'xxx-xxx-7084' กับ '0644307084'"""
     m = re.sub(r"[^0-9x*•]", "", masked.lower())
     f = re.sub(r"\D", "", full or "")
     if not m or not f:
@@ -117,7 +157,6 @@ def _mask_match(masked: str, full: str) -> bool:
                 return False
             visible += 1
     return visible >= 3
-
 
 def _verify_slipok(image: bytes, filename: str) -> SlipResult:
     if not SLIPOK_API_KEY or not SLIPOK_BRANCH_ID:
@@ -157,7 +196,6 @@ def _verify_slipok(image: bytes, filename: str) -> SlipResult:
         receiver_accounts=accounts,
     )
 
-
 def _verify_easyslip(image: bytes, filename: str) -> SlipResult:
     if not EASYSLIP_API_KEY:
         raise SlipError("config", "ระบบตรวจสลิปยังไม่ได้ตั้งค่า")
@@ -193,9 +231,7 @@ def _verify_easyslip(image: bytes, filename: str) -> SlipResult:
         receiver_accounts=accounts,
     )
 
-
 def _validate(slip: SlipResult, expected_amount: float, receiver_phone: str) -> None:
-    """เช็คผู้รับ ยอด และอายุสลิป — ไม่ผ่านจะ raise SlipError"""
     if not any(_mask_match(acc, receiver_phone) for acc in slip.receiver_accounts):
         raise SlipError("receiver", "สลิปนี้ไม่ได้โอนเข้าบัญชีของร้าน")
     if abs(slip.amount - expected_amount) >= 0.005:
@@ -213,9 +249,7 @@ def _validate(slip: SlipResult, expected_amount: float, receiver_phone: str) -> 
     if age < timedelta(minutes=-5):
         raise SlipError("future", "วันเวลาในสลิปไม่ถูกต้อง")
 
-
 def verify_slip(image: bytes, filename: str, expected_amount: float, receiver_phone: str) -> SlipResult:
-    """ยิง API ตรวจสลิป แล้วตรวจเงื่อนไขของร้าน"""
     try:
         if SLIP_PROVIDER == "slipok":
             slip = _verify_slipok(image, filename)
