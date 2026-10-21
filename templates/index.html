@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- Hero Section -->
-<section class="hero">
-  <h1>เรียนตัดต่อ CapCut PC ตั้งแต่ศูนย์</h1>
-  <p>จนทำงานได้สไตล์ของตัวเอง ทดลองเรียนฟรีได้ทุกบทแรก</p>
-  <a class="btn" href="#packages">ดูแพ็กเกจเลย</a>
+<!-- Hero Section (ดึงข้อมูลจาก Database) -->
+<section class="hero" style="{% if hero_img %}background-image: url('{{ hero_img }}'); background-size: cover; background-position: center; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5);{% endif %}">
+  <h1>{{ hero_title }}</h1>
+  <p style="color: {% if hero_img %}white{% else %}var(--muted){% endif %};">{{ hero_subtitle }}</p>
+  <a class="btn" href="#packages" style="padding: {{ btn_size }};">{{ btn_text }}</a>
 </section>
 
 <!-- Dashboard Menus -->
