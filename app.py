@@ -135,6 +135,14 @@ class SiteSetting(db.Model):
     value = db.Column(db.Text, nullable=False)
 
 
+class UserProfile(db.Model):
+    """โปรไฟล์ของแต่ละผู้ใช้ (ของใครของมัน): รูปจาก Gmail, แบนเนอร์, สีไฮไลท์"""
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), primary_key=True)
+    avatar_url = db.Column(db.Text, default="")          # รูปจาก Gmail
+    banner = db.Column(db.Text, default="")              # แบนเนอร์ (data URI)
+    accent = db.Column(db.String(7), default="#2563eb")  # สีไฮไลท์ เช่น #2563eb
+
+
 # ---------------------------------------------------------------- Helpers
 def get_setting(key, default=""):
     setting = db.session.get(SiteSetting, key)
@@ -218,6 +226,28 @@ def qr_data_uri(text):
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
 
+HEX_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+DEFAULT_ACCENT = "#2563eb"
+
+
+def profile_for(user):
+    """ข้อมูลโปรไฟล์ที่ใช้แสดงผลหน้าเว็บ (ใช้ค่าเริ่มต้นถ้ายังไม่เคยตั้ง)"""
+    if not user:
+        return {"name": "", "initial": "", "avatar_url": "", "banner": "",
+                "accent": DEFAULT_ACCENT, "accent_soft": DEFAULT_ACCENT + "1f"}
+    p = db.session.get(UserProfile, user.id)
+    accent = p.accent if p and p.accent else DEFAULT_ACCENT
+    name = user.username.split("@")[0]
+    return {
+        "name": name,
+        "initial": (name[:1] or "?").upper(),
+        "avatar_url": p.avatar_url if p and p.avatar_url else "",
+        "banner": p.banner if p and p.banner else "",
+        "accent": accent,
+        "accent_soft": accent + "1f",
+    }
+
+
 @app.context_processor
 def inject_globals():
     user = current_user()
@@ -233,6 +263,7 @@ def inject_globals():
         "btn_size": f"{get_setting('btn_pad_y', '14')}px {get_setting('btn_pad_x', '32')}px",
         "btn_font_size": f"{get_setting('btn_font_size', '16')}px",
         "btn_radius": f"{get_setting('btn_radius', '12')}px",
+        "profile": profile_for(user),
     }
 
 
@@ -515,8 +546,17 @@ def auth_google():
             db.session.add(user)
             db.session.commit()
 
+        # เก็บรูปโปรไฟล์จาก Gmail
+        picture = id_info.get("picture", "")
+        if picture:
+            prof = db.session.get(UserProfile, user.id) or UserProfile(user_id=user.id)
+            prof.avatar_url = picture
+            db.session.add(prof)
+            db.session.commit()
+
         session.clear()
         session["uid"] = user.id
+        session.permanent = True
         return jsonify(ok=True, redirect=url_for("index"))
 
     except Exception as e:
@@ -719,6 +759,41 @@ def account():
         owned=sorted(owned_tracks(user)),
         enrollments=enrollments,
     )
+
+
+@app.route("/profile/accent", methods=["POST"])
+@login_required
+def profile_accent():
+    data = request.get_json(silent=True) or {}
+    accent = str(data.get("accent", "")).strip()
+    if not HEX_RE.match(accent):
+        return jsonify(ok=False, error="invalid_color"), 400
+    user = current_user()
+    p = db.session.get(UserProfile, user.id) or UserProfile(user_id=user.id)
+    p.accent = accent.lower()
+    db.session.add(p)
+    db.session.commit()
+    return jsonify(ok=True, accent=p.accent)
+
+
+@app.route("/profile/banner", methods=["POST"])
+@login_required
+def profile_banner():
+    user = current_user()
+    p = db.session.get(UserProfile, user.id) or UserProfile(user_id=user.id)
+    if request.form.get("remove"):
+        p.banner = ""
+    else:
+        file = request.files.get("banner")
+        if not file or not file.filename:
+            return jsonify(ok=False, error="no_file"), 400
+        mime = file.mimetype or ""
+        if not mime.startswith("image/"):
+            return jsonify(ok=False, error="not_image"), 400
+        p.banner = f"data:{mime};base64," + base64.b64encode(file.read()).decode("utf-8")
+    db.session.add(p)
+    db.session.commit()
+    return jsonify(ok=True)
 
 
 def ensure_dev_account():
