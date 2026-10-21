@@ -1,5 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
+
+<!-- การ์ดโปรไฟล์: แบนเนอร์ + รูปโปรไฟล์ + ปุ่มปรับแต่ง -->
+<div class="card" style="margin-bottom: 24px; padding: 0; overflow: hidden;">
+  <div class="profile-banner"
+       style="border-radius: 16px 16px 0 0; height: 150px;{% if profile.banner %} background-image: url('{{ profile.banner }}');{% endif %}"></div>
+
+  <div style="display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; padding: 0 24px 24px; margin-top: -44px;">
+    {% if profile.avatar_url %}
+      <img class="avatar lg" src="{{ profile.avatar_url }}" alt="" referrerpolicy="no-referrer" style="margin: 0;">
+    {% else %}
+      <span class="avatar lg" style="margin: 0;">{{ profile.initial }}</span>
+    {% endif %}
+
+    <div style="flex: 1; min-width: 180px; padding-bottom: 4px;">
+      <div class="profile-name" style="margin: 0 0 2px; text-align: left;">{{ profile.name }}</div>
+      <div class="muted" style="font-size: 14px;">{{ user.username }}</div>
+    </div>
+
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <button type="button" class="btn" data-open="customizeModal" style="width: auto; padding: 10px 18px; font-size: 14px;">ปรับแต่งโปรไฟล์</button>
+      <button type="button" class="btn ghost" data-open="colorModal" style="width: auto; padding: 10px 18px; font-size: 14px;">เปลี่ยนสีชื่อ</button>
+    </div>
+  </div>
+</div>
+
 <h1>บัญชีของฉัน</h1>
 <p class="muted" style="margin-bottom: 24px;">ข้อมูลการเข้าเรียนและประวัติการสั่งซื้อของคุณ</p>
 
