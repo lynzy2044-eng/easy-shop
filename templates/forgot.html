@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 16px;">
+  <div style="background: #ffffff; border-radius: 24px; padding: 32px; width: 100%; max-width: 400px; box-shadow: 0 20px 40px -12px rgba(37, 99, 235, 0.15); border: 1px solid #e2e8f0;">
+    
+    <div style="text-align: center; margin-bottom: 32px;">
+      <h2 style="color: #0f172a; margin: 0 0 8px; font-size: 24px; font-weight: 800;">ลืมรหัสผ่าน</h2>
+      <p style="color: #64748b; font-size: 14px; margin: 0;">กรอกอีเมลและตั้งรหัสผ่านใหม่</p>
+    </div>
+
+    <form method="post">
+      <div style="position: relative; margin-bottom: 16px;">
+        <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+        </span>
+        <input type="email" name="email" required placeholder="อีเมลที่ใช้สมัคร"
+               style="width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; color: #0f172a; padding: 16px 16px 16px 48px; border-radius: 12px; font-size: 16px; outline: none;">
+      </div>
+
+      <div style="position: relative; margin-bottom: 24px;">
+        <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        </span>
+        <input type="password" name="new_password" required minlength="6" placeholder="รหัสผ่านใหม่"
+               style="width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; color: #0f172a; padding: 16px 48px 16px 48px; border-radius: 12px; font-size: 16px; outline: none;">
+      </div>
+
+      <button type="submit" style="width: 100%; background: #2563eb; color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);">
+        เปลี่ยนรหัสผ่าน
+      </button>
+    </form>
+
+    <div style="text-align: center; margin-top: 24px; font-size: 14px; color: #64748b;">
+      จำรหัสผ่านได้แล้ว? <a href="{{ url_for('login') }}" style="color: #2563eb; font-weight: 600; text-decoration: none;">เข้าสู่ระบบ</a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
