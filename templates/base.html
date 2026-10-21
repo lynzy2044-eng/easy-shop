@@ -315,7 +315,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 
 /* ช่องดูตัวอย่างแบนเนอร์ */
 .banner-preview {
-  height: 140px; border-radius: 16px; border: 1px solid var(--line);
+  aspect-ratio: 8 / 3; border-radius: 16px; border: 1px solid var(--line);
   background: linear-gradient(135deg, var(--accent), var(--accent-soft)) center / cover no-repeat;
 }
 
@@ -473,7 +473,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
     <button type="button" class="pop-close" data-close aria-label="ปิด">✕</button>
     <div style="padding: 28px 24px 24px;">
       <h3 style="margin: 0 0 4px;">ปรับแต่งโปรไฟล์</h3>
-      <p class="muted" style="margin: 0 0 16px; font-size: 14px;">เปลี่ยนแบนเนอร์ที่อยู่หลังโปรไฟล์ของคุณ</p>
+      <p class="muted" style="margin: 0 0 16px; font-size: 14px;">เปลี่ยนแบนเนอร์หลังโปรไฟล์ ขนาดแนะนำ 1920x720 พิกเซล ถ้าขนาดไม่ตรงระบบจะครอปให้อัตโนมัติ</p>
 
       <div class="banner-preview" id="bannerPreview" {% if profile.banner %}style="background-image: url('{{ profile.banner }}');"{% endif %}></div>
       <input type="file" id="bannerInput" accept="image/*" hidden>
@@ -722,14 +722,40 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
         errBox.textContent = 'ไฟล์ใหญ่เกิน 10 MB กรุณาลดขนาดรูป';
         return;
       }
-      pendingFile = file;
-      removeFlag = false;
-      errBox.textContent = '';
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        preview.style.backgroundImage = "url('" + e.target.result + "')";
+      if (!file.type.startsWith('image/')) {
+        errBox.textContent = 'กรุณาเลือกไฟล์รูปภาพ';
+        return;
+      }
+      const url = URL.createObjectURL(file);
+      const im = new Image();
+      im.onload = function () {
+        // ครอปตรงกลางให้ได้สัดส่วน 8:3 แล้วปรับเป็น 1920x720 พิกเซล
+        const W = 1920, H = 720, target = W / H;
+        const ratio = im.width / im.height;
+        let sx = 0, sy = 0, sw = im.width, sh = im.height;
+        if (ratio > target) {
+          sw = im.height * target;
+          sx = (im.width - sw) / 2;
+        } else {
+          sh = im.width / target;
+          sy = (im.height - sh) / 2;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = W;
+        canvas.height = H;
+        canvas.getContext('2d').drawImage(im, sx, sy, sw, sh, 0, 0, W, H);
+        canvas.toBlob(function (b) {
+          pendingFile = b;
+          removeFlag = false;
+          errBox.textContent = '';
+          preview.style.backgroundImage = "url('" + URL.createObjectURL(b) + "')";
+          URL.revokeObjectURL(url);
+        }, 'image/jpeg', 0.9);
       };
-      reader.readAsDataURL(file);
+      im.onerror = function () {
+        errBox.textContent = 'เปิดรูปนี้ไม่ได้ ลองไฟล์อื่น';
+      };
+      im.src = url;
     });
 
     document.getElementById('removeBanner').addEventListener('click', function () {
