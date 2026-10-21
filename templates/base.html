@@ -172,27 +172,6 @@ input {
 }
 input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(--primary-soft); background:#fff;}
 
-/* ---- Flash Messages ---- */
-.flash-container {
-  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-  z-index: 9999; width: calc(100% - 40px); max-width: 400px;
-  display: flex; flex-direction: column; gap: 10px; pointer-events: none;
-}
-.flash {
-  pointer-events: auto; padding: 16px; border-radius: var(--radius-sm);
-  background: var(--surface); border: 1px solid var(--line);
-  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
-  font-weight: 600; font-size: 15px;
-  display: flex; align-items: center; justify-content: space-between;
-  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  cursor: pointer;
-}
-.flash.ok { border-left: 6px solid var(--ok); color: var(--ok); background: var(--ok-soft); }
-.flash.err { border-left: 6px solid var(--err); color: var(--err); background: var(--err-soft); }
-.flash.hide { animation: fadeOutRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-@keyframes slideDown { 0% { opacity: 0; transform: translateY(-20px); } 100% { opacity: 1; transform: translateY(0); } }
-@keyframes fadeOutRight { 0% { opacity: 1; transform: translateX(0); } 100% { opacity: 0; transform: translateX(20px); } }
-
 /* ---- Hero Section ---- */
 .hero{
   background:linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
@@ -225,6 +204,39 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 }
 .btn-close:hover { background: var(--line); color: var(--text); }
 
+/* ---- Notice popup (แจ้งผลการทำงาน) ---- */
+.notice-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  opacity: 0; transition: opacity 0.2s ease;
+}
+.notice-overlay.show { opacity: 1; }
+.notice-box {
+  background: var(--surface); border-radius: 24px; width: 100%; max-width: 380px;
+  padding: 32px 24px 24px; text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+  transform: scale(0.95); transition: transform 0.2s ease;
+}
+.notice-overlay.show .notice-box { transform: scale(1); }
+.notice-icon { width: 64px; height: 64px; object-fit: contain; display: block; margin: 0 auto 16px; }
+.notice-title { font-size: 20px; font-weight: 800; margin: 0 0 8px; }
+.notice-title.ok { color: var(--ok); }
+.notice-title.err { color: var(--err); }
+.notice-msg { font-size: 15px; color: var(--muted); margin: 0 0 24px; line-height: 1.7; word-break: break-word; }
+.notice-msg p { margin: 0 0 6px; }
+.notice-actions { display: flex; gap: 10px; }
+.notice-btn {
+  flex: 1; border: 0; border-radius: var(--radius-sm); padding: 14px;
+  font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
+  transition: var(--transition);
+}
+.notice-btn.back { background: transparent; color: var(--text); border: 2px solid var(--line); }
+.notice-btn.back:hover { border-color: var(--primary); color: var(--primary); }
+.notice-btn.done { background: var(--primary); color: #fff; box-shadow: 0 4px 14px rgba(37,99,235,.3); }
+.notice-btn.done:hover { background: var(--primary-dark); }
+
 /* ---- Dashboard Menu Styles ---- */
 .dash-card {
   display: flex; align-items: center; gap: 16px; padding: 24px; border-radius: var(--radius);
@@ -236,16 +248,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 </head>
 <body>
 
-<!-- Flash Messages Container -->
-<div class="flash-container" id="flashContainer">
-  {% with msgs = get_flashed_messages(with_categories=true) %}
-    {% for cat, m in msgs %}
-      <div class="flash {{ cat }}" onclick="this.classList.add('hide')">
-        <span>{{ m }}</span>
-      </div>
-    {% endfor %}
-  {% endwith %}
-</div>
+{% set msgs = get_flashed_messages(with_categories=true) %}
 
 <!-- Navbar -->
 <nav>
@@ -266,12 +269,10 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
       <a href="{{ url_for('contact') }}">ติดต่อแจ้งปัญหา</a>
       
       {% if user %}
-        <!-- แก้ไขตรงนี้: เปลี่ยนจาก user.email เป็น user.username -->
         <a href="{{ url_for('account') }}" style="color:var(--primary); font-weight:700;">
           {{ user.username.split('@')[0] }} ({{ "%.2f"|format(user.balance) }} ฿)
         </a>
         
-        <!-- ปุ่มแอดมิน -->
         {% if is_admin %}
           <a href="{{ url_for('admin_dashboard') }}" class="btn" style="background:#e11d48 !important; color:#fff !important; padding: 8px 16px;">
             ⚙️ จัดการหลังบ้าน
@@ -303,16 +304,89 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
     });
   }
 
-  // ลบ Flash Message อัตโนมัติ
-  setTimeout(() => {
-    const flashes = document.querySelectorAll('.flash');
-    flashes.forEach((el, index) => {
-      setTimeout(() => {
-        el.classList.add('hide');
-        setTimeout(() => el.remove(), 300); 
-      }, index * 200); 
+  // ป๊อปอัปแจ้งผลการทำงาน (จาก flash message)
+  (function () {
+    const items = {{ msgs|tojson }};
+    if (!items.length) return;
+
+    const hasErr = items.some(function (i) { return i[0] === 'err'; });
+    const iconSrc = hasErr
+      ? "{{ url_for('static', filename='icons/check-err.png') }}"
+      : "{{ url_for('static', filename='icons/check-ok.png') }}";
+    const titleText = hasErr ? 'เกิดข้อผิดพลาด' : 'สำเร็จ';
+    const homeUrl = "{{ url_for('index') }}";
+
+    // ตัดอิโมจิและสัญลักษณ์นำหน้าออกจากข้อความ
+    const EMOJI_PREFIX = /^[\s\p{Extended_Pictographic}\u200d\ufe0f\u20e3]+/u;
+    const clean = function (s) { return s.replace(EMOJI_PREFIX, '').trim(); };
+
+    const overlay = document.createElement('div');
+    overlay.className = 'notice-overlay';
+
+    const box = document.createElement('div');
+    box.className = 'notice-box';
+
+    const img = document.createElement('img');
+    img.className = 'notice-icon';
+    img.src = iconSrc;
+    img.alt = '';
+
+    const title = document.createElement('h3');
+    title.className = 'notice-title ' + (hasErr ? 'err' : 'ok');
+    title.textContent = titleText;
+
+    const msg = document.createElement('div');
+    msg.className = 'notice-msg';
+    items.forEach(function (i) {
+      const p = document.createElement('p');
+      p.textContent = clean(i[1]);
+      msg.appendChild(p);
     });
-  }, 4000);
+
+    const actions = document.createElement('div');
+    actions.className = 'notice-actions';
+
+    const backBtn = document.createElement('button');
+    backBtn.type = 'button';
+    backBtn.className = 'notice-btn back';
+    backBtn.textContent = 'ย้อนกลับ';
+
+    const doneBtn = document.createElement('button');
+    doneBtn.type = 'button';
+    doneBtn.className = 'notice-btn done';
+    doneBtn.textContent = 'เสร็จสิ้น';
+
+    actions.appendChild(backBtn);
+    actions.appendChild(doneBtn);
+    box.appendChild(img);
+    box.appendChild(title);
+    box.appendChild(msg);
+    box.appendChild(actions);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    function close() {
+      overlay.classList.remove('show');
+      setTimeout(function () { overlay.remove(); }, 200);
+    }
+
+    backBtn.addEventListener('click', function () {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = homeUrl;
+      }
+    });
+    doneBtn.addEventListener('click', close);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) close();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') close();
+    });
+
+    requestAnimationFrame(function () { overlay.classList.add('show'); });
+  })();
 </script>
 </body>
 </html>
