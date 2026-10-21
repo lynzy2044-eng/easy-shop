@@ -1,321 +1,832 @@
-{% extends "base.html" %}
-{% block content %}
+<!doctype html>
+<html lang="th" style="--accent: {{ profile.accent }}; --accent-soft: {{ profile.accent_soft }};">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>{{ shop_name }}</title>
 
-<script src="https://accounts.google.com/gsi/client"></script>
+<!-- โหลดฟอนต์ล่วงหน้าตั้งแต่ต้น เพื่อให้พร้อมก่อนวาดหน้า -->
+<link rel="preload" href="{{ url_for('static', filename='fonts/Anuphan-VariableFont_wght.ttf') }}" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="{{ url_for('static', filename='fonts/montserrat.black.ttf') }}" as="font" type="font/ttf" crossorigin>
 
-<div style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 16px;">
-  <div style="background: #ffffff; border-radius: 24px; padding: 32px; width: 100%; max-width: 400px; box-shadow: 0 20px 40px -12px rgba(37, 99, 235, 0.15); border: 1px solid #e2e8f0; position: relative; overflow: hidden;">
+<style>
+/* ---- Montserrat Black: เฉพาะตัวอักษรอังกฤษ A-Z และ a-z ---- */
+@font-face {
+  font-family: 'Montserrat';
+  src: url('{{ url_for("static", filename="fonts/montserrat.black.ttf") }}') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: block;
+  unicode-range: U+0041-005A, U+0061-007A;
+}
 
-    <div style="position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 200px; height: 200px; background: rgba(37, 99, 235, 0.15); filter: blur(60px); border-radius: 50%;"></div>
+/* ---- Anuphan: ภาษาไทย ตัวเลข วงเล็บ และเครื่องหมายทั้งหมด ---- */
+@font-face {
+  font-family: 'Anuphan';
+  src: url('{{ url_for("static", filename="fonts/Anuphan-VariableFont_wght.ttf") }}') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+  unicode-range: U+0000-0040, U+005B-0060, U+007B-007F, U+0E00-0E7F;
+}
 
-    <div style="text-align: center; margin-bottom: 32px; position: relative; z-index: 1;">
-      <h2 style="color: #0f172a; margin: 0 0 8px; font-size: 24px; font-weight: 800;">
-        {{ "สมัครสมาชิก" if mode == "register" else "เข้าสู่ระบบ" }}
-      </h2>
-      <p style="color: #64748b; font-size: 14px; margin: 0;">
-        {% if mode == "register" %}สร้างบัญชีเพื่อเริ่มเรียน
-        {% else %}กรอก Username และรหัสผ่านเพื่อเข้าใช้งาน{% endif %}
-      </p>
-    </div>
+/* ---- AnuphanAll: Anuphan สำหรับทุกตัวอักษร (ใช้กับชื่อผู้ใช้) ---- */
+@font-face {
+  font-family: 'AnuphanAll';
+  src: url('{{ url_for("static", filename="fonts/Anuphan-VariableFont_wght.ttf") }}') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
 
-    <form method="post" style="position: relative; z-index: 1;" id="authForm">
-      
-      <!-- ช่อง Username -->
-      <div style="position: relative; margin-bottom: 8px;">
-        <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
-          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-        </span>
-        <input type="text" name="username" id="username" required placeholder="Username (ภาษาอังกฤษ)"
-               style="width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; color: #0f172a; padding: 16px 16px 16px 48px; border-radius: 12px; font-size: 16px; outline: none; transition: border 0.2s;"
-               {% if mode == "register" %}oninput="checkUsername(this.value)"{% endif %}>
-      </div>
-      
-      <!-- ข้อความแจ้งเตือน Username (แสดงเฉพาะหน้าสมัคร) -->
-      {% if mode == "register" %}
-      <div id="username-msg" style="font-size: 13px; margin-bottom: 16px; min-height: 20px; padding-left: 4px;"></div>
-      {% else %}
-      <div style="margin-bottom: 16px;"></div>
-      {% endif %}
+:root{
+  --bg:#f8fafc;
+  --surface:#ffffff;
+  --text:#0f172a;
+  --muted:#64748b;
+  --line:#e2e8f0;
+  --primary:#2563eb;
+  --primary-dark:#1e40af;
+  --primary-soft:#eff6ff;
+  --ok:#059669;
+  --ok-soft:#ecfdf5;
+  --err:#dc2626;
+  --err-soft:#fef2f2;
+  --radius:16px;
+  --radius-sm:10px;
+  --shadow:0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+  --shadow-hover:0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+  --transition:all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-      <!-- ช่องรหัสผ่าน -->
-      <div style="position: relative; margin-bottom: {% if mode == 'register' %}16px{% else %}8px{% endif %};">
-        <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
-          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-        </span>
-        <input type="password" name="password" id="password" required minlength="6" placeholder="รหัสผ่าน"
-               style="width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; color: #0f172a; padding: 16px 48px 16px 48px; border-radius: 12px; font-size: 16px; outline: none; transition: border 0.2s;"
-               {% if mode == "register" %}oninput="checkStrength(this.value); checkMatch()"{% endif %}>
-        <!-- ปุ่มรูปตา -->
-        <span onclick="togglePassword('password')" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; cursor: pointer;">
-          <svg id="eyeIcon-password" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-        </span>
-      </div>
+*{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  /* ตัวอักษร A-Z ใช้ Montserrat, ที่เหลือ (ไทย ตัวเลข วงเล็บ เครื่องหมาย) ใช้ Anuphan */
+  font-family:'Montserrat', 'Anuphan', system-ui, -apple-system, sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.6;
+  font-size:16px;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1100px; margin:0 auto; padding:20px;}
+a{text-decoration:none; transition:var(--transition);}
 
-      <!-- แถบวัดความปลอดภัย (แสดงเฉพาะหน้าสมัคร) -->
-      {% if mode == "register" %}
-      <div style="margin-bottom: 16px;">
-        <div style="display: flex; gap: 4px; height: 4px; margin-bottom: 4px;">
-          <div class="strength-bar" style="flex: 1; background: #e2e8f0; border-radius: 4px; transition: 0.3s;"></div>
-          <div class="strength-bar" style="flex: 1; background: #e2e8f0; border-radius: 4px; transition: 0.3s;"></div>
-          <div class="strength-bar" style="flex: 1; background: #e2e8f0; border-radius: 4px; transition: 0.3s;"></div>
-          <div class="strength-bar" style="flex: 1; background: #e2e8f0; border-radius: 4px; transition: 0.3s;"></div>
+/* ---- ลิงก์ย้อนกลับมุมซ้ายบน ---- */
+.back-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  color: var(--text); font-size: 15px; font-weight: 700;
+  text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px;
+  margin: 4px 0 16px; padding: 4px 0; background: none; border: 0; cursor: pointer;
+  font-family: inherit;
+}
+.back-link:hover { color: var(--primary); }
+.back-link svg { width: 16px; height: 16px; }
+
+/* ---- Navbar ---- */
+nav {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(255,255,255,.95);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+  width: 100%;
+}
+.nav-container {
+  max-width: 1100px; margin: 0 auto; padding: 14px 20px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.brand {
+  font-weight: 800; font-size: 20px; color: var(--text) !important;
+  letter-spacing: -.02em; white-space: nowrap;
+}
+
+/* ---- ชื่อผู้ใช้ + รูปโปรไฟล์ (ไฮไลท์ด้วยสีของผู้ใช้) ---- */
+.user-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 6px 4px 4px; border-radius: 999px;
+  background: var(--accent-soft); border: 1.5px solid var(--accent);
+  font-family: 'AnuphanAll', 'Anuphan', sans-serif;
+  white-space: nowrap;
+}
+.chip-name {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: none; border: 0; padding: 2px 6px 2px 0; cursor: pointer;
+  color: var(--accent); font-size: 15px; font-weight: 700;
+  font-family: 'AnuphanAll', 'Anuphan', sans-serif;
+}
+.chip-name:hover { opacity: .85; }
+.wheel-dot {
+  width: 18px; height: 18px; border-radius: 50%; padding: 0; cursor: pointer;
+  border: 2px solid #fff; box-shadow: 0 0 0 1px var(--accent);
+  background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
+}
+
+/* รูปโปรไฟล์ (วงกลมมีขอบสีไฮไลท์) */
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--accent); background: var(--accent); color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  object-fit: cover; font-size: 14px; font-weight: 800;
+  font-family: 'AnuphanAll', 'Anuphan', sans-serif;
+}
+.avatar.lg {
+  width: 88px; height: 88px; border: 4px solid #fff; font-size: 34px;
+  box-shadow: 0 0 0 3px var(--accent), 0 6px 16px rgba(0,0,0,.15);
+}
+
+/* ลิงก์เมนูสำหรับคอมพิวเตอร์ */
+.nav-links {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: center;
+  white-space: nowrap;
+}
+.nav-links a:not(.btn) {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.nav-links a:not(.btn):hover {
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+}
+.nav-links .btn {
+  padding: 8px 20px;
+  font-size: 15px;
+  white-space: nowrap;
+  width: auto;
+}
+
+/* ปุ่ม Admin Link (สีแดง) */
+.nav-links a.admin-link {
+  color: #e11d48 !important;
+  font-weight: 800;
+}
+.nav-links a.admin-link:hover {
+  background: #ffe4e6 !important;
+}
+
+/* ปุ่ม 3 ขีด ( Hamburger ) */
+.menu-toggle {
+  display: none; background: none; border: none; cursor: pointer;
+  padding: 8px; color: var(--text); border-radius: 8px;
+  transition: var(--transition);
+}
+.menu-toggle:hover { background: var(--line); }
+
+/* ---- Responsive Navbar ---- */
+@media (max-width: 900px) {
+  .menu-toggle { display: block; }
+  .nav-links {
+    position: absolute; top: 100%; left: 0; right: 0;
+    background: var(--surface); border-bottom: 1px solid var(--line);
+    flex-direction: column; align-items: stretch; gap: 0; padding: 10px;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+    clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+    transition: clip-path 0.3s ease-in-out;
+    white-space: normal;
+  }
+  .nav-links.active { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+  .nav-links a:not(.btn) {
+    padding: 14px 16px; font-size: 16px;
+    border-bottom: 1px solid var(--line); border-radius: 0;
+  }
+  .nav-links .btn { margin-top: 10px; width: 100%; padding: 14px; }
+  .nav-links .user-chip { align-self: flex-start; margin: 10px 16px; }
+  .wrap { padding: 16px; }
+}
+
+/* ---- Typography & Layout ---- */
+h1{font-size:clamp(24px, 4vw, 32px); line-height:1.3; margin:0 0 12px; font-weight:800;}
+h2{font-size:clamp(20px, 3vw, 24px); margin:0 0 16px; font-weight:700;}
+h3{font-size:18px; margin:0 0 8px; font-weight:700;}
+.muted{color:var(--muted);}
+
+/* ---- Grid & Cards ---- */
+.grid{
+  display:grid; gap:16px;
+  grid-template-columns:repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+.card{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:24px; box-shadow:var(--shadow); transition:var(--transition);
+  display:flex; flex-direction:column;
+}
+.card:hover{ transform:translateY(-4px); box-shadow:var(--shadow-hover); border-color:#cbd5e1; }
+.card p{flex-grow:1;}
+.card .btn{margin-top:auto;}
+.price{font-size:32px; font-weight:800; color:var(--primary); margin:8px 0;}
+
+/* ---- Buttons ---- */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  background:var(--primary) !important; color:#fff !important;
+  padding:14px 24px; border-radius:var(--radius-sm); border:0; cursor:pointer;
+  font-size:16px; font-weight:600; font-family:inherit; width: 100%;
+  transition:var(--transition); box-shadow:0 2px 4px rgba(37,99,235,.2);
+}
+.btn:hover{background:var(--primary-dark) !important; transform:translateY(-1px);}
+.btn:active{transform:translateY(0) scale(.98);}
+.btn.ghost{background:transparent !important; border:2px solid var(--line); color:var(--text) !important; box-shadow:none;}
+.btn.ghost:hover{border-color:var(--primary); color:var(--primary) !important; background:var(--primary-soft) !important;}
+
+/* ---- Forms ---- */
+input {
+  width:100%; padding:14px 16px; border-radius:var(--radius-sm);
+  border:1px solid var(--line); background:#f8fafc; color:var(--text);
+  font-size:16px; font-family:inherit; margin-bottom:16px; transition:var(--transition);
+}
+input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(--primary-soft); background:#fff;}
+
+/* ---- Hero Section ---- */
+.hero{
+  background:linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
+  border:1px solid #bfdbfe; border-radius:var(--radius); padding:40px 24px; margin-bottom:24px; text-align: center;
+}
+.hero h1 { font-size: clamp(28px, 5vw, 40px); margin-bottom: 16px; color: var(--primary-dark); }
+.hero p { font-size: 18px; color: var(--muted); margin-bottom: 24px; }
+.hero .btn { width: auto; padding: 14px 32px; margin: 0 auto; }
+
+/* ---- Modals ---- */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  animation: fadeIn 0.3s ease forwards;
+}
+.modal-content {
+  background: var(--surface); border-radius: 24px; width: 100%; max-width: 440px;
+  padding: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+  animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  max-height: 90vh; overflow-y: auto;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scaleIn { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+
+.btn-close {
+  background: var(--bg); border: none; width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  color: var(--muted); font-size: 20px; font-weight: bold; transition: var(--transition);
+}
+.btn-close:hover { background: var(--line); color: var(--text); }
+
+/* ---- ป๊อปอัปทั้งหมดของโปรไฟล์ (พื้นหลังเบลอ) ---- */
+.pop-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  opacity: 0; transition: opacity 0.2s ease;
+}
+.pop-overlay[hidden] { display: none; }
+.pop-overlay.show { opacity: 1; }
+.pop-box {
+  position: relative; background: var(--surface); border-radius: 24px;
+  width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+  transform: scale(0.95); transition: transform 0.2s ease;
+}
+.pop-overlay.show .pop-box { transform: scale(1); }
+.pop-close {
+  position: absolute; top: 12px; right: 12px; z-index: 2;
+  width: 36px; height: 36px; border-radius: 50%; border: 0; cursor: pointer;
+  background: rgba(255,255,255,.92); color: var(--text); font-size: 16px;
+  box-shadow: var(--shadow);
+}
+
+/* แบนเนอร์หลังโปรไฟล์ */
+.profile-banner {
+  height: 130px; border-radius: 24px 24px 0 0;
+  background: linear-gradient(135deg, var(--accent), var(--accent-soft)) center / cover no-repeat;
+}
+.profile-head { padding: 0 24px 24px; text-align: center; margin-top: -44px; }
+.profile-head .avatar.lg { margin: 0 auto; }
+.profile-name {
+  margin: 12px 0 2px; font-size: 20px; font-weight: 800;
+  font-family: 'AnuphanAll', 'Anuphan', sans-serif;
+}
+
+/* ช่องดูตัวอย่างแบนเนอร์ */
+.banner-preview {
+  height: 140px; border-radius: 16px; border: 1px solid var(--line);
+  background: linear-gradient(135deg, var(--accent), var(--accent-soft)) center / cover no-repeat;
+}
+
+/* วงล้อสี */
+.wheel-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.wheel {
+  position: relative; width: 220px; height: 220px; border-radius: 50%;
+  touch-action: none; cursor: grab;
+  background: conic-gradient(hsl(0,85%,55%), hsl(60,85%,55%), hsl(120,85%,55%), hsl(180,85%,55%),
+              hsl(240,85%,55%), hsl(300,85%,55%), hsl(360,85%,55%));
+}
+.wheel-center {
+  position: absolute; left: 50%; top: 50%; width: 104px; height: 104px;
+  margin: -52px 0 0 -52px; border-radius: 20px; background: #7f7f7f;
+  display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px;
+  color: #fff; font-size: 12px; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,.4);
+}
+.wheel-knob {
+  position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px;
+  border-radius: 50%; background: #fff; border: 3px solid #fff; pointer-events: none;
+  box-shadow: 0 0 0 2px rgba(15,23,42,.35), 0 2px 6px rgba(0,0,0,.3);
+}
+.color-sample {
+  width: 100%; padding: 16px; border-radius: 16px; text-align: center;
+  background: var(--surface); border: 1px dashed var(--line);
+}
+
+/* ---- Notice popup (แจ้งผลการทำงาน) ---- */
+.notice-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  opacity: 0; transition: opacity 0.2s ease;
+}
+.notice-overlay.show { opacity: 1; }
+.notice-box {
+  background: var(--surface); border-radius: 24px; width: 100%; max-width: 380px;
+  padding: 32px 24px 24px; text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+  transform: scale(0.95); transition: transform 0.2s ease;
+}
+.notice-overlay.show .notice-box { transform: scale(1); }
+.notice-icon { width: 64px; height: 64px; object-fit: contain; display: block; margin: 0 auto 16px; }
+.notice-title { font-size: 20px; font-weight: 800; margin: 0 0 8px; }
+.notice-title.ok { color: var(--ok); }
+.notice-title.err { color: var(--err); }
+.notice-msg { font-size: 15px; color: var(--muted); margin: 0 0 24px; line-height: 1.7; word-break: break-word; }
+.notice-msg p { margin: 0 0 6px; }
+.notice-btn {
+  width: 100%; border: 0; border-radius: var(--radius-sm); padding: 14px;
+  font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
+  background: var(--primary); color: #fff; box-shadow: 0 4px 14px rgba(37,99,235,.3);
+  transition: var(--transition);
+}
+.notice-btn:hover { background: var(--primary-dark); }
+
+/* ---- Dashboard Menu Styles ---- */
+.dash-card {
+  display: flex; align-items: center; gap: 16px; padding: 24px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--line); transition: var(--transition); cursor: pointer;
+}
+.dash-card:hover { border-color: var(--primary); box-shadow: var(--shadow-hover); transform: translateY(-2px); }
+.dash-icon { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+{% set msgs = get_flashed_messages(with_categories=true) %}
+
+<!-- Navbar -->
+<nav>
+  <div class="nav-container">
+    <a class="brand" href="{{ url_for('index') }}">{{ shop_name }}</a>
+
+    <button class="menu-toggle" id="menuToggle" aria-label="เปิดเมนู">
+      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
+      </svg>
+    </button>
+
+    <div class="nav-links" id="navLinks">
+      <a href="{{ url_for('index') }}">หน้าแรก</a>
+      <a href="{{ url_for('index') }}#packages">ซื้อคอร์ส</a>
+      <a href="{{ url_for('free_lessons') }}">คอร์สเรียนฟรี</a>
+      <a href="{{ url_for('topup') }}">เติมเงิน</a>
+      <a href="{{ url_for('contact') }}">ติดต่อแอดมิน</a>
+
+      {% if user %}
+        <div class="user-chip">
+          <button type="button" class="chip-name" data-open="profileModal">
+            {% if profile.avatar_url %}
+              <img class="avatar" src="{{ profile.avatar_url }}" alt="" referrerpolicy="no-referrer">
+            {% else %}
+              <span class="avatar">{{ profile.initial }}</span>
+            {% endif %}
+            <span>{{ profile.name }} ({{ "%.2f"|format(user.balance) }} ฿)</span>
+          </button>
+          <button type="button" class="wheel-dot" data-open="colorModal" aria-label="เปลี่ยนสีไฮไลท์ชื่อ" title="เปลี่ยนสี"></button>
         </div>
-        <div id="strength-text" style="font-size: 12px; color: #94a3b8;">ระดับความปลอดภัย</div>
-      </div>
 
-      <!-- ช่องยืนยันรหัสผ่าน (แสดงเฉพาะหน้าสมัคร) -->
-      <div style="position: relative; margin-bottom: 8px;">
-        <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
-          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        </span>
-        <input type="password" name="confirm_password" id="confirm_password" required minlength="6" placeholder="ยืนยันรหัสผ่าน"
-               style="width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; color: #0f172a; padding: 16px 48px 16px 48px; border-radius: 12px; font-size: 16px; outline: none; transition: border 0.2s;"
-               oninput="checkMatch()">
-        <span onclick="togglePassword('confirm_password')" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; cursor: pointer;">
-          <svg id="eyeIcon-confirm_password" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-        </span>
-      </div>
-      
-      <!-- ข้อความแจ้งเตือนการพิมพ์รหัสไม่ตรงกัน -->
-      <div id="match-msg" style="font-size: 13px; margin-bottom: 16px; min-height: 20px; padding-left: 4px;"></div>
-      
+        {% if is_admin %}
+          <a href="{{ url_for('admin_dashboard') }}" class="btn" style="background:#e11d48 !important; color:#fff !important; padding: 8px 16px;">
+            ⚙️ จัดการหลังบ้าน
+          </a>
+        {% endif %}
+
+        <a href="{{ url_for('logout') }}" style="color:var(--err)">ออกจากระบบ</a>
       {% else %}
-      <!-- ลิงก์ลืมรหัสผ่าน (แสดงเฉพาะหน้า Login) -->
-      <div style="text-align: right; margin-bottom: 24px;">
-        <a href="{{ url_for('forgot_password') }}" style="color: #64748b; font-size: 14px; text-decoration: none; font-weight: 500; transition: color 0.2s;" onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#64748b'">ลืมรหัสผ่าน?</a>
-      </div>
-      {% endif %}
-
-      <button type="submit" style="width: 100%; background: #2563eb; color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);" onmouseover="this.style.background='#1e40af'" onmouseout="this.style.background='#2563eb'">
-        {{ "สมัครสมาชิก" if mode == "register" else "เข้าสู่ระบบ" }}
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-      </button>
-    </form>
-
-    <div style="display: flex; align-items: center; margin: 24px 0; color: #94a3b8; font-size: 13px;">
-      <div style="flex: 1; height: 1px; background: #e2e8f0;"></div>
-      <span style="padding: 0 12px;">หรือ</span>
-      <div style="flex: 1; height: 1px; background: #e2e8f0;"></div>
-    </div>
-
-    <div style="position: relative; z-index: 1; width: 100%;">
-      <button id="googleBtn" type="button" style="width: 100%; background: #ffffff; color: #3c4043; border: 1px solid #dadce0; padding: 14px; border-radius: 50px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background 0.2s, box-shadow 0.2s;" onmouseover="this.style.background='#f8fafc'; this.style.boxShadow='0 1px 2px 0 rgba(60,64,67,0.3)'" onmouseout="this.style.background='#ffffff'; this.style.boxShadow='none'">
-        <svg width="20" height="20" viewBox="0 0 24 24">
-          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-        </svg>
-        ดำเนินการต่อด้วย Google
-      </button>
-    </div>
-
-    <div style="text-align: center; margin-top: 24px; font-size: 14px; color: #64748b; position: relative; z-index: 1;">
-      {% if mode == "register" %}
-        มีบัญชีแล้ว? <a href="{{ url_for('login') }}" style="color: #2563eb; font-weight: 600; text-decoration: none;">เข้าสู่ระบบ</a>
-      {% else %}
-        ยังไม่มีบัญชี? <a href="{{ url_for('register') }}" style="color: #2563eb; font-weight: 600; text-decoration: none;">สมัครสมาชิก →</a>
+        <a href="{{ url_for('login') }}">เข้าสู่ระบบ</a>
+        <a class="btn" href="{{ url_for('register') }}">สมัครสมาชิก</a>
       {% endif %}
     </div>
+  </div>
+</nav>
 
+<!-- Main Content -->
+<main class="wrap">
+  {% if request.endpoint and request.endpoint != 'index' %}
+  <a href="{{ url_for('index') }}" class="back-link" id="backLink">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15 18l-6-6 6-6"></path>
+    </svg>
+    ย้อนกลับ
+  </a>
+  {% endif %}
+
+  {% block content %}{% endblock %}
+</main>
+
+{% if user %}
+<!-- ป๊อปอัปโปรไฟล์ -->
+<div class="pop-overlay" id="profileModal" hidden>
+  <div class="pop-box">
+    <button type="button" class="pop-close" data-close aria-label="ปิด">✕</button>
+    <div class="profile-banner" {% if profile.banner %}style="background-image: url('{{ profile.banner }}');"{% endif %}></div>
+    <div class="profile-head">
+      {% if profile.avatar_url %}
+        <img class="avatar lg" src="{{ profile.avatar_url }}" alt="" referrerpolicy="no-referrer">
+      {% else %}
+        <span class="avatar lg">{{ profile.initial }}</span>
+      {% endif %}
+      <div class="profile-name">{{ profile.name }}</div>
+      <div class="muted" style="font-size:14px;">{{ user.username }}</div>
+      <div style="margin:14px 0 18px; font-weight:700;">ยอดเงินในกระเป๋า {{ "%.2f"|format(user.balance) }} ฿</div>
+      <button type="button" class="btn" data-open="customizeModal" style="margin-bottom:10px;">ปรับแต่งโปรไฟล์</button>
+      <a class="btn ghost" href="{{ url_for('account') }}">ประวัติการสั่งซื้อและสิทธิ์เรียน</a>
+      <a href="{{ url_for('logout') }}" style="display:block; margin-top:16px; color:var(--err); font-weight:600;">ออกจากระบบ</a>
+    </div>
   </div>
 </div>
 
+<!-- ป๊อปอัปปรับแต่งโปรไฟล์ (แบนเนอร์) -->
+<div class="pop-overlay" id="customizeModal" hidden>
+  <div class="pop-box">
+    <button type="button" class="pop-close" data-close aria-label="ปิด">✕</button>
+    <div style="padding: 28px 24px 24px;">
+      <h3 style="margin: 0 0 4px;">ปรับแต่งโปรไฟล์</h3>
+      <p class="muted" style="margin: 0 0 16px; font-size: 14px;">เปลี่ยนแบนเนอร์ที่อยู่หลังโปรไฟล์ของคุณ</p>
+
+      <div class="banner-preview" id="bannerPreview" {% if profile.banner %}style="background-image: url('{{ profile.banner }}');"{% endif %}></div>
+      <input type="file" id="bannerInput" accept="image/*" hidden>
+
+      <div style="display:flex; gap:10px; margin:14px 0 18px;">
+        <button type="button" class="btn ghost" id="pickBanner" style="width:100%;">เลือกรูปแบนเนอร์</button>
+        <button type="button" class="btn ghost" id="removeBanner" style="width:100%;">ลบแบนเนอร์</button>
+      </div>
+
+      <button type="button" class="btn" id="saveBanner" style="width:100%;">บันทึกแบนเนอร์</button>
+      <button type="button" class="btn ghost" data-open="colorModal" style="width:100%; margin-top:10px;">เปลี่ยนสีไฮไลท์ชื่อ</button>
+
+      <p id="bannerError" style="color:var(--err); font-size:14px; margin:10px 0 0;"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ป๊อปอัปวงล้อสี (สีไฮไลท์ชื่อ) -->
+<div class="pop-overlay" id="colorModal" hidden>
+  <div class="pop-box">
+    <button type="button" class="pop-close" data-close aria-label="ปิด">✕</button>
+    <div style="padding: 28px 24px 24px;">
+      <h3 style="margin: 0 0 4px;">เลือกสีไฮไลท์ชื่อ</h3>
+      <p class="muted" style="margin: 0 0 18px; font-size: 14px;">หมุนวงล้อเพื่อเลือกสี แล้วปรับความสว่างด้านล่าง</p>
+
+      <div class="wheel-wrap">
+        <div class="wheel" id="colorWheel">
+          <div class="wheel-knob" id="wheelKnob"></div>
+          <div class="wheel-center" id="wheelCenter"><span id="hexLabel"></span></div>
+        </div>
+
+        <div style="width:100%;">
+          <label class="muted" style="font-size:13px;">ความสว่าง</label>
+          <input type="range" id="lightRange" min="30" max="75" value="55" style="margin: 4px 0 0; padding: 0;">
+        </div>
+
+        <div class="color-sample" id="colorSample">
+          <span class="user-chip">
+            <span class="chip-name" style="cursor: default;">
+              <span class="avatar">{{ profile.initial }}</span>
+              <span>{{ profile.name }}</span>
+            </span>
+          </span>
+        </div>
+
+        <div style="display:flex; gap:10px; width:100%;">
+          <button type="button" class="btn ghost" data-close style="width:100%;">ยกเลิก</button>
+          <button type="button" class="btn" id="saveColor" style="width:100%;">บันทึกสี</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <script>
-  // ---------------------------------------------------------
-  // 1. ระบบเช็ก Username ซ้ำ (ทำงานเฉพาะตอนสมัคร)
-  // ---------------------------------------------------------
-  let usernameTimeout = null;
-  function checkUsername(val) {
-    const msgBox = document.getElementById("username-msg");
-    if (!msgBox) return; // ถ้าไม่ใช่หน้าสมัคร ให้ข้ามไปเลย
+  const ACCENT = "{{ profile.accent }}";
 
-    if (!val.trim()) {
-      msgBox.innerText = "";
-      return;
-    }
+  // สลับเมนูมือถือ
+  const menuToggle = document.getElementById('menuToggle');
+  const navLinks = document.getElementById('navLinks');
 
-    msgBox.innerText = "⏳ กำลังตรวจสอบ...";
-    msgBox.style.color = "#64748b";
-
-    clearTimeout(usernameTimeout);
-    usernameTimeout = setTimeout(() => {
-      fetch("/check_username", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: val })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.available) {
-          msgBox.innerText = data.message;
-          msgBox.style.color = "#059669";
-        } else {
-          msgBox.innerText = data.message;
-          msgBox.style.color = "#dc2626";
-        }
-      })
-      .catch(() => {
-        msgBox.innerText = "";
-      });
-    }, 500);
+  if (menuToggle && navLinks) {
+    menuToggle.addEventListener('click', () => {
+      navLinks.classList.toggle('active');
+    });
   }
 
-  // ---------------------------------------------------------
-  // 2. ระบบเช็กรหัสผ่านตรงกัน (ทำงานเฉพาะตอนสมัคร)
-  // ---------------------------------------------------------
-  function checkMatch() {
-    const passInput = document.getElementById("password");
-    const confirmInput = document.getElementById("confirm_password");
-    const msgBox = document.getElementById("match-msg");
-
-    if (!passInput || !confirmInput || !msgBox) return;
-
-    const pass = passInput.value;
-    const confirmPass = confirmInput.value;
-
-    if (!pass || !confirmPass) {
-      msgBox.innerText = "";
-      return;
-    }
-
-    if (pass === confirmPass) {
-      msgBox.innerText = "✅ รหัสผ่านตรงกันแล้ว";
-      msgBox.style.color = "#059669";
-    } else {
-      msgBox.innerText = "❌ รหัสผ่านไม่ตรงกัน";
-      msgBox.style.color = "#dc2626";
-    }
-  }
-
-  // ---------------------------------------------------------
-  // 3. ระบบเปิด-ปิดตา และ วัดความปลอดภัย
-  // ---------------------------------------------------------
-  function togglePassword(inputId) {
-    const input = document.getElementById(inputId);
-    const icon = document.getElementById('eyeIcon-' + inputId);
-    if (input.type === "password") {
-      input.type = "text";
-      icon.style.color = "#2563eb";
-    } else {
-      input.type = "password";
-      icon.style.color = "#94a3b8";
-    }
-  }
-
-  function checkStrength(password) {
-    const bars = document.querySelectorAll('.strength-bar');
-    const text = document.getElementById('strength-text');
-    if (!bars.length || !text) return; 
-
-    bars.forEach(bar => bar.style.background = '#e2e8f0');
-    
-    if (password.length === 0) {
-      text.innerText = "ระดับความปลอดภัย";
-      text.style.color = "#94a3b8";
-      return;
-    }
-
-    let score = 0;
-    if (password.length >= 6) score++;
-    if (password.match(/[a-z]/) && password.match(/[A-Z]/)) score++;
-    if (password.match(/[0-9]/)) score++;
-    if (password.match(/[^a-zA-Z0-9]/)) score++;
-
-    if (password.length < 6) {
-      text.innerText = "สั้นเกินไป (ต้องอย่างน้อย 6 ตัว)";
-      text.style.color = "#dc2626";
-      bars[0].style.background = "#dc2626";
-      return;
-    }
-
-    if (score <= 1) {
-      text.innerText = "ระดับความปลอดภัย: ต่ำ";
-      text.style.color = "#dc2626"; 
-      bars[0].style.background = "#dc2626";
-    } else if (score === 2) {
-      text.innerText = "ระดับความปลอดภัย: ปานกลาง";
-      text.style.color = "#d97706"; 
-      bars[0].style.background = "#d97706";
-      bars[1].style.background = "#d97706";
-    } else if (score === 3) {
-      text.innerText = "ระดับความปลอดภัย: สูง";
-      text.style.color = "#2563eb"; 
-      bars[0].style.background = "#2563eb";
-      bars[1].style.background = "#2563eb";
-      bars[2].style.background = "#2563eb";
-    } else {
-      text.innerText = "ระดับความปลอดภัย: สูงมาก";
-      text.style.color = "#059669"; 
-      bars.forEach(bar => bar.style.background = "#059669");
-    }
-  }
-
-  // ---------------------------------------------------------
-  // 4. ระบบ Google Login
-  // ---------------------------------------------------------
-  const GOOGLE_CLIENT_ID = "{{ config.GOOGLE_CLIENT_ID }}";
-  let googleClient = null;
-
-  window.onload = function() {
-    const btn = document.getElementById("googleBtn");
-    
-    if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.trim() === "") {
-      console.error("❌ GOOGLE_CLIENT_ID is empty!");
-      btn.onclick = () => alert("ระบบยังไม่ได้ตั้งค่า Client ID กรุณาแจ้งแอดมิน");
-      return;
-    }
-
-    function initGoogle() {
-      if (typeof google !== 'undefined' && google.accounts) {
-        try {
-          googleClient = google.accounts.oauth2.initCodeClient({
-            client_id: GOOGLE_CLIENT_ID,
-            scope: 'email profile openid',
-            ux_mode: 'popup',
-            callback: (response) => {
-              if (response.code) {
-                fetch("/auth/google", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ code: response.code })
-                })
-                .then(res => res.json())
-                .then(data => {
-                  if (data.ok) {
-                    window.location.href = data.redirect || "/";
-                  } else {
-                    alert("เข้าสู่ระบบไม่สำเร็จ: " + (data.error || "Unknown"));
-                  }
-                })
-                .catch(err => alert("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้"));
-              } else if (response.error) {
-                alert("Google แจ้งข้อผิดพลาด: " + response.error);
-              }
-            },
-          });
-        } catch (error) {
-          console.error("Google Init Error:", error);
-        }
-      } else {
-        setTimeout(initGoogle, 200);
-      }
-    }
-    
-    initGoogle();
-
-    btn.addEventListener("click", function() {
-      if (googleClient) {
-        try {
-          googleClient.requestCode();
-        } catch (err) {
-          alert("ไม่สามารถเปิดหน้าต่าง Google ได้ (อาจโดนบล็อก Popup)");
-        }
-      } else {
-        alert("ระบบ Google ยังโหลดไม่เสร็จ กรุณารอสักครู่");
+  // ปุ่มย้อนกลับ: กลับหน้าก่อนหน้า ถ้าไม่มีประวัติให้ไปหน้าแรก
+  const backLink = document.getElementById('backLink');
+  if (backLink) {
+    backLink.addEventListener('click', function (e) {
+      if (window.history.length > 1) {
+        e.preventDefault();
+        window.history.back();
       }
     });
-  };
-</script>
+  }
 
-{% endblock %}
+  // ---------- ตัวช่วยสี ----------
+  function hslToHex(h, s, l) {
+    s /= 100; l /= 100;
+    const k = function (n) { return (n + h / 30) % 12; };
+    const a = s * Math.min(l, 1 - l);
+    const f = function (n) {
+      return l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    };
+    const toHex = function (x) { return Math.round(255 * x).toString(16).padStart(2, '0'); };
+    return '#' + toHex(f(0)) + toHex(f(8)) + toHex(f(4));
+  }
+
+  function hexToHsl(hex) {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    let h = 0, s = 0;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+      else if (max === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      h *= 60;
+    }
+    return { h: h, s: s * 100, l: l * 100 };
+  }
+
+  // ใช้สีไฮไลท์ใหม่ทันทีโดยไม่ต้องรีเฟรช
+  function applyAccent(hex) {
+    const root = document.documentElement;
+    root.style.setProperty('--accent', hex);
+    root.style.setProperty('--accent-soft', hex + '1f');
+  }
+
+  // ---------- ป๊อปอัปทั่วไป ----------
+  function openModal(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.hidden = false;
+    requestAnimationFrame(function () { el.classList.add('show'); });
+  }
+
+  function closeModal(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('show');
+    setTimeout(function () { el.hidden = true; }, 200);
+  }
+
+  document.querySelectorAll('[data-open]').forEach(function (b) {
+    b.addEventListener('click', function () { openModal(b.dataset.open); });
+  });
+  document.querySelectorAll('[data-close]').forEach(function (b) {
+    b.addEventListener('click', function () { closeModal(b.closest('.pop-overlay').id); });
+  });
+  document.querySelectorAll('.pop-overlay').forEach(function (o) {
+    o.addEventListener('click', function (e) { if (e.target === o) closeModal(o.id); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.pop-overlay.show').forEach(function (o) { closeModal(o.id); });
+    }
+  });
+
+  // ---------- วงล้อสีไฮไลท์ชื่อ ----------
+  (function () {
+    const wheel = document.getElementById('colorWheel');
+    if (!wheel) return;
+
+    const knob = document.getElementById('wheelKnob');
+    const center = document.getElementById('wheelCenter');
+    const hexLabel = document.getElementById('hexLabel');
+    const range = document.getElementById('lightRange');
+    const sample = document.getElementById('colorSample');
+    const saveBtn = document.getElementById('saveColor');
+    const R = 94; // รัศมีที่ตำแหน่งปุ่มบนวงล้อ (220 / 2 - 16)
+
+    let hue = 0;
+    let current = ACCENT;
+    let dragging = false;
+
+    function render() {
+      current = hslToHex(hue, 85, Number(range.value));
+      const rad = hue * Math.PI / 180;
+      knob.style.transform = 'translate(' + (R * Math.sin(rad)) + 'px,' + (-R * Math.cos(rad)) + 'px)';
+      center.style.background = current;
+      hexLabel.textContent = current.toUpperCase();
+      sample.style.setProperty('--accent', current);
+      sample.style.setProperty('--accent-soft', current + '1f');
+    }
+
+    function resetToCurrent() {
+      const init = hexToHsl(ACCENT);
+      hue = init.h;
+      range.value = Math.min(75, Math.max(30, Math.round(init.l)));
+      render();
+    }
+
+    function pick(e) {
+      const rect = wheel.getBoundingClientRect();
+      const dx = e.clientX - (rect.left + rect.width / 2);
+      const dy = e.clientY - (rect.top + rect.height / 2);
+      hue = (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360;
+      render();
+    }
+
+    wheel.addEventListener('pointerdown', function (e) {
+      dragging = true;
+      wheel.setPointerCapture(e.pointerId);
+      pick(e);
+    });
+    wheel.addEventListener('pointermove', function (e) {
+      if (dragging) pick(e);
+    });
+    wheel.addEventListener('pointerup', function () { dragging = false; });
+    wheel.addEventListener('pointercancel', function () { dragging = false; });
+    range.addEventListener('input', render);
+
+    document.querySelectorAll('[data-open="colorModal"]').forEach(function (b) {
+      b.addEventListener('click', resetToCurrent);
+    });
+
+    saveBtn.addEventListener('click', async function () {
+      saveBtn.disabled = true;
+      try {
+        const res = await fetch("{{ url_for('profile_accent') }}", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accent: current })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          applyAccent(current);
+          closeModal('colorModal');
+        }
+      } catch (err) {
+        // ไม่ทำอะไร ให้ผู้ใช้ลองใหม่
+      }
+      saveBtn.disabled = false;
+    });
+
+    resetToCurrent();
+  })();
+
+  // ---------- แบนเนอร์โปรไฟล์ ----------
+  (function () {
+    const input = document.getElementById('bannerInput');
+    if (!input) return;
+
+    const preview = document.getElementById('bannerPreview');
+    const errBox = document.getElementById('bannerError');
+    let pendingFile = null;
+    let removeFlag = false;
+
+    document.getElementById('pickBanner').addEventListener('click', function () { input.click(); });
+
+    input.addEventListener('change', function () {
+      const file = input.files[0];
+      if (!file) return;
+      if (file.size > 10 * 1024 * 1024) {
+        errBox.textContent = 'ไฟล์ใหญ่เกิน 10 MB กรุณาลดขนาดรูป';
+        return;
+      }
+      pendingFile = file;
+      removeFlag = false;
+      errBox.textContent = '';
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        preview.style.backgroundImage = "url('" + e.target.result + "')";
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById('removeBanner').addEventListener('click', function () {
+      pendingFile = null;
+      removeFlag = true;
+      preview.style.backgroundImage = '';
+    });
+
+    document.getElementById('saveBanner').addEventListener('click', async function () {
+      if (!pendingFile && !removeFlag) {
+        errBox.textContent = 'กรุณาเลือกรูปหรือกดลบก่อนบันทึก';
+        return;
+      }
+      const fd = new FormData();
+      if (pendingFile) fd.append('banner', pendingFile);
+      else fd.append('remove', '1');
+      try {
+        const res = await fetch("{{ url_for('profile_banner') }}", { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.ok) {
+          location.reload();
+          return;
+        }
+        errBox.textContent = 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง';
+      } catch (err) {
+        errBox.textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+      }
+    });
+
+    document.getElementById('pickBanner').addEventListener('click', function () {
+      errBox.textContent = '';
+    });
+  })();
+
+  // ---------- ป๊อปอัปแจ้งผลการทำงาน (จาก flash message) ----------
+  (function () {
+    const items = {{ msgs|tojson }};
+    if (!items.length) return;
+
+    const hasErr = items.some(function (i) { return i[0] === 'err'; });
+    const iconSrc = hasErr
+      ? "{{ url_for('static', filename='icons/check-err.png') }}"
+      : "{{ url_for('static', filename='icons/check-ok.png') }}";
+    const titleText = hasErr ? 'เกิดข้อผิดพลาด' : 'สำเร็จ';
+
+    // ตัดอิโมจิและสัญลักษณ์นำหน้าออกจากข้อความ
+    const EMOJI_PREFIX = /^[\s\p{Extended_Pictographic}\u200d\ufe0f\u20e3]+/u;
+    const clean = function (s) { return s.replace(EMOJI_PREFIX, '').trim(); };
+
+    const overlay = document.createElement('div');
+    overlay.className = 'notice-overlay';
+
+    const box = document.createElement('div');
+    box.className = 'notice-box';
+
+    const img = document.createElement('img');
+    img.className = 'notice-icon';
+    img.src = iconSrc;
+    img.alt = '';
+
+    const title = document.createElement('h3');
+    title.className = 'notice-title ' + (hasErr ? 'err' : 'ok');
+    title.textContent = titleText;
+
+    const msg = document.createElement('div');
+    msg.className = 'notice-msg';
+    items.forEach(function (i) {
+      const p = document.createElement('p');
+      p.textContent = clean(i[1]);
+      msg.appendChild(p);
+    });
+
+    const doneBtn = document.createElement('button');
+    doneBtn.type = 'button';
+    doneBtn.className = 'notice-btn';
+    doneBtn.textContent = 'เสร็จสิ้น';
+
+    box.appendChild(img);
+    box.appendChild(title);
+    box.appendChild(msg);
+    box.appendChild(doneBtn);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    function close() {
+      overlay.classList.remove('show');
+      setTimeout(function () { overlay.remove(); }, 200);
+    }
+
+    doneBtn.addEventListener('click', close);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) close();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') close();
+    });
+
+    requestAnimationFrame(function () { overlay.classList.add('show'); });
+  })();
+</script>
+</body>
+</html>
