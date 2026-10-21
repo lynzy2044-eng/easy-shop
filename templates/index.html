@@ -29,6 +29,7 @@
 
   .dash-card {
     position: relative;
+    box-sizing: border-box;
     transition: transform 0.35s ease, opacity 0.35s ease, filter 0.35s ease, box-shadow 0.35s ease;
   }
 
@@ -43,15 +44,24 @@
   /* ---- เฉพาะอุปกรณ์ที่ใช้เมาส์ได้ ---- */
   @media (hover: hover) and (pointer: fine) {
 
-    /* จองพื้นที่ให้คำอธิบายไว้ตั้งแต่แรก เพื่อไม่ให้ข้อความล้นหรือหน้าขยับตอน hover */
+    /* ความสูงของการ์ดขยายตามเนื้อหา ไม่ใช้ความสูงคงที่จากกฎเดิม */
+    .dash-card,
     .dash-card > div:last-child {
-      min-height: 96px;
+      height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+
+    .dash-card {
+      min-height: 120px;
+      padding-bottom: 20px;
     }
 
     /* ซ่อนคำอธิบายไว้ก่อน แต่ยังคงพื้นที่ในเลย์เอาต์ */
     .dash-card p.muted {
       opacity: 0;
       pointer-events: none;
+      line-height: 1.6;
       transition: opacity 0.3s ease;
     }
 
