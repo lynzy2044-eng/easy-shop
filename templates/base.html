@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="th">
+<html lang="th" style="--accent: {{ profile.accent }}; --accent-soft: {{ profile.accent_soft }};">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -31,7 +31,7 @@
   unicode-range: U+0000-0040, U+005B-0060, U+007B-007F, U+0E00-0E7F;
 }
 
-/* ---- AnuphanAll: Anuphan สำหรับทุกตัวอักษร (ใช้กับชื่อผู้ใช้บนแถบเมนู) ---- */
+/* ---- AnuphanAll: Anuphan สำหรับทุกตัวอักษร (ใช้กับชื่อผู้ใช้) ---- */
 @font-face {
   font-family: 'AnuphanAll';
   src: url('{{ url_for("static", filename="fonts/Anuphan-VariableFont_wght.ttf") }}') format('truetype');
@@ -63,12 +63,12 @@
 *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
 html{-webkit-text-size-adjust:100%}
 body{
-  margin:0; 
+  margin:0;
   /* ตัวอักษร A-Z ใช้ Montserrat, ที่เหลือ (ไทย ตัวเลข วงเล็บ เครื่องหมาย) ใช้ Anuphan */
   font-family:'Montserrat', 'Anuphan', system-ui, -apple-system, sans-serif;
-  background:var(--bg); 
-  color:var(--text); 
-  line-height:1.6; 
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.6;
   font-size:16px;
   -webkit-font-smoothing:antialiased;
 }
@@ -103,34 +103,62 @@ nav {
   letter-spacing: -.02em; white-space: nowrap;
 }
 
-/* ชื่อผู้ใช้บนแถบเมนู: ใช้ Anuphan ทั้งไทยและอังกฤษ */
+/* ---- ชื่อผู้ใช้ + รูปโปรไฟล์ (ไฮไลท์ด้วยสีของผู้ใช้) ---- */
 .user-chip {
-  font-family: 'AnuphanAll', 'Anuphan', sans-serif !important;
-  color: var(--primary); font-weight: 700;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 6px 4px 4px; border-radius: 999px;
+  background: var(--accent-soft); border: 1.5px solid var(--accent);
+  font-family: 'AnuphanAll', 'Anuphan', sans-serif;
+  white-space: nowrap;
+}
+.chip-name {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: none; border: 0; padding: 2px 6px 2px 0; cursor: pointer;
+  color: var(--accent); font-size: 15px; font-weight: 700;
+  font-family: 'AnuphanAll', 'Anuphan', sans-serif;
+}
+.chip-name:hover { opacity: .85; }
+.wheel-dot {
+  width: 18px; height: 18px; border-radius: 50%; padding: 0; cursor: pointer;
+  border: 2px solid #fff; box-shadow: 0 0 0 1px var(--accent);
+  background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
+}
+
+/* รูปโปรไฟล์ (วงกลมมีขอบสีไฮไลท์) */
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--accent); background: var(--accent); color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  object-fit: cover; font-size: 14px; font-weight: 800;
+  font-family: 'AnuphanAll', 'Anuphan', sans-serif;
+}
+.avatar.lg {
+  width: 88px; height: 88px; border: 4px solid #fff; font-size: 34px;
+  box-shadow: 0 0 0 3px var(--accent), 0 6px 16px rgba(0,0,0,.15);
 }
 
 /* ลิงก์เมนูสำหรับคอมพิวเตอร์ */
 .nav-links {
-  display: flex; 
-  flex-wrap: nowrap; 
-  gap: 8px; 
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
   align-items: center;
   white-space: nowrap;
 }
 .nav-links a:not(.btn) {
-  padding: 8px 12px; 
-  border-radius: var(--radius-sm); 
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
   color: var(--muted);
-  font-size: 15px; 
+  font-size: 15px;
   font-weight: 600;
-  white-space: nowrap; 
+  white-space: nowrap;
 }
-.nav-links a:not(.btn):hover { 
-  background: var(--primary-soft); 
-  color: var(--primary-dark); 
+.nav-links a:not(.btn):hover {
+  background: var(--primary-soft);
+  color: var(--primary-dark);
 }
 .nav-links .btn {
-  padding: 8px 20px; 
+  padding: 8px 20px;
   font-size: 15px;
   white-space: nowrap;
   width: auto;
@@ -154,7 +182,7 @@ nav {
 .menu-toggle:hover { background: var(--line); }
 
 /* ---- Responsive Navbar ---- */
-@media (max-width: 900px) { 
+@media (max-width: 900px) {
   .menu-toggle { display: block; }
   .nav-links {
     position: absolute; top: 100%; left: 0; right: 0;
@@ -163,14 +191,15 @@ nav {
     box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
     clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
     transition: clip-path 0.3s ease-in-out;
-    white-space: normal; 
+    white-space: normal;
   }
   .nav-links.active { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
-  .nav-links a:not(.btn) { 
-    padding: 14px 16px; font-size: 16px; 
+  .nav-links a:not(.btn) {
+    padding: 14px 16px; font-size: 16px;
     border-bottom: 1px solid var(--line); border-radius: 0;
   }
   .nav-links .btn { margin-top: 10px; width: 100%; padding: 14px; }
+  .nav-links .user-chip { align-self: flex-start; margin: 10px 16px; }
   .wrap { padding: 16px; }
 }
 
@@ -182,7 +211,7 @@ h3{font-size:18px; margin:0 0 8px; font-weight:700;}
 
 /* ---- Grid & Cards ---- */
 .grid{
-  display:grid; gap:16px; 
+  display:grid; gap:16px;
   grid-template-columns:repeat(auto-fit, minmax(min(100%, 280px), 1fr));
 }
 .card{
@@ -198,7 +227,7 @@ h3{font-size:18px; margin:0 0 8px; font-weight:700;}
 /* ---- Buttons ---- */
 .btn{
   display:inline-flex; align-items:center; justify-content:center; gap:8px;
-  background:var(--primary) !important; color:#fff !important; 
+  background:var(--primary) !important; color:#fff !important;
   padding:14px 24px; border-radius:var(--radius-sm); border:0; cursor:pointer;
   font-size:16px; font-weight:600; font-family:inherit; width: 100%;
   transition:var(--transition); box-shadow:0 2px 4px rgba(37,99,235,.2);
@@ -248,6 +277,72 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 }
 .btn-close:hover { background: var(--line); color: var(--text); }
 
+/* ---- ป๊อปอัปทั้งหมดของโปรไฟล์ (พื้นหลังเบลอ) ---- */
+.pop-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  opacity: 0; transition: opacity 0.2s ease;
+}
+.pop-overlay[hidden] { display: none; }
+.pop-overlay.show { opacity: 1; }
+.pop-box {
+  position: relative; background: var(--surface); border-radius: 24px;
+  width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+  transform: scale(0.95); transition: transform 0.2s ease;
+}
+.pop-overlay.show .pop-box { transform: scale(1); }
+.pop-close {
+  position: absolute; top: 12px; right: 12px; z-index: 2;
+  width: 36px; height: 36px; border-radius: 50%; border: 0; cursor: pointer;
+  background: rgba(255,255,255,.92); color: var(--text); font-size: 16px;
+  box-shadow: var(--shadow);
+}
+
+/* แบนเนอร์หลังโปรไฟล์ */
+.profile-banner {
+  height: 130px; border-radius: 24px 24px 0 0;
+  background: linear-gradient(135deg, var(--accent), var(--accent-soft)) center / cover no-repeat;
+}
+.profile-head { padding: 0 24px 24px; text-align: center; margin-top: -44px; }
+.profile-head .avatar.lg { margin: 0 auto; }
+.profile-name {
+  margin: 12px 0 2px; font-size: 20px; font-weight: 800;
+  font-family: 'AnuphanAll', 'Anuphan', sans-serif;
+}
+
+/* ช่องดูตัวอย่างแบนเนอร์ */
+.banner-preview {
+  height: 140px; border-radius: 16px; border: 1px solid var(--line);
+  background: linear-gradient(135deg, var(--accent), var(--accent-soft)) center / cover no-repeat;
+}
+
+/* วงล้อสี */
+.wheel-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.wheel {
+  position: relative; width: 220px; height: 220px; border-radius: 50%;
+  touch-action: none; cursor: grab;
+  background: conic-gradient(hsl(0,85%,55%), hsl(60,85%,55%), hsl(120,85%,55%), hsl(180,85%,55%),
+              hsl(240,85%,55%), hsl(300,85%,55%), hsl(360,85%,55%));
+}
+.wheel-center {
+  position: absolute; left: 50%; top: 50%; width: 104px; height: 104px;
+  margin: -52px 0 0 -52px; border-radius: 20px; background: #7f7f7f;
+  display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px;
+  color: #fff; font-size: 12px; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,.4);
+}
+.wheel-knob {
+  position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px;
+  border-radius: 50%; background: #fff; border: 3px solid #fff; pointer-events: none;
+  box-shadow: 0 0 0 2px rgba(15,23,42,.35), 0 2px 6px rgba(0,0,0,.3);
+}
+.color-sample {
+  width: 100%; padding: 16px; border-radius: 16px; text-align: center;
+  background: var(--surface); border: 1px dashed var(--line);
+}
+
 /* ---- Notice popup (แจ้งผลการทำงาน) ---- */
 .notice-overlay {
   position: fixed; inset: 0; z-index: 9999;
@@ -295,7 +390,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 <nav>
   <div class="nav-container">
     <a class="brand" href="{{ url_for('index') }}">{{ shop_name }}</a>
-    
+
     <button class="menu-toggle" id="menuToggle" aria-label="เปิดเมนู">
       <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
@@ -308,18 +403,26 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
       <a href="{{ url_for('free_lessons') }}">คอร์สเรียนฟรี</a>
       <a href="{{ url_for('topup') }}">เติมเงิน</a>
       <a href="{{ url_for('contact') }}">ติดต่อแอดมิน</a>
-      
+
       {% if user %}
-        <a href="{{ url_for('account') }}" class="user-chip">
-          {{ user.username.split('@')[0] }} ({{ "%.2f"|format(user.balance) }} ฿)
-        </a>
-        
+        <div class="user-chip">
+          <button type="button" class="chip-name" data-open="profileModal">
+            {% if profile.avatar_url %}
+              <img class="avatar" src="{{ profile.avatar_url }}" alt="" referrerpolicy="no-referrer">
+            {% else %}
+              <span class="avatar">{{ profile.initial }}</span>
+            {% endif %}
+            <span>{{ profile.name }} ({{ "%.2f"|format(user.balance) }} ฿)</span>
+          </button>
+          <button type="button" class="wheel-dot" data-open="colorModal" aria-label="เปลี่ยนสีไฮไลท์ชื่อ" title="เปลี่ยนสี"></button>
+        </div>
+
         {% if is_admin %}
           <a href="{{ url_for('admin_dashboard') }}" class="btn" style="background:#e11d48 !important; color:#fff !important; padding: 8px 16px;">
             ⚙️ จัดการหลังบ้าน
           </a>
         {% endif %}
-        
+
         <a href="{{ url_for('logout') }}" style="color:var(--err)">ออกจากระบบ</a>
       {% else %}
         <a href="{{ url_for('login') }}">เข้าสู่ระบบ</a>
@@ -343,11 +446,97 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   {% block content %}{% endblock %}
 </main>
 
+{% if user %}
+<!-- ป๊อปอัปโปรไฟล์ -->
+<div class="pop-overlay" id="profileModal" hidden>
+  <div class="pop-box">
+    <button type="button" class="pop-close" data-close aria-label="ปิด">✕</button>
+    <div class="profile-banner" {% if profile.banner %}style="background-image: url('{{ profile.banner }}');"{% endif %}></div>
+    <div class="profile-head">
+      {% if profile.avatar_url %}
+        <img class="avatar lg" src="{{ profile.avatar_url }}" alt="" referrerpolicy="no-referrer">
+      {% else %}
+        <span class="avatar lg">{{ profile.initial }}</span>
+      {% endif %}
+      <div class="profile-name">{{ profile.name }}</div>
+      <div class="muted" style="font-size:14px;">{{ user.username }}</div>
+      <div style="margin:14px 0 18px; font-weight:700;">ยอดเงินในกระเป๋า {{ "%.2f"|format(user.balance) }} ฿</div>
+      <button type="button" class="btn" data-open="customizeModal" style="margin-bottom:10px;">ปรับแต่งโปรไฟล์</button>
+      <a class="btn ghost" href="{{ url_for('account') }}">ประวัติการสั่งซื้อและสิทธิ์เรียน</a>
+      <a href="{{ url_for('logout') }}" style="display:block; margin-top:16px; color:var(--err); font-weight:600;">ออกจากระบบ</a>
+    </div>
+  </div>
+</div>
+
+<!-- ป๊อปอัปปรับแต่งโปรไฟล์ (แบนเนอร์) -->
+<div class="pop-overlay" id="customizeModal" hidden>
+  <div class="pop-box">
+    <button type="button" class="pop-close" data-close aria-label="ปิด">✕</button>
+    <div style="padding: 28px 24px 24px;">
+      <h3 style="margin: 0 0 4px;">ปรับแต่งโปรไฟล์</h3>
+      <p class="muted" style="margin: 0 0 16px; font-size: 14px;">เปลี่ยนแบนเนอร์ที่อยู่หลังโปรไฟล์ของคุณ</p>
+
+      <div class="banner-preview" id="bannerPreview" {% if profile.banner %}style="background-image: url('{{ profile.banner }}');"{% endif %}></div>
+      <input type="file" id="bannerInput" accept="image/*" hidden>
+
+      <div style="display:flex; gap:10px; margin:14px 0 18px;">
+        <button type="button" class="btn ghost" id="pickBanner" style="width:100%;">เลือกรูปแบนเนอร์</button>
+        <button type="button" class="btn ghost" id="removeBanner" style="width:100%;">ลบแบนเนอร์</button>
+      </div>
+
+      <button type="button" class="btn" id="saveBanner" style="width:100%;">บันทึกแบนเนอร์</button>
+      <button type="button" class="btn ghost" data-open="colorModal" style="width:100%; margin-top:10px;">เปลี่ยนสีไฮไลท์ชื่อ</button>
+
+      <p id="bannerError" style="color:var(--err); font-size:14px; margin:10px 0 0;"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ป๊อปอัปวงล้อสี (สีไฮไลท์ชื่อ) -->
+<div class="pop-overlay" id="colorModal" hidden>
+  <div class="pop-box">
+    <button type="button" class="pop-close" data-close aria-label="ปิด">✕</button>
+    <div style="padding: 28px 24px 24px;">
+      <h3 style="margin: 0 0 4px;">เลือกสีไฮไลท์ชื่อ</h3>
+      <p class="muted" style="margin: 0 0 18px; font-size: 14px;">หมุนวงล้อเพื่อเลือกสี แล้วปรับความสว่างด้านล่าง</p>
+
+      <div class="wheel-wrap">
+        <div class="wheel" id="colorWheel">
+          <div class="wheel-knob" id="wheelKnob"></div>
+          <div class="wheel-center" id="wheelCenter"><span id="hexLabel"></span></div>
+        </div>
+
+        <div style="width:100%;">
+          <label class="muted" style="font-size:13px;">ความสว่าง</label>
+          <input type="range" id="lightRange" min="30" max="75" value="55" style="margin: 4px 0 0; padding: 0;">
+        </div>
+
+        <div class="color-sample" id="colorSample">
+          <span class="user-chip">
+            <span class="chip-name" style="cursor: default;">
+              <span class="avatar">{{ profile.initial }}</span>
+              <span>{{ profile.name }}</span>
+            </span>
+          </span>
+        </div>
+
+        <div style="display:flex; gap:10px; width:100%;">
+          <button type="button" class="btn ghost" data-close style="width:100%;">ยกเลิก</button>
+          <button type="button" class="btn" id="saveColor" style="width:100%;">บันทึกสี</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <script>
+  const ACCENT = "{{ profile.accent }}";
+
   // สลับเมนูมือถือ
   const menuToggle = document.getElementById('menuToggle');
   const navLinks = document.getElementById('navLinks');
-  
+
   if (menuToggle && navLinks) {
     menuToggle.addEventListener('click', () => {
       navLinks.classList.toggle('active');
@@ -365,7 +554,214 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
     });
   }
 
-  // ป๊อปอัปแจ้งผลการทำงาน (จาก flash message)
+  // ---------- ตัวช่วยสี ----------
+  function hslToHex(h, s, l) {
+    s /= 100; l /= 100;
+    const k = function (n) { return (n + h / 30) % 12; };
+    const a = s * Math.min(l, 1 - l);
+    const f = function (n) {
+      return l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    };
+    const toHex = function (x) { return Math.round(255 * x).toString(16).padStart(2, '0'); };
+    return '#' + toHex(f(0)) + toHex(f(8)) + toHex(f(4));
+  }
+
+  function hexToHsl(hex) {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    let h = 0, s = 0;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+      else if (max === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      h *= 60;
+    }
+    return { h: h, s: s * 100, l: l * 100 };
+  }
+
+  // ใช้สีไฮไลท์ใหม่ทันทีโดยไม่ต้องรีเฟรช
+  function applyAccent(hex) {
+    const root = document.documentElement;
+    root.style.setProperty('--accent', hex);
+    root.style.setProperty('--accent-soft', hex + '1f');
+  }
+
+  // ---------- ป๊อปอัปทั่วไป ----------
+  function openModal(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.hidden = false;
+    requestAnimationFrame(function () { el.classList.add('show'); });
+  }
+
+  function closeModal(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('show');
+    setTimeout(function () { el.hidden = true; }, 200);
+  }
+
+  document.querySelectorAll('[data-open]').forEach(function (b) {
+    b.addEventListener('click', function () { openModal(b.dataset.open); });
+  });
+  document.querySelectorAll('[data-close]').forEach(function (b) {
+    b.addEventListener('click', function () { closeModal(b.closest('.pop-overlay').id); });
+  });
+  document.querySelectorAll('.pop-overlay').forEach(function (o) {
+    o.addEventListener('click', function (e) { if (e.target === o) closeModal(o.id); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.pop-overlay.show').forEach(function (o) { closeModal(o.id); });
+    }
+  });
+
+  // ---------- วงล้อสีไฮไลท์ชื่อ ----------
+  (function () {
+    const wheel = document.getElementById('colorWheel');
+    if (!wheel) return;
+
+    const knob = document.getElementById('wheelKnob');
+    const center = document.getElementById('wheelCenter');
+    const hexLabel = document.getElementById('hexLabel');
+    const range = document.getElementById('lightRange');
+    const sample = document.getElementById('colorSample');
+    const saveBtn = document.getElementById('saveColor');
+    const R = 94; // รัศมีที่ตำแหน่งปุ่มบนวงล้อ (220 / 2 - 16)
+
+    let hue = 0;
+    let current = ACCENT;
+    let dragging = false;
+
+    function render() {
+      current = hslToHex(hue, 85, Number(range.value));
+      const rad = hue * Math.PI / 180;
+      knob.style.transform = 'translate(' + (R * Math.sin(rad)) + 'px,' + (-R * Math.cos(rad)) + 'px)';
+      center.style.background = current;
+      hexLabel.textContent = current.toUpperCase();
+      sample.style.setProperty('--accent', current);
+      sample.style.setProperty('--accent-soft', current + '1f');
+    }
+
+    function resetToCurrent() {
+      const init = hexToHsl(ACCENT);
+      hue = init.h;
+      range.value = Math.min(75, Math.max(30, Math.round(init.l)));
+      render();
+    }
+
+    function pick(e) {
+      const rect = wheel.getBoundingClientRect();
+      const dx = e.clientX - (rect.left + rect.width / 2);
+      const dy = e.clientY - (rect.top + rect.height / 2);
+      hue = (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360;
+      render();
+    }
+
+    wheel.addEventListener('pointerdown', function (e) {
+      dragging = true;
+      wheel.setPointerCapture(e.pointerId);
+      pick(e);
+    });
+    wheel.addEventListener('pointermove', function (e) {
+      if (dragging) pick(e);
+    });
+    wheel.addEventListener('pointerup', function () { dragging = false; });
+    wheel.addEventListener('pointercancel', function () { dragging = false; });
+    range.addEventListener('input', render);
+
+    document.querySelectorAll('[data-open="colorModal"]').forEach(function (b) {
+      b.addEventListener('click', resetToCurrent);
+    });
+
+    saveBtn.addEventListener('click', async function () {
+      saveBtn.disabled = true;
+      try {
+        const res = await fetch("{{ url_for('profile_accent') }}", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accent: current })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          applyAccent(current);
+          closeModal('colorModal');
+        }
+      } catch (err) {
+        // ไม่ทำอะไร ให้ผู้ใช้ลองใหม่
+      }
+      saveBtn.disabled = false;
+    });
+
+    resetToCurrent();
+  })();
+
+  // ---------- แบนเนอร์โปรไฟล์ ----------
+  (function () {
+    const input = document.getElementById('bannerInput');
+    if (!input) return;
+
+    const preview = document.getElementById('bannerPreview');
+    const errBox = document.getElementById('bannerError');
+    let pendingFile = null;
+    let removeFlag = false;
+
+    document.getElementById('pickBanner').addEventListener('click', function () {
+      errBox.textContent = '';
+      input.click();
+    });
+
+    input.addEventListener('change', function () {
+      const file = input.files[0];
+      if (!file) return;
+      if (file.size > 10 * 1024 * 1024) {
+        errBox.textContent = 'ไฟล์ใหญ่เกิน 10 MB กรุณาลดขนาดรูป';
+        return;
+      }
+      pendingFile = file;
+      removeFlag = false;
+      errBox.textContent = '';
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        preview.style.backgroundImage = "url('" + e.target.result + "')";
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById('removeBanner').addEventListener('click', function () {
+      pendingFile = null;
+      removeFlag = true;
+      preview.style.backgroundImage = '';
+    });
+
+    document.getElementById('saveBanner').addEventListener('click', async function () {
+      if (!pendingFile && !removeFlag) {
+        errBox.textContent = 'กรุณาเลือกรูปหรือกดลบก่อนบันทึก';
+        return;
+      }
+      const fd = new FormData();
+      if (pendingFile) fd.append('banner', pendingFile);
+      else fd.append('remove', '1');
+      try {
+        const res = await fetch("{{ url_for('profile_banner') }}", { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.ok) {
+          location.reload();
+          return;
+        }
+        errBox.textContent = 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง';
+      } catch (err) {
+        errBox.textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+      }
+    });
+  })();
+
+  // ---------- ป๊อปอัปแจ้งผลการทำงาน (จาก flash message) ----------
   (function () {
     const items = {{ msgs|tojson }};
     if (!items.length) return;
