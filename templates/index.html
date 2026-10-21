@@ -34,21 +34,18 @@
      ✨ เอฟเฟกต์โฟกัส: อันที่ชี้ขยาย อันอื่นเบลอและหดเล็กลง
      ============================================================ */
   @media (hover: hover) and (pointer: fine) {
-    /* ตัวกริดหลัก ต้องใส่ position: relative เพื่อให้ z-index ของการ์ดทำงาน */
     .dashboard-grid {
       position: relative;
     }
 
-    /* --- สถานะปกติ (ยังไม่ชี้) --- */
+    /* --- สถานะปกติ --- */
     .dash-card {
       position: relative;
       height: 104px;
       align-items: center;
       padding: 16px 20px;
-      z-index: 1; /* ให้อยู่เลเยอร์ปกติ */
-      
-      /* แอนิเมชันตอนเข้า/ออก */
-      transition: 
+      z-index: 1;
+      transition:
         transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1),
         filter 0.35s ease,
         opacity 0.35s ease,
@@ -73,7 +70,7 @@
       transform: translateY(0);
     }
 
-    /* ใช้ Grid ซ่อนคำอธิบาย */
+    /* ซ่อนคำอธิบายด้วย grid-template-rows */
     .dash-card .dash-desc {
       margin: 0;
       font-size: 14px;
@@ -90,35 +87,34 @@
     }
 
     /* =======================================================
-       เงื่อนไขที่ 1: "เมื่อเอาเมาส์ไปวางในกริด"
-       ให้การ์ดทุกใบ "หดเล็กลง + เบลอ + จางลง"
+       การ์ดที่ "ไม่ได้ถูกชี้" (ขณะที่มีการ์ดใดถูกชี้อยู่):
+       หดเล็ก เบลอ และจางลง
        ======================================================= */
-    .dashboard-grid:has(.dash-card:hover) .dash-card {
+    .dashboard-grid:has(.dash-card:hover) .dash-card:not(:hover) {
       transform: scale(0.92);
       filter: blur(3px) grayscale(20%);
       opacity: 0.6;
     }
 
     /* =======================================================
-       เงื่อนไขที่ 2: "เมื่อชี้ที่การ์ดใบนั้นโดยเฉพาะ"
-       ให้กลับมาขยายใหญ่ + ไม่เบลอ + ลอยขึ้น
+       การ์ดที่ "ถูกชี้": ขยายใหญ่ ชัด ไม่เบลอ ลอยขึ้น
        ======================================================= */
-    .dash-card:hover {
-      transform: scale(1.05) translateY(-5px); /* ขยาย 5% และลอยขึ้น */
-      filter: blur(0) grayscale(0%); /* ล้างค่าเบลอทิ้ง */
+    .dashboard-grid .dash-card:hover {
+      transform: scale(1.05) translateY(-5px);
+      filter: none;
       opacity: 1;
-      z-index: 10; /* ดันให้ลอยทับใบอื่น */
-      box-shadow: 0 12px 24px -8px rgba(37, 99, 235, 0.25); /* เงาฟุ้งๆ */
+      z-index: 10;
+      box-shadow: 0 12px 24px -8px rgba(37, 99, 235, 0.25);
       border-color: var(--primary);
     }
 
-    /* ให้หัวข้อขยับขึ้นนิดนึงเพื่อโชว์คำอธิบาย */
-    .dash-card:hover .dash-title {
+    /* หัวข้อขยับขึ้นเพื่อโชว์คำอธิบาย */
+    .dashboard-grid .dash-card:hover .dash-title {
       transform: translateY(-10px);
     }
 
-    /* ให้คำอธิบายโผล่ */
-    .dash-card:hover .dash-desc {
+    /* คำอธิบายโผล่ */
+    .dashboard-grid .dash-card:hover .dash-desc {
       grid-template-rows: 1fr;
     }
 
@@ -126,12 +122,12 @@
     .dash-card .dash-icon {
       transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
     }
-    .dash-card:hover .dash-icon {
+    .dashboard-grid .dash-card:hover .dash-icon {
       transform: scale(1.1);
     }
   }
 
-  /* มือถือ/ทัชสกรีน: แสดงผลปกติ ไม่มี Effect ซูม */
+  /* มือถือ/ทัชสกรีน: แสดงผลปกติ ไม่มีเอฟเฟกต์ */
   @media (hover: none), (pointer: coarse) {
     .dash-card .dash-title { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
     .dash-card .dash-desc { margin: 0; font-size: 14px; color: #000; }
@@ -148,8 +144,7 @@
 <!-- Dashboard Menus -->
 <section style="margin-bottom: 40px;">
   <h2>เมนูทั้งหมด</h2>
-  
-  <!-- 🔴 เพิ่ม class dashboard-grid เข้าไปเพื่อใช้เป็นตัวอ้างอิง -->
+
   <div class="grid dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));">
 
     <!-- ซื้อคอร์ส -->
