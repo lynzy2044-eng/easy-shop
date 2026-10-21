@@ -92,6 +92,15 @@ nav {
   width: auto;
 }
 
+/* ปุ่ม Admin Link (สีแดง) */
+.nav-links a.admin-link {
+  color: #e11d48 !important;
+  font-weight: 800;
+}
+.nav-links a.admin-link:hover {
+  background: #ffe4e6 !important;
+}
+
 /* ปุ่ม 3 ขีด ( Hamburger ) */
 .menu-toggle {
   display: none; background: none; border: none; cursor: pointer;
@@ -258,6 +267,12 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
       
       {% if user %}
         <a href="{{ url_for('account') }}">บัญชีของฉัน ({{ "%.2f"|format(user.balance) }} ฿)</a>
+        
+        {# แสดงปุ่มหลังบ้านเฉพาะแอดมิน #}
+        {% if is_admin %}
+          <a href="{{ url_for('admin_dashboard') }}" class="admin-link">⚙️ หลังบ้าน</a>
+        {% endif %}
+        
         <a href="{{ url_for('logout') }}" style="color:var(--err)">ออกจากระบบ</a>
       {% else %}
         <a href="{{ url_for('login') }}">เข้าสู่ระบบ</a>
@@ -273,6 +288,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 </main>
 
 <script>
+  // สลับเมนูมือถือ
   const menuToggle = document.getElementById('menuToggle');
   const navLinks = document.getElementById('navLinks');
   
@@ -282,6 +298,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
     });
   }
 
+  // ลบ Flash Message อัตโนมัติ
   setTimeout(() => {
     const flashes = document.querySelectorAll('.flash');
     flashes.forEach((el, index) => {
