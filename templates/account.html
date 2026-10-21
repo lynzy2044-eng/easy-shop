@@ -1,190 +1,727 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+  /* บังคับใช้ฟอนต์ Anuphan ทั้งหน้านี้ */
+  .account-page, .account-page * {
+    font-family: 'Anuphan', sans-serif !important;
+  }
 
-<!-- การ์ดโปรไฟล์: แบนเนอร์ 8:3 + รูปโปรไฟล์ (กดเพื่อเปลี่ยน) + ชื่อ + ปุ่มปรับแต่ง -->
-<div class="card" style="margin-bottom: 24px; padding: 0; overflow: hidden;">
-  <div class="profile-banner"
-       style="border-radius: 16px 16px 0 0; aspect-ratio: 8 / 3; height: auto;{% if profile.banner %} background-image: url('{{ profile.banner }}');{% endif %}"></div>
+  /* ---------- Profile Header ---------- */
+  .profile-header-card {
+    background: #fff; border-radius: 24px; overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 32px; position: relative;
+  }
+  .banner-area {
+    width: 100%; aspect-ratio: 8 / 3; position: relative;
+    background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+    background-size: cover; background-position: center;
+  }
+  .avatar-area {
+    position: absolute; bottom: -40px; left: 32px;
+    width: 120px; height: 120px; border-radius: 50%;
+    border: 4px solid #fff; background: var(--accent);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15); position: relative;
+  }
+  .avatar-area img {
+    width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+  }
+  .avatar-area .initial {
+    width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+    font-size: 48px; font-weight: 800; color: #fff;
+  }
+  
+  /* ปุ่มดินสอสำหรับแก้ไข */
+  .edit-btn {
+    position: absolute; background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 50%; width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: all 0.2s ease; z-index: 10;
+  }
+  .edit-btn:hover { background: #f8fafc; transform: scale(1.05); }
+  .edit-btn svg { width: 18px; height: 18px; stroke: #0f172a; }
+  
+  .edit-banner { top: 16px; right: 16px; }
+  .edit-avatar { bottom: 0; right: 0; width: 32px; height: 32px; border-width: 2px; }
+  .edit-avatar svg { width: 14px; height: 14px; }
 
-  <div style="display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; padding: 0 24px 24px;">
-    <button type="button" data-open="avatarModal" aria-label="เปลี่ยนรูปโปรไฟล์"
-            style="position: relative; margin-top: -44px; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 50%; flex-shrink: 0;">
+  .profile-info { padding: 56px 32px 32px; }
+  .profile-name { font-size: 24px; font-weight: 800; margin: 0 0 4px; }
+  .profile-username { color: #64748b; font-size: 16px; margin-bottom: 16px; }
+  .profile-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  .btn-small { padding: 10px 20px; font-size: 14px; width: auto; border-radius: 12px; }
+
+  /* ---------- Tabs ---------- */
+  .tabs-container { margin-bottom: 24px; border-bottom: 2px solid #e2e8f0; display: flex; gap: 24px; }
+  .tab-btn {
+    background: none; border: none; padding: 12px 0; font-size: 16px; font-weight: 700;
+    color: #64748b; cursor: pointer; position: relative; transition: color 0.2s;
+  }
+  .tab-btn:hover { color: #0f172a; }
+  .tab-btn.active { color: var(--primary); }
+  .tab-btn.active::after {
+    content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 3px;
+    background: var(--primary); border-radius: 3px 3px 0 0;
+  }
+
+  /* ---------- Content Sections ---------- */
+  .tab-content { display: none; animation: fadeIn 0.3s ease; }
+  .tab-content.active { display: block; }
+  
+  /* ---------- Fixed Bottom Bar (สำหรับการแก้ไข) ---------- */
+  .save-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: #fff; border-top: 1px solid #e2e8f0; padding: 16px 24px;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+    transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .save-bar.show { transform: translateY(0); }
+  .save-bar .message { font-size: 15px; font-weight: 600; color: #0f172a; }
+  .save-actions { display: flex; gap: 12px; }
+  .save-actions .btn { width: auto; padding: 10px 24px; border-radius: 10px; }
+  .btn-cancel { background: #f1f5f9 !important; color: #64748b !important; box-shadow: none !important; }
+  .btn-cancel:hover { background: #e2e8f0 !important; color: #0f172a !important; }
+
+  /* ---------- Crop Modal ---------- */
+  .crop-modal {
+    position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.7);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .crop-modal.show { opacity: 1; pointer-events: auto; }
+  .crop-container {
+    width: 90%; max-width: 500px; background: #000; border-radius: 16px;
+    overflow: hidden; position: relative; display: flex; flex-direction: column;
+  }
+  .crop-area {
+    width: 100%; position: relative; overflow: hidden;
+    background: #1a1a1a; display: flex; align-items: center; justify-content: center;
+  }
+  .crop-area img { max-width: 100%; display: block; user-select: none; }
+  
+  /* Crop Box Overlay */
+  .crop-box-overlay {
+    position: absolute; border: 2px solid #fff; box-shadow: 0 0 0 9999px rgba(0,0,0,0.6);
+    cursor: move; /* ให้ลากย้ายได้ */
+  }
+  .crop-handle {
+    position: absolute; width: 20px; height: 20px; background: #fff;
+    border-radius: 50%; border: 2px solid var(--primary);
+  }
+  .handle-br { bottom: -10px; right: -10px; cursor: nwse-resize; }
+
+  .crop-controls {
+    padding: 16px; background: #111; display: flex; gap: 12px; justify-content: flex-end;
+  }
+  .crop-controls button { padding: 10px 20px; border-radius: 8px; font-weight: 700; border: none; cursor: pointer; }
+  .btn-crop-cancel { background: #333; color: #fff; }
+  .btn-crop-save { background: var(--primary); color: #fff; }
+
+  /* ซ่อน scrollbar เวลาเปิด modal */
+  body.modal-open { overflow: hidden; }
+</style>
+
+<div class="account-page" style="min-height: 80vh; padding-bottom: 80px;">
+  
+  <!-- Header Card -->
+  <div class="profile-header-card">
+    <div class="banner-area" id="profileBanner" {% if profile.banner %}style="background-image: url('{{ profile.banner }}');"{% endif %}>
+      <button type="button" class="edit-btn edit-banner" id="btnEditBanner" title="เปลี่ยนแบนเนอร์">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+      </button>
+    </div>
+    
+    <div class="avatar-area" id="profileAvatarContainer">
       {% if profile.avatar_url %}
-        <img class="avatar lg" src="{{ profile.avatar_url }}" alt="" referrerpolicy="no-referrer" style="margin: 0;">
+        <img id="profileAvatarImg" src="{{ profile.avatar_url }}" alt="">
       {% else %}
-        <span class="avatar lg" style="margin: 0;">{{ profile.initial }}</span>
+        <span class="initial" id="profileAvatarInitial">{{ profile.initial }}</span>
+        <img id="profileAvatarImg" src="" style="display:none;" alt="">
       {% endif %}
-      <span style="position: absolute; right: 2px; bottom: 2px; width: 28px; height: 28px; border-radius: 50%;
-                   background: var(--primary); color: #fff; border: 2px solid #fff;
-                   display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,.25);">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"></path>
-        </svg>
-      </span>
-    </button>
-
-    <div style="flex: 1; min-width: 180px; padding-top: 12px;">
-      <div class="muted" style="font-family: 'AnuphanAll', 'Anuphan', sans-serif; font-size: 16px; font-weight: 700;">{{ user.username }}</div>
+      <button type="button" class="edit-btn edit-avatar" id="btnEditAvatar" title="เปลี่ยนรูปโปรไฟล์">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+      </button>
     </div>
 
-    <div style="display: flex; gap: 8px; flex-wrap: wrap; padding-top: 12px;">
-      <button type="button" class="btn" data-open="customizeModal" style="width: auto; padding: 10px 18px; font-size: 14px;">ปรับแต่งโปรไฟล์</button>
-      <button type="button" class="btn ghost" data-open="colorModal" style="width: auto; padding: 10px 18px; font-size: 14px;">เปลี่ยนสีชื่อ</button>
-    </div>
-  </div>
-</div>
-
-<h1>บัญชีของฉัน</h1>
-<p class="muted" style="margin-bottom: 24px;">ข้อมูลการเข้าเรียนและประวัติการสั่งซื้อของคุณ</p>
-
-<div class="grid">
-  <div class="card">
-    <h3>สิทธิ์การเรียน</h3>
-    {% if owned %}
-      <p>คุณเปิดคอร์สแล้ว: <strong>{{ owned|map('capitalize')|join(', ') }}</strong></p>
-    {% else %}
-      <p class="muted">ยังไม่มีสิทธิ์เรียนเต็ม <a href="{{ url_for('index') }}#packages">เลือกแพ็กเกจ</a></p>
-    {% endif %}
-  </div>
-
-  <div class="card">
-    <h3>ประวัติการสั่งซื้อ</h3>
-    {% for o in orders %}
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--line); padding:12px 0;">
-        <div>
-          <strong>{{ packages[o.package].name }}</strong><br>
-          <span class="muted" style="font-size:14px;">{{ "%.2f"|format(o.amount_satang / 100) }} ฿</span>
-        </div>
-        <div>
-          {% if o.status == 'paid' %}<span style="color:var(--ok); font-weight:700;">ชำระแล้ว</span>
-          {% elif o.status == 'pending' %}<a href="{{ url_for('pay', order_id=o.id) }}" class="btn" style="padding:6px 12px; font-size:12px;">ชำระเงิน</a>
-          {% else %}<span class="muted">หมดอายุ</span>{% endif %}
-        </div>
+    <div class="profile-info">
+      <h1 class="profile-name">{{ user.username }}</h1>
+      <div class="profile-username">ยอดเงินในกระเป๋า: <strong style="color:var(--ok);">{{ "%.2f"|format(user.balance) }} ฿</strong></div>
+      
+      <div class="profile-actions">
+        <button type="button" class="btn ghost btn-small" data-open="colorModal">เปลี่ยนสีโปรไฟล์</button>
+        <a href="{{ url_for('topup') }}" class="btn btn-small">เติมเงิน</a>
       </div>
-    {% else %}
-      <p class="muted">ยังไม่มีออเดอร์</p>
-    {% endfor %}
+    </div>
   </div>
-</div>
 
-<!-- ป๊อปอัปเปลี่ยนรูปโปรไฟล์ (ตัดเป็น 1:1 ให้อัตโนมัติ) -->
-<div class="pop-overlay" id="avatarModal" hidden>
-  <div class="pop-box">
-    <button type="button" class="pop-close" data-close aria-label="ปิด">✕</button>
-    <div style="padding: 28px 24px 24px; text-align: center;">
-      <h3 style="margin: 0 0 4px;">เปลี่ยนรูปโปรไฟล์</h3>
-      <p class="muted" style="margin: 0 0 18px; font-size: 14px;">ขนาด 1:1 ถ้ารูปไม่ใช่สี่เหลี่ยมจัตุรัส ระบบจะครอปตรงกลางให้อัตโนมัติ</p>
+  <!-- Tabs Navigation -->
+  <div class="tabs-container">
+    <button class="tab-btn active" data-target="tab-history">ประวัติการสั่งซื้อ & สิทธิ์เรียน</button>
+    <!-- สามารถเพิ่มแท็บอื่นๆ ในอนาคตได้ที่นี่ -->
+  </div>
 
-      <div style="display: flex; justify-content: center; margin-bottom: 18px;">
-        {% if profile.avatar_url %}
-          <img id="avatarPreview" class="avatar lg" src="{{ profile.avatar_url }}" alt="" referrerpolicy="no-referrer" style="margin: 0;">
-          <span id="avatarInitial" class="avatar lg" style="margin: 0; display: none;">{{ profile.initial }}</span>
+  <!-- Tab: History & Entitlements -->
+  <div id="tab-history" class="tab-content active">
+    <div class="grid">
+      <!-- สิทธิ์การเรียน -->
+      <div class="card">
+        <h3>สิทธิ์การเรียน</h3>
+        {% if owned %}
+          <p style="color:var(--ok); font-weight:700;">คุณเปิดคอร์สแล้ว: {{ owned|map('capitalize')|join(', ') }}</p>
         {% else %}
-          <img id="avatarPreview" class="avatar lg" alt="" style="margin: 0; display: none;">
-          <span id="avatarInitial" class="avatar lg" style="margin: 0;">{{ profile.initial }}</span>
+          <p class="muted">ยังไม่มีสิทธิ์เรียนเต็ม <a href="{{ url_for('index') }}#packages" style="color:var(--primary);">เลือกแพ็กเกจ</a></p>
+        {% endif %}
+        
+        <h4 style="margin-top:24px; font-size:16px;">ประวัติการเข้าเรียนฟรี</h4>
+        {% if enrollments %}
+          <ul style="padding-left: 20px; margin: 0; color: #475569;">
+            {% for e in enrollments %}
+              <li style="margin-bottom: 8px;">{{ e.lesson.title }} <span class="muted" style="font-size:12px;">({{ e.created_at.strftime('%d/%m/%Y') }})</span></li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="muted" style="font-size:14px;">ยังไม่มีประวัติการเรียนฟรี</p>
         {% endif %}
       </div>
 
-      <input type="file" id="avatarInput" accept="image/*" hidden>
-
-      <div style="display: flex; gap: 10px; margin-bottom: 14px;">
-        <button type="button" class="btn ghost" id="pickAvatar" style="width: 100%;">เลือกรูป</button>
-        <button type="button" class="btn ghost" id="removeAvatar" style="width: 100%;">ลบรูป</button>
+      <!-- ประวัติการสั่งซื้อ -->
+      <div class="card">
+        <h3>ประวัติการสั่งซื้อ</h3>
+        {% for o in orders %}
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--line); padding:12px 0;">
+            <div>
+              <strong>{{ packages[o.package].name }}</strong><br>
+              <span class="muted" style="font-size:13px;">{{ o.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-weight:700;">{{ "%.2f"|format(o.amount_satang / 100) }} ฿</div>
+              {% if o.status == 'paid' %}
+                <span style="color:var(--ok); font-size:13px; font-weight:700;">ชำระแล้ว</span>
+              {% elif o.status == 'pending' %}
+                <a href="{{ url_for('pay', order_id=o.id) }}" class="btn" style="padding:4px 10px; font-size:12px; margin-top:4px;">ชำระเงิน</a>
+              {% else %}
+                <span class="muted" style="font-size:13px;">หมดอายุ</span>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          <p class="muted">ยังไม่มีประวัติการสั่งซื้อ</p>
+        {% endfor %}
       </div>
+    </div>
+  </div>
 
-      <button type="button" class="btn" id="saveAvatar" style="width: 100%;">บันทึกรูปโปรไฟล์</button>
+</div>
 
-      <p id="avatarError" style="color: var(--err); font-size: 14px; margin: 10px 0 0;"></p>
+<!-- ================= MODALS & HIDDEN INPUTS ================= -->
+
+<!-- Hidden File Inputs -->
+<input type="file" id="inputAvatar" accept="image/*" hidden>
+<input type="file" id="inputBanner" accept="image/*" hidden>
+
+<!-- Save Bar -->
+<div class="save-bar" id="saveBar">
+  <div class="message">มีการแก้ไขข้อมูลโปรไฟล์</div>
+  <div class="save-actions">
+    <button type="button" class="btn btn-cancel" id="btnDiscardChanges">ไม่ดีกว่า</button>
+    <button type="button" class="btn" id="btnSaveChanges">บันทึก</button>
+  </div>
+</div>
+
+<!-- Crop Modal -->
+<div class="crop-modal" id="cropModal">
+  <div class="crop-container">
+    <div class="crop-area" id="cropArea">
+      <img id="cropImage" src="" alt="Crop">
+      <div class="crop-box-overlay" id="cropBox">
+        <div class="crop-handle handle-br" id="handleBR"></div>
+      </div>
+    </div>
+    <div class="crop-controls">
+      <button type="button" class="btn-crop-cancel" id="btnCropCancel">ยกเลิก</button>
+      <button type="button" class="btn-crop-save" id="btnCropSave">บันทึกภาพ</button>
     </div>
   </div>
 </div>
 
+<!-- Color Modal (คงเดิมจาก base.html แต่ดึงมาไว้ในนี้เพื่อให้ทำงานง่ายขึ้น) -->
+<div class="pop-overlay" id="colorModal" hidden>
+  <div class="pop-box">
+    <button type="button" class="pop-close" data-close aria-label="ปิด">✕</button>
+    <div style="padding: 28px 24px 24px;">
+      <h3 style="margin: 0 0 4px;">เลือกสีไฮไลท์ชื่อ</h3>
+      <p class="muted" style="margin: 0 0 18px; font-size: 14px;">หมุนวงล้อเพื่อเลือกสี แล้วปรับความสว่างด้านล่าง</p>
+
+      <div class="wheel-wrap">
+        <div class="wheel" id="colorWheel">
+          <div class="wheel-knob" id="wheelKnob"></div>
+          <div class="wheel-center" id="wheelCenter"><span id="hexLabel"></span></div>
+        </div>
+
+        <div style="width:100%;">
+          <label class="muted" style="font-size:13px;">ความสว่าง</label>
+          <input type="range" id="lightRange" min="30" max="75" value="55" style="margin: 4px 0 0; padding: 0;">
+        </div>
+
+        <div class="color-sample" id="colorSample">
+          <span class="user-chip">
+            <span class="chip-name" style="cursor: default;">
+              <span class="avatar">{{ profile.initial }}</span>
+              <span>{{ profile.name }}</span>
+            </span>
+          </span>
+        </div>
+
+        <div style="display:flex; gap:10px; width:100%;">
+          <button type="button" class="btn ghost" data-close style="width:100%;">ยกเลิก</button>
+          <button type="button" class="btn" id="saveColor" style="width:100%;">บันทึกสี</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= JAVASCRIPT ================= -->
 <script>
-(function () {
-  const input = document.getElementById('avatarInput');
-  if (!input) return;
+document.addEventListener('DOMContentLoaded', function() {
+  // ----- Tabs Logic -----
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.target).classList.add('active');
+    });
+  });
 
-  const img = document.getElementById('avatarPreview');
-  const initial = document.getElementById('avatarInitial');
-  const err = document.getElementById('avatarError');
-  let blob = null;
-  let removeFlag = false;
+  // ----- State Management for Edits -----
+  let editState = {
+    avatar: null, // { data: 'base64...', remove: false }
+    banner: null, // { data: 'base64...', remove: false }
+  };
+  let originalAvatar = "{{ profile.avatar_url }}";
+  let originalBanner = "{{ profile.banner }}";
+  let isSaving = false;
 
-  function showImage(src) {
-    img.src = src;
-    img.style.display = 'inline-flex';
-    if (initial) initial.style.display = 'none';
+  const saveBar = document.getElementById('saveBar');
+  
+  function checkChanges() {
+    const hasAvatarChange = editState.avatar !== null;
+    const hasBannerChange = editState.banner !== null;
+    
+    if (hasAvatarChange || hasBannerChange) {
+      saveBar.classList.add('show');
+    } else {
+      saveBar.classList.remove('show');
+    }
   }
 
-  function showInitial() {
-    img.removeAttribute('src');
-    img.style.display = 'none';
-    if (initial) initial.style.display = 'inline-flex';
-  }
-
-  document.getElementById('pickAvatar').addEventListener('click', function () {
-    err.textContent = '';
-    input.click();
-  });
-
-  input.addEventListener('change', function () {
-    const file = input.files[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      err.textContent = 'กรุณาเลือกไฟล์รูปภาพ';
-      return;
+  // ----- Prevent window close -----
+  window.addEventListener('beforeunload', function(e) {
+    if (saveBar.classList.contains('show') && !isSaving) {
+      e.preventDefault();
+      e.returnValue = ''; // Trigger browser warning
     }
-    const url = URL.createObjectURL(file);
-    const im = new Image();
-    im.onload = function () {
-      // ตัดเป็นสี่เหลี่ยมจัตุรัสตรงกลาง แล้วย่อเป็น 256 พิกเซล
-      const S = 256;
-      const side = Math.min(im.width, im.height);
-      const sx = (im.width - side) / 2;
-      const sy = (im.height - side) / 2;
-      const canvas = document.createElement('canvas');
-      canvas.width = S;
-      canvas.height = S;
-      canvas.getContext('2d').drawImage(im, sx, sy, side, side, 0, 0, S, S);
-      canvas.toBlob(function (b) {
-        blob = b;
-        removeFlag = false;
-        showImage(URL.createObjectURL(b));
-        URL.revokeObjectURL(url);
-      }, 'image/jpeg', 0.9);
-    };
-    im.onerror = function () {
-      err.textContent = 'เปิดรูปนี้ไม่ได้ ลองไฟล์อื่น';
-    };
-    im.src = url;
   });
 
-  document.getElementById('removeAvatar').addEventListener('click', function () {
-    blob = null;
-    removeFlag = true;
-    showInitial();
+  // ----- DOM Elements -----
+  const inputAvatar = document.getElementById('inputAvatar');
+  const inputBanner = document.getElementById('inputBanner');
+  const imgAvatarPreview = document.getElementById('profileAvatarImg');
+  const initialAvatarPreview = document.getElementById('profileAvatarInitial');
+  const divBannerPreview = document.getElementById('profileBanner');
+
+  // ----- Button Clicks -----
+  document.getElementById('btnEditAvatar').addEventListener('click', () => inputAvatar.click());
+  document.getElementById('btnEditBanner').addEventListener('click', () => inputBanner.click());
+
+  // ----- Handle File Selection -----
+  inputAvatar.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) startCrop(file, 1, 1, function(base64) {
+      editState.avatar = { data: base64, remove: false };
+      imgAvatarPreview.src = base64;
+      imgAvatarPreview.style.display = 'block';
+      if (initialAvatarPreview) initialAvatarPreview.style.display = 'none';
+      checkChanges();
+    });
+    inputAvatar.value = ''; // Reset
   });
 
-  document.getElementById('saveAvatar').addEventListener('click', async function () {
-    if (!blob && !removeFlag) {
-      err.textContent = 'กรุณาเลือกรูปหรือกดลบก่อนบันทึก';
-      return;
+  inputBanner.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) startCrop(file, 8, 3, function(base64) {
+      editState.banner = { data: base64, remove: false };
+      divBannerPreview.style.backgroundImage = `url('${base64}')`;
+      checkChanges();
+    });
+    inputBanner.value = ''; // Reset
+  });
+
+  // ----- Save / Discard Actions -----
+  document.getElementById('btnDiscardChanges').addEventListener('click', () => {
+    editState = { avatar: null, banner: null };
+    
+    // Revert Avatar
+    if (originalAvatar) {
+      imgAvatarPreview.src = originalAvatar;
+      imgAvatarPreview.style.display = 'block';
+      if (initialAvatarPreview) initialAvatarPreview.style.display = 'none';
+    } else {
+      imgAvatarPreview.style.display = 'none';
+      if (initialAvatarPreview) initialAvatarPreview.style.display = 'flex';
     }
-    const fd = new FormData();
-    if (blob) fd.append('avatar', blob, 'avatar.jpg');
-    else fd.append('remove', '1');
+    
+    // Revert Banner
+    if (originalBanner) {
+      divBannerPreview.style.backgroundImage = `url('${originalBanner}')`;
+    } else {
+      divBannerPreview.style.backgroundImage = '';
+    }
+    
+    checkChanges();
+  });
+
+  document.getElementById('btnSaveChanges').addEventListener('click', async () => {
+    const btnSave = document.getElementById('btnSaveChanges');
+    btnSave.disabled = true;
+    btnSave.textContent = 'กำลังบันทึก...';
+
     try {
-      const res = await fetch("{{ url_for('profile_avatar') }}", { method: 'POST', body: fd });
-      const data = await res.json();
-      if (data.ok) {
-        location.reload();
-        return;
+      // 1. Save Avatar (if changed)
+      if (editState.avatar) {
+        const res = await fetch("{{ url_for('profile_avatar') }}", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: editState.avatar.data })
+        });
+        if (!res.ok) throw new Error('Avatar save failed');
       }
-      err.textContent = 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง';
-    } catch (e) {
-      err.textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+
+      // 2. Save Banner (if changed)
+      if (editState.banner) {
+        const res = await fetch("{{ url_for('profile_banner') }}", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: editState.banner.data })
+        });
+        if (!res.ok) throw new Error('Banner save failed');
+      }
+
+      isSaving = true;
+      window.location.reload(); // Reload to reflect changes everywhere
+      
+    } catch (err) {
+      alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
+      btnSave.disabled = false;
+      btnSave.textContent = 'บันทึก';
     }
   });
-})();
+
+
+  // ==================== CROP TOOL LOGIC ====================
+  const cropModal = document.getElementById('cropModal');
+  const cropArea = document.getElementById('cropArea');
+  const cropImage = document.getElementById('cropImage');
+  const cropBox = document.getElementById('cropBox');
+  const handleBR = document.getElementById('handleBR');
+  
+  let cropData = {
+    ratio: 1,
+    imgW: 0,
+    imgH: 0,
+    displayW: 0,
+    displayH: 0,
+    boxX: 0,
+    boxY: 0,
+    boxW: 0,
+    boxH: 0,
+    minW: 50, // ขนาดขั้นต่ำของกรอบ
+    onComplete: null
+  };
+
+  function startCrop(file, ratioW, ratioH, callback) {
+    cropData.ratio = ratioW / ratioH;
+    cropData.onComplete = callback;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      cropImage.src = e.target.result;
+      cropImage.onload = () => {
+        cropModal.classList.add('show');
+        document.body.classList.add('modal-open');
+        initCropBox();
+      };
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function initCropBox() {
+    // รอให้ Image โหลดและ Render ขนาดจริงก่อน
+    requestAnimationFrame(() => {
+      cropData.imgW = cropImage.naturalWidth;
+      cropData.imgH = cropImage.naturalHeight;
+      cropData.displayW = cropImage.width;
+      cropData.displayH = cropImage.height;
+
+      // คำนวณขนาดเริ่มต้นของกรอบ (ให้ใหญ่ที่สุดเท่าที่พอดี)
+      let bw = cropData.displayW * 0.8;
+      let bh = bw / cropData.ratio;
+      if (bh > cropData.displayH * 0.8) {
+        bh = cropData.displayH * 0.8;
+        bw = bh * cropData.ratio;
+      }
+
+      cropData.boxW = bw;
+      cropData.boxH = bh;
+      
+      // จัดให้อยู่ตรงกลาง
+      cropData.boxX = (cropData.displayW - bw) / 2;
+      cropData.boxY = (cropData.displayH - bh) / 2;
+
+      updateCropBoxDOM();
+    });
+  }
+
+  function updateCropBoxDOM() {
+    cropBox.style.width = cropData.boxW + 'px';
+    cropBox.style.height = cropData.boxH + 'px';
+    cropBox.style.left = cropData.boxX + 'px';
+    cropBox.style.top = cropData.boxY + 'px';
+  }
+
+  // --- Drag & Resize Logic (Touch & Mouse) ---
+  let isDragging = false;
+  let isResizing = false;
+  let startX = 0, startY = 0;
+  let startBoxX = 0, startBoxY = 0, startBoxW = 0, startBoxH = 0;
+
+  cropBox.addEventListener('pointerdown', (e) => {
+    if (e.target === handleBR) return; // ถ้ากดที่มุม ให้เป็นเรื่องของ Resize
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    startBoxX = cropData.boxX;
+    startBoxY = cropData.boxY;
+    cropBox.setPointerCapture(e.pointerId);
+  });
+
+  handleBR.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    isResizing = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    startBoxW = cropData.boxW;
+    startBoxH = cropData.boxH;
+    handleBR.setPointerCapture(e.pointerId);
+  });
+
+  cropBox.addEventListener('pointermove', (e) => {
+    if (isDragging) {
+      let dx = e.clientX - startX;
+      let dy = e.clientY - startY;
+      
+      let nx = startBoxX + dx;
+      let ny = startBoxY + dy;
+      
+      // จำกัดไม่ให้หลุดขอบ
+      nx = Math.max(0, Math.min(nx, cropData.displayW - cropData.boxW));
+      ny = Math.max(0, Math.min(ny, cropData.displayH - cropData.boxH));
+      
+      cropData.boxX = nx;
+      cropData.boxY = ny;
+      updateCropBoxDOM();
+    }
+  });
+
+  handleBR.addEventListener('pointermove', (e) => {
+    if (isResizing) {
+      let dx = e.clientX - startX;
+      // คำนวณความกว้างใหม่
+      let newW = startBoxW + dx;
+      
+      // จำกัดขนาดขั้นต่ำ
+      if (newW < cropData.minW) newW = cropData.minW;
+      
+      let newH = newW / cropData.ratio;
+      
+      // จำกัดไม่ให้เกินขอบขวา/ล่าง
+      if (cropData.boxX + newW > cropData.displayW) {
+        newW = cropData.displayW - cropData.boxX;
+        newH = newW / cropData.ratio;
+      }
+      if (cropData.boxY + newH > cropData.displayH) {
+        newH = cropData.displayH - cropData.boxY;
+        newW = newH * cropData.ratio;
+      }
+
+      cropData.boxW = newW;
+      cropData.boxH = newH;
+      updateCropBoxDOM();
+    }
+  });
+
+  const endAction = (e) => {
+    isDragging = false;
+    isResizing = false;
+    if (cropBox.hasPointerCapture(e.pointerId)) cropBox.releasePointerCapture(e.pointerId);
+    if (handleBR.hasPointerCapture(e.pointerId)) handleBR.releasePointerCapture(e.pointerId);
+  };
+  cropBox.addEventListener('pointerup', endAction);
+  handleBR.addEventListener('pointerup', endAction);
+
+  // --- Crop Actions ---
+  document.getElementById('btnCropCancel').addEventListener('click', closeCrop);
+  
+  document.getElementById('btnCropSave').addEventListener('click', () => {
+    // คำนวณ Scale ระหว่างภาพจริง กับ ภาพที่แสดง
+    const scaleX = cropData.imgW / cropData.displayW;
+    const scaleY = cropData.imgH / cropData.displayH;
+    
+    const sx = cropData.boxX * scaleX;
+    const sy = cropData.boxY * scaleY;
+    const sw = cropData.boxW * scaleX;
+    const sh = cropData.boxH * scaleY;
+
+    const canvas = document.createElement('canvas');
+    // กำหนดความละเอียดผลลัพธ์ (เช่น 500px สำหรับ avatar, 1920px สำหรับ banner)
+    const outSize = cropData.ratio === 1 ? 500 : 1920;
+    canvas.width = outSize;
+    canvas.height = outSize / cropData.ratio;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(cropImage, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    
+    const base64 = canvas.toDataURL('image/jpeg', 0.85);
+    cropData.onComplete(base64);
+    closeCrop();
+  });
+
+  function closeCrop() {
+    cropModal.classList.remove('show');
+    document.body.classList.remove('modal-open');
+    setTimeout(() => { cropImage.src = ''; }, 300);
+  }
+
+
+  // ==================== COLOR PICKER LOGIC (Copy from base) ====================
+  // เพื่อให้สามารถแก้สีได้จากหน้านี้เลย (ถ้าต้องการ)
+  const ACCENT = "{{ profile.accent }}";
+  
+  function hslToHex(h, s, l) {
+    s /= 100; l /= 100;
+    const k = n => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    const toHex = x => Math.round(255 * x).toString(16).padStart(2, '0');
+    return '#' + toHex(f(0)) + toHex(f(8)) + toHex(f(4));
+  }
+  
+  function hexToHsl(hex) {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    let h = 0, s = 0;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+      else if (max === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      h *= 60;
+    }
+    return { h: h, s: s * 100, l: l * 100 };
+  }
+
+  const wheel = document.getElementById('colorWheel');
+  if (wheel) {
+    const knob = document.getElementById('wheelKnob');
+    const center = document.getElementById('wheelCenter');
+    const hexLabel = document.getElementById('hexLabel');
+    const range = document.getElementById('lightRange');
+    const sample = document.getElementById('colorSample');
+    const saveBtn = document.getElementById('saveColor');
+    const R = 94;
+    
+    let hue = 0;
+    let current = ACCENT;
+    let dragging = false;
+
+    function render() {
+      current = hslToHex(hue, 85, Number(range.value));
+      const rad = hue * Math.PI / 180;
+      knob.style.transform = `translate(${R * Math.sin(rad)}px, ${-R * Math.cos(rad)}px)`;
+      center.style.background = current;
+      hexLabel.textContent = current.toUpperCase();
+      sample.style.setProperty('--accent', current);
+      sample.style.setProperty('--accent-soft', current + '1f');
+    }
+
+    function resetToCurrent() {
+      const init = hexToHsl(ACCENT);
+      hue = init.h;
+      range.value = Math.min(75, Math.max(30, Math.round(init.l)));
+      render();
+    }
+
+    function pick(e) {
+      const rect = wheel.getBoundingClientRect();
+      const dx = e.clientX - (rect.left + rect.width / 2);
+      const dy = e.clientY - (rect.top + rect.height / 2);
+      hue = (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360;
+      render();
+    }
+
+    wheel.addEventListener('pointerdown', e => { dragging = true; wheel.setPointerCapture(e.pointerId); pick(e); });
+    wheel.addEventListener('pointermove', e => { if (dragging) pick(e); });
+    wheel.addEventListener('pointerup', () => dragging = false);
+    wheel.addEventListener('pointercancel', () => dragging = false);
+    range.addEventListener('input', render);
+    
+    document.querySelectorAll('[data-open="colorModal"]').forEach(b => {
+      b.addEventListener('click', resetToCurrent);
+    });
+    
+    saveBtn.addEventListener('click', async () => {
+      saveBtn.disabled = true;
+      try {
+        const res = await fetch("{{ url_for('profile_accent') }}", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accent: current })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          document.documentElement.style.setProperty('--accent', current);
+          document.documentElement.style.setProperty('--accent-soft', current + '1f');
+          document.getElementById('colorModal').hidden = true;
+          document.getElementById('colorModal').classList.remove('show');
+        }
+      } catch (err) { }
+      saveBtn.disabled = false;
+    });
+    
+    resetToCurrent();
+  }
+
+  // Modal Open/Close Utility
+  document.querySelectorAll('[data-open]').forEach(b => {
+    b.addEventListener('click', () => {
+      const el = document.getElementById(b.dataset.open);
+      if(el) { el.hidden = false; requestAnimationFrame(() => el.classList.add('show')); }
+    });
+  });
+  document.querySelectorAll('[data-close]').forEach(b => {
+    b.addEventListener('click', () => {
+      const el = b.closest('.pop-overlay');
+      if(el) { el.classList.remove('show'); setTimeout(() => el.hidden = true, 200); }
+    });
+  });
+
+});
 </script>
 {% endblock %}
