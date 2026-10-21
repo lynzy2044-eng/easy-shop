@@ -71,10 +71,28 @@
     border-radius: 12px; border: 1px solid #a7f3d0;
   }
   .enough p { color: var(--ok); font-weight: 700; font-size: 17px; margin: 0 0 16px; }
+
+  /* ---- แถบเลื่อนแบบมือถือ: ซ่อนไว้ และโชว์เฉพาะตอนเลื่อน ---- */
+  .modal-content {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.3s ease;
+  }
+  .modal-content.is-scrolling {
+    scrollbar-color: #cbd5e1 transparent;
+  }
+  .modal-content::-webkit-scrollbar { width: 6px; }
+  .modal-content::-webkit-scrollbar-track { background: transparent; }
+  .modal-content::-webkit-scrollbar-thumb {
+    background: transparent; border-radius: 999px;
+    transition: background 0.3s ease;
+  }
+  .modal-content.is-scrolling::-webkit-scrollbar-thumb { background: #cbd5e1; }
+  .modal-content::-webkit-scrollbar-button { display: none; }
 </style>
 
 <div class="modal-overlay">
-  <div class="modal-content">
+  <div class="modal-content" id="payModal">
 
     <!-- หัวข้อ + ปุ่มปิด -->
     <div class="pay-head">
@@ -211,5 +229,18 @@
       placeholder.style.display = 'flex';
     }
   }
+
+  // แสดงแถบเลื่อนตอนกำลังเลื่อน แล้วซ่อนหลังหยุดเลื่อนประมาณ 0.6 วินาที
+  (function () {
+    const modal = document.getElementById('payModal');
+    let timer = null;
+    modal.addEventListener('scroll', function () {
+      modal.classList.add('is-scrolling');
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        modal.classList.remove('is-scrolling');
+      }, 600);
+    }, { passive: true });
+  })();
 </script>
 {% endblock %}
