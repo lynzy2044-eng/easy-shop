@@ -31,7 +31,12 @@ app.config.update(
     GOOGLE_CLIENT_ID=os.getenv("GOOGLE_CLIENT_ID", ""),
     GOOGLE_CLIENT_SECRET=os.getenv("GOOGLE_CLIENT_SECRET", ""),
     PROMPTPAY_PHONE=os.getenv("PROMPTPAY_PHONE", ""),
-    ADMIN_EMAIL=os.getenv("ADMIN_EMAIL", "")
+    ADMIN_EMAIL=os.getenv("ADMIN_EMAIL", ""),
+    # ตั้งค่าคุกกี้เซสชัน
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=bool(os.getenv("VERCEL")),  # บน Vercel เป็น https เสมอ
+    PERMANENT_SESSION_LIFETIME=timedelta(days=30),   # ให้ล็อกอินค้างไว้ 30 วัน
 )
 
 # แก้ไข URL ของ PostgreSQL ให้ Flask-SQLAlchemy รู้จัก (บางที Vercel ให้มาเป็น postgres://)
@@ -423,6 +428,7 @@ def login():
         if user and check_password_hash(user.password_hash, password):
             session.clear()
             session["uid"] = user.id
+            session.permanent = True
             flash("เข้าสู่ระบบสำเร็จ", "ok")
 
             # กลับไปหน้าเดิมที่ผู้ใช้พยายามเข้า (เช่น /topup) ถ้าไม่มี ให้ไปหน้าแรก
