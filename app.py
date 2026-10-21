@@ -3,6 +3,7 @@ import io
 import os
 import random
 import secrets
+import re
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 
@@ -71,7 +72,7 @@ def utcnow():
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    username = db.Column(db.String(50), unique=True, nullable=False) # เปลี่ยนเป็น Username
     password_hash = db.Column(db.String(255), nullable=False)
     balance = db.Column(db.Float, default=0.0)  # กระเป๋าเงิน
     created_at = db.Column(db.DateTime, default=utcnow)
@@ -173,8 +174,8 @@ def admin_required(view):
             return redirect(url_for("login"))
         
         # ตรวจสอบสิทธิ์แบบไม่สนตัวพิมพ์เล็ก-ใหญ่
-        if user.email.strip().lower() != ADMIN_EMAIL:
-            flash(f"❌ คุณไม่มีสิทธิ์เข้าถึงหน้านี้ (อีเมลที่ใช้คือ: {user.email})", "err")
+        if user.username.strip().lower() != ADMIN_EMAIL:
+            flash(f"❌ คุณไม่มีสิทธิ์เข้าถึงหน้านี้ (Username ที่ใช้คือ: {user.username})", "err")
             return redirect(url_for("index"))
         return view(*args, **kwargs)
     return wrapper
@@ -204,7 +205,7 @@ def inject_globals():
     # ตรวจสอบสิทธิ์แอดมินเพื่อส่งไปให้หน้าเว็บ (ใช้โชว์ปุ่ม)
     is_admin = False
     if user and ADMIN_EMAIL:
-        is_admin = user.email.strip().lower() == ADMIN_EMAIL
+        is_admin = user.username.strip().lower() == ADMIN_EMAIL
 
     return {
         "user": user,
@@ -310,59 +311,64 @@ def lesson(lesson_id):
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        email = request.form.get("email", "").strip().lower()
+        username = request.form.get("username", "").strip().lower()
         password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
 
-        if "@" not in email or len(password) < 6:
-            flash("อีเมลไม่ถูกต้อง หรือรหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร", "err")
-        elif User.query.filter_by(email=email).first():
-            flash("อีเมลนี้ถูกใช้งานแล้ว กรุณาใช้อีเมลอื่น", "err")
+        # ตรวจสอบความปลอดภัยของรหัสผ่านขั้นต่ำ
+        if not re.search(r"[a-zA-Z]", password) or not re.search(r"[0-9]", password):
+            flash("❌ รหัสผ่านต้องมีทั้งตัวอักษรและตัวเลข", "err")
+        elif len(password) < 6:
+            flash("❌ รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร", "err")
+        elif password != confirm_password:
+            flash("❌ รหัสผ่านทั้งสองช่องไม่ตรงกัน", "err")
+        elif User.query.filter_by(username=username).first():
+            flash("❌ Username นี้ถูกใช้งานแล้ว กรุณาใช้ชื่ออื่น", "err")
         else:
-            user = User(email=email, password_hash=generate_password_hash(password))
+            user = User(username=username, password_hash=generate_password_hash(password))
             db.session.add(user)
             db.session.commit()
             session.clear()
             session["uid"] = user.id
             flash("สมัครสมาชิกสำเร็จ ยินดีต้อนรับ!", "ok")
-            nxt = request.args.get("next")
-            return redirect(nxt or url_for("index"))
+            return redirect(url_for("index"))
+            
     return render_template("auth.html", mode="register")
 
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form.get("email", "").strip().lower()
+        username = request.form.get("username", "").strip().lower()
         password = request.form.get("password", "")
 
-        user = User.query.filter_by(email=email).first()
+        user = User.query.filter_by(username=username).first()
 
         if user and check_password_hash(user.password_hash, password):
             session.clear()
             session["uid"] = user.id
             flash("เข้าสู่ระบบสำเร็จ", "ok")
-            nxt = request.args.get("next")
-            return redirect(nxt or url_for("index"))
+            return redirect(url_for("index"))
 
-        flash("อีเมลหรือรหัสผ่านไม่ถูกต้อง", "err")
+        flash("Username หรือรหัสผ่านไม่ถูกต้อง", "err")
     return render_template("auth.html", mode="login")
 
 
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
-        email = request.form.get("email", "").strip().lower()
+        username = request.form.get("username", "").strip().lower()
         new_password = request.form.get("new_password", "")
 
-        user = User.query.filter_by(email=email).first()
+        user = User.query.filter_by(username=username).first()
         if not user:
-            flash("❌ ไม่พบอีเมลนี้ในระบบ กรุณาตรวจสอบอีกครั้ง", "err")
+            flash("❌ ไม่พบ Username นี้ในระบบ", "err")
         elif len(new_password) < 6:
             flash("❌ รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร", "err")
         else:
             user.password_hash = generate_password_hash(new_password)
             db.session.commit()
-            flash("✅ เปลี่ยนรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบด้วยรหัสใหม่", "ok")
+            flash("✅ เปลี่ยนรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบ", "ok")
             return redirect(url_for("login"))
             
     return render_template("forgot.html")
@@ -409,10 +415,10 @@ def auth_google():
         if not email_verified:
             return jsonify(ok=False, error="email_not_verified"), 401
 
-        user = User.query.filter_by(email=email).first()
+        user = User.query.filter_by(username=email).first()
         if not user:
             user = User(
-                email=email,
+                username=email,
                 password_hash=generate_password_hash(secrets.token_hex(16)),
             )
             db.session.add(user)
@@ -461,7 +467,7 @@ def topup():
                     user.balance += amt
                     db.session.add(TopupHistory(user_id=user.id, method="truemoney", amount=amt, ref=voucher_hash))
                     db.session.commit()
-                    discord_notify("🧧 เติมเงิน TrueMoney สำเร็จ", fields={"ผู้ใช้": user.email, "ยอด": f"{amt:.2f} บาท"})
+                    discord_notify("🧧 เติมเงิน TrueMoney สำเร็จ", fields={"ผู้ใช้": user.username, "ยอด": f"{amt:.2f} บาท"})
                     flash(f"✅ เติมเงินสำเร็จ {amt:.2f} บาท", "ok")
                     return redirect(url_for("topup"))
 
@@ -494,7 +500,7 @@ def topup():
                         user.balance += slip.amount
                         db.session.add(TopupHistory(user_id=user.id, method="promptpay", amount=slip.amount, ref=slip.trans_ref))
                         db.session.commit()
-                        discord_notify("🏦 เติมเงินผ่านสลิปสำเร็จ", fields={"ผู้ใช้": user.email, "ยอด": f"{slip.amount:.2f} บาท"})
+                        discord_notify("🏦 เติมเงินผ่านสลิปสำเร็จ", fields={"ผู้ใช้": user.username, "ยอด": f"{slip.amount:.2f} บาท"})
                         flash(f"✅ เติมเงินผ่านสลิปสำเร็จ {slip.amount:.2f} บาท", "ok")
                         return redirect(url_for("topup"))
                 except SlipError as e:
@@ -572,7 +578,7 @@ def pay(order_id):
                     order.slip_ref = slip.trans_ref
                     db.session.commit()
 
-                    discord_notify("💰 มีออเดอร์ใหม่ชำระแล้ว", fields={"แพ็กเกจ": PACKAGES[order.package]["name"], "ยอด": f"{expected:,.2f} บาท", "ผู้ซื้อ": user.email, "ออเดอร์": f"#{order.id}"})
+                    discord_notify("💰 มีออเดอร์ใหม่ชำระแล้ว", fields={"แพ็กเกจ": PACKAGES[order.package]["name"], "ยอด": f"{expected:,.2f} บาท", "ผู้ซื้อ": user.username, "ออเดอร์": f"#{order.id}"})
                     flash("ชำระเงินสำเร็จ เริ่มเรียนได้เลย!", "ok")
                     return redirect(url_for("account"))
                 except SlipError as e:
@@ -602,7 +608,7 @@ def pay(order_id):
                     order.slip_ref = voucher_hash
                     db.session.commit()
 
-                    discord_notify("💰 มีออเดอร์ใหม่ชำระแล้ว (TrueMoney)", fields={"แพ็กเกจ": PACKAGES[order.package]["name"], "ยอด": f"{expected:,.2f} บาท", "ผู้ซื้อ": user.email, "ออเดอร์": f"#{order.id}"})
+                    discord_notify("💰 มีออเดอร์ใหม่ชำระแล้ว (TrueMoney)", fields={"แพ็กเกจ": PACKAGES[order.package]["name"], "ยอด": f"{expected:,.2f} บาท", "ผู้ซื้อ": user.username, "ออเดอร์": f"#{order.id}"})
                     flash(f"✅ ชำระเงินสำเร็จ (ทอนเงินคืนกระเป๋า {change:.2f} บาท)", "ok")
                     return redirect(url_for("account"))
 
