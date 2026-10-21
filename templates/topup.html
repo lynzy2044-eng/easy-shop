@@ -12,49 +12,67 @@
 
   <!-- ปุ่มสลับแท็บ -->
   <div style="display: flex; gap: 8px; margin-bottom: 24px;">
-    <button id="tab-truemoney" class="btn" style="flex: 1; border-radius: 12px; background: var(--primary) !important;" onclick="switchTab('truemoney')">
-      🧧 ซองอั่งเปา TrueMoney
+    <button id="tab-promptpay" class="btn" style="flex: 1; border-radius: 12px;" onclick="switchTab('promptpay')">
+      🏦 พร้อมเพย์ QR Code
     </button>
-    <button id="tab-bank" class="btn ghost" style="flex: 1; border-radius: 12px; border: 2px solid var(--line); background: transparent !important; color: var(--text) !important;" onclick="switchTab('bank')">
-      🏦 โอนผ่านธนาคาร (แนบสลิป)
+    <button id="tab-truemoney" class="btn ghost" style="flex: 1; border-radius: 12px;" onclick="switchTab('truemoney')">
+      🧧 TrueMoney วอเล็ต
     </button>
   </div>
 
-  <!-- ส่วนที่ 1: TrueMoney -->
-  <div id="section-truemoney" class="card" style="display: block;">
-    <h3 style="margin-top: 0;">🧧 เติมเงินผ่าน TrueMoney วอเล็ต</h3>
+  <!-- Section 1: PromptPay (กรอกเงิน -> สร้าง QR -> แนบสลิปตรวจสอบ) -->
+  <div id="section-promptpay" class="card" style="display: block;">
+    <h3 style="margin-top: 0;">🏦 เติมเงินผ่านพร้อมเพย์</h3>
+    
+    {% if not qr_code %}
+    <!-- ฟอร์มกรอกจำนวนเงิน (โชว์เฉพาะตอนที่ยังไม่มี QR) -->
     <p class="muted" style="font-size: 14px; margin-bottom: 16px;">
-      1. กดรับซองอั่งเปาจากแอป TrueMoney<br>
-      2. ก๊อปปี้ลิ้งค์ซอง (ขึ้นต้นด้วย https://gift.truemoney.com/...)<br>
-      3. นำมาวางในช่องด้านล่างนี้
+      กรอกจำนวนเงินที่ต้องการเติม ระบบจะสร้าง QR Code ให้คุณสแกน
     </p>
+    <form method="post">
+      <input type="hidden" name="method" value="generate_qr">
+      <div style="display: flex; gap: 12px;">
+        <input type="number" name="promptpay_amount" min="10" step="0.01" placeholder="ระบุจำนวนเงิน (บาท)" required
+               style="flex: 1; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 16px;">
+        <button class="btn" type="submit" style="width: auto; padding: 0 24px; border-radius: 12px;">สร้าง QR</button>
+      </div>
+    </form>
+    {% else %}
+    <!-- แสดง QR (โชว์ตอนที่สร้าง QR แล้ว) -->
+    <div style="background: #0f172a; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; color: #fff; margin-bottom: 16px; font-size: 14px;">
+        <span>สแกน QR พร้อมเพย์</span>
+        <span style="color: #38bdf8; font-weight: 700;">฿{{ "%.2f"|format(amount) }}</span>
+      </div>
+      <div style="background: #fff; padding: 12px; border-radius: 12px; display: inline-block;">
+        <img src="{{ qr_code }}" alt="PromptPay QR" style="width: 180px; height: 180px; display:block;">
+      </div>
+    </div>
+
+    <p class="muted" style="font-size: 14px; margin-bottom: 16px;">
+      โอนเงินตามยอดด้านบน แล้วแนบสลิปเพื่อให้ระบบตรวจสอบอัตโนมัติ
+    </p>
+
+    <form method="post" enctype="multipart/form-data">
+      <input type="hidden" name="method" value="verify_slip">
+      <input type="hidden" name="expected_amount" value="{{ amount }}">
+      <label for="slipUpload" style="display:flex; flex-direction:column; align-items:center; justify-content:center; border:2px dashed var(--line); border-radius:12px; padding:24px; cursor:pointer; background:#f8fafc; transition:var(--transition); margin-bottom:16px;">
+        <span style="font-weight:600; font-size: 14px;" id="fileNameDisplay">แนบสลิปโอนเงิน (ยอด {{ "%.2f"|format(amount) }} บาท)</span>
+        <input type="file" name="slip" id="slipUpload" accept="image/*" required style="display:none;" onchange="document.getElementById('fileNameDisplay').innerText = this.files[0].name;">
+      </label>
+      <button class="btn" type="submit" style="width: 100%; border-radius: 12px;">ยืนยันการชำระเงิน</button>
+    </form>
+    {% endif %}
+  </div>
+
+  <!-- Section 2: TrueMoney -->
+  <div id="section-truemoney" class="card" style="display: none;">
+    <h3 style="margin-top: 0;">🧧 เติมเงินผ่าน TrueMoney วอเล็ต</h3>
     <form method="post">
       <input type="hidden" name="method" value="truemoney">
       <input type="url" name="truemoney_link" placeholder="https://gift.truemoney.com/campaign/?v=..." required
              style="width: 100%; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 16px; font-size: 16px;">
       <button class="btn" type="submit" style="width: 100%; border-radius: 12px;">แลกซองอั่งเปาเลย</button>
-    </form>
-  </div>
-
-  <!-- ส่วนที่ 2: โอนผ่านธนาคาร (แนบสลิป) -->
-  <div id="section-bank" class="card" style="display: none;">
-    <h3 style="margin-top: 0;">🏦 เติมเงินผ่านการโอนธนาคาร</h3>
-    <p class="muted" style="font-size: 14px; margin-bottom: 16px;">
-      1. โอนเงินเข้าบัญชีพร้อมเพย์เบอร์ <strong>{{ config.PROMPTPAY_PHONE }}</strong><br>
-      2. แคปเจอร์รูปสลิปโอนเงินให้เห็น QR Code ชัดเจน<br>
-      3. แนบรูปสลิปด้านล่างเพื่อให้ระบบตรวจสอบอัตโนมัติ
-    </p>
-    <form method="post" enctype="multipart/form-data">
-      <input type="hidden" name="method" value="promptpay">
-      
-      <label for="slipUpload" style="display:flex; flex-direction:column; align-items:center; justify-content:center; border:2px dashed var(--line); border-radius:12px; padding:32px 16px; cursor:pointer; background:#f8fafc; transition:var(--transition); margin-bottom:16px;">
-        <svg width="32" height="32" fill="none" stroke="var(--muted)" stroke-width="2" viewBox="0 0 24 24" style="margin-bottom:8px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-        <span style="font-weight:600; font-size: 15px; color:var(--text);" id="fileNameDisplay">กดเพื่อแนบรูปสลิป</span>
-        <span style="font-size:13px; color:var(--muted); margin-top:4px;">JPG, PNG (ไม่เกิน 5MB)</span>
-        <input type="file" name="slip" id="slipUpload" accept="image/*" required style="display:none;" onchange="document.getElementById('fileNameDisplay').innerText = this.files[0].name;">
-      </label>
-
-      <button class="btn" type="submit" style="width: 100%; border-radius: 12px;">ตรวจสอบสลิปและเติมเงิน</button>
     </form>
   </div>
 
@@ -64,10 +82,10 @@
     {% if history %}
       <div style="display: flex; flex-direction: column; gap: 12px;">
         {% for h in history %}
-          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding-bottom: 12px;">
             <div>
-              <strong style="display: block; font-size: 15px; color: #0f172a; text-transform: capitalize;">
-                {% if h.method == 'truemoney' %}🧧 TrueMoney{% else %}🏦 โอนธนาคาร{% endif %}
+              <strong style="display: block; font-size: 15px; color: #0f172a;">
+                {% if h.method == 'truemoney' %}🧧 TrueMoney{% else %}🏦 พร้อมเพย์{% endif %}
               </strong>
               <span class="muted" style="font-size: 13px;">{{ h.created_at.strftime('%d/%m/%Y เวลา %H:%M น.') }}</span>
             </div>
@@ -84,37 +102,29 @@
 
 <script>
   function switchTab(tab) {
-    const btnTrue = document.getElementById('tab-truemoney');
-    const btnBank = document.getElementById('tab-bank');
-    const secTrue = document.getElementById('section-truemoney');
-    const secBank = document.getElementById('section-bank');
+    const btnP = document.getElementById('tab-promptpay');
+    const btnT = document.getElementById('tab-truemoney');
+    const secP = document.getElementById('section-promptpay');
+    const secT = document.getElementById('section-truemoney');
 
-    if (tab === 'truemoney') {
-      // เปิด TrueMoney
-      secTrue.style.display = 'block';
-      secBank.style.display = 'none';
-      
-      // เปลี่ยนสีปุ่ม
-      btnTrue.style.background = 'var(--primary)';
-      btnTrue.style.color = '#fff';
-      btnTrue.style.border = 'none';
-      
-      btnBank.style.background = 'transparent';
-      btnBank.style.color = 'var(--text)';
-      btnBank.style.border = '2px solid var(--line)';
+    if (tab === 'promptpay') {
+      secP.style.display = 'block';
+      secT.style.display = 'none';
+      btnP.style.background = 'var(--primary)';
+      btnP.style.color = '#fff';
+      btnP.style.border = 'none';
+      btnT.style.background = 'transparent';
+      btnT.style.color = 'var(--text)';
+      btnT.style.border = '2px solid var(--line)';
     } else {
-      // เปิด Bank
-      secTrue.style.display = 'none';
-      secBank.style.display = 'block';
-      
-      // เปลี่ยนสีปุ่ม
-      btnBank.style.background = 'var(--primary)';
-      btnBank.style.color = '#fff';
-      btnBank.style.border = 'none';
-
-      btnTrue.style.background = 'transparent';
-      btnTrue.style.color = 'var(--text)';
-      btnTrue.style.border = '2px solid var(--line)';
+      secP.style.display = 'none';
+      secT.style.display = 'block';
+      btnT.style.background = 'var(--primary)';
+      btnT.style.color = '#fff';
+      btnT.style.border = 'none';
+      btnP.style.background = 'transparent';
+      btnP.style.color = 'var(--text)';
+      btnP.style.border = '2px solid var(--line)';
     }
   }
 </script>
