@@ -31,6 +31,15 @@
   unicode-range: U+0000-0040, U+005B-0060, U+007B-007F, U+0E00-0E7F;
 }
 
+/* ---- AnuphanAll: Anuphan สำหรับทุกตัวอักษร (ใช้กับชื่อผู้ใช้บนแถบเมนู) ---- */
+@font-face {
+  font-family: 'AnuphanAll';
+  src: url('{{ url_for("static", filename="fonts/Anuphan-VariableFont_wght.ttf") }}') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+
 :root{
   --bg:#f8fafc;
   --surface:#ffffff;
@@ -92,6 +101,12 @@ nav {
 .brand {
   font-weight: 800; font-size: 20px; color: var(--text) !important;
   letter-spacing: -.02em; white-space: nowrap;
+}
+
+/* ชื่อผู้ใช้บนแถบเมนู: ใช้ Anuphan ทั้งไทยและอังกฤษ */
+.user-chip {
+  font-family: 'AnuphanAll', 'Anuphan', sans-serif !important;
+  color: var(--primary); font-weight: 700;
 }
 
 /* ลิงก์เมนูสำหรับคอมพิวเตอร์ */
@@ -295,7 +310,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
       <a href="{{ url_for('contact') }}">ติดต่อแอดมิน</a>
       
       {% if user %}
-        <a href="{{ url_for('account') }}" style="color:var(--primary); font-weight:700;">
+        <a href="{{ url_for('account') }}" class="user-chip">
           {{ user.username.split('@')[0] }} ({{ "%.2f"|format(user.balance) }} ฿)
         </a>
         
