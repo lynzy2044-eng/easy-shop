@@ -446,7 +446,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 </main>
 
 {% if user %}
-<!-- ป๊อปอัปโปรไฟล์ -->
+<!-- ป๊อปอัปโปรไฟล์ (แบบเรียบง่าย เหลือปุ่มเดียว) -->
 <div class="pop-overlay" id="profileModal" hidden>
   <div class="pop-box">
     <button type="button" class="pop-close" data-close aria-label="ปิด">✕</button>
@@ -460,33 +460,11 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
       <div class="profile-name">{{ profile.name }}</div>
       <div class="muted" style="font-size:14px;">{{ user.username }}</div>
       <div style="margin:14px 0 18px; font-weight:700;">ยอดเงินในกระเป๋า {{ "%.2f"|format(user.balance) }} ฿</div>
-      <button type="button" class="btn" data-open="customizeModal" style="margin-bottom:10px;">ปรับแต่งโปรไฟล์</button>
-      <a class="btn ghost" href="{{ url_for('account') }}">ประวัติการสั่งซื้อและสิทธิ์เรียน</a>
+      
+      <!-- เหลือปุ่มเดียว: โปรไฟล์ของฉัน -->
+      <a class="btn" href="{{ url_for('account') }}" style="margin-bottom: 10px;">โปรไฟล์ของฉัน</a>
+      
       <a href="{{ url_for('logout') }}" style="display:block; margin-top:16px; color:var(--err); font-weight:600;">ออกจากระบบ</a>
-    </div>
-  </div>
-</div>
-
-<!-- ป๊อปอัปปรับแต่งโปรไฟล์ (แบนเนอร์) -->
-<div class="pop-overlay" id="customizeModal" hidden>
-  <div class="pop-box">
-    <button type="button" class="pop-close" data-close aria-label="ปิด">✕</button>
-    <div style="padding: 28px 24px 24px;">
-      <h3 style="margin: 0 0 4px;">ปรับแต่งโปรไฟล์</h3>
-      <p class="muted" style="margin: 0 0 16px; font-size: 14px;">เปลี่ยนแบนเนอร์หลังโปรไฟล์ ขนาดแนะนำ 1920x720 พิกเซล ถ้าขนาดไม่ตรงระบบจะครอปให้อัตโนมัติ</p>
-
-      <div class="banner-preview" id="bannerPreview" {% if profile.banner %}style="background-image: url('{{ profile.banner }}');"{% endif %}></div>
-      <input type="file" id="bannerInput" accept="image/*" hidden>
-
-      <div style="display:flex; gap:10px; margin:14px 0 18px;">
-        <button type="button" class="btn ghost" id="pickBanner" style="width:100%;">เลือกรูปแบนเนอร์</button>
-        <button type="button" class="btn ghost" id="removeBanner" style="width:100%;">ลบแบนเนอร์</button>
-      </div>
-
-      <button type="button" class="btn" id="saveBanner" style="width:100%;">บันทึกแบนเนอร์</button>
-      <button type="button" class="btn ghost" data-open="colorModal" style="width:100%; margin-top:10px;">เปลี่ยนสีไฮไลท์ชื่อ</button>
-
-      <p id="bannerError" style="color:var(--err); font-size:14px; margin:10px 0 0;"></p>
     </div>
   </div>
 </div>
@@ -698,92 +676,6 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
     });
 
     resetToCurrent();
-  })();
-
-  // ---------- แบนเนอร์โปรไฟล์ ----------
-  (function () {
-    const input = document.getElementById('bannerInput');
-    if (!input) return;
-
-    const preview = document.getElementById('bannerPreview');
-    const errBox = document.getElementById('bannerError');
-    let pendingFile = null;
-    let removeFlag = false;
-
-    document.getElementById('pickBanner').addEventListener('click', function () {
-      errBox.textContent = '';
-      input.click();
-    });
-
-    input.addEventListener('change', function () {
-      const file = input.files[0];
-      if (!file) return;
-      if (file.size > 10 * 1024 * 1024) {
-        errBox.textContent = 'ไฟล์ใหญ่เกิน 10 MB กรุณาลดขนาดรูป';
-        return;
-      }
-      if (!file.type.startsWith('image/')) {
-        errBox.textContent = 'กรุณาเลือกไฟล์รูปภาพ';
-        return;
-      }
-      const url = URL.createObjectURL(file);
-      const im = new Image();
-      im.onload = function () {
-        // ครอปตรงกลางให้ได้สัดส่วน 8:3 แล้วปรับเป็น 1920x720 พิกเซล
-        const W = 1920, H = 720, target = W / H;
-        const ratio = im.width / im.height;
-        let sx = 0, sy = 0, sw = im.width, sh = im.height;
-        if (ratio > target) {
-          sw = im.height * target;
-          sx = (im.width - sw) / 2;
-        } else {
-          sh = im.width / target;
-          sy = (im.height - sh) / 2;
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = W;
-        canvas.height = H;
-        canvas.getContext('2d').drawImage(im, sx, sy, sw, sh, 0, 0, W, H);
-        canvas.toBlob(function (b) {
-          pendingFile = b;
-          removeFlag = false;
-          errBox.textContent = '';
-          preview.style.backgroundImage = "url('" + URL.createObjectURL(b) + "')";
-          URL.revokeObjectURL(url);
-        }, 'image/jpeg', 0.9);
-      };
-      im.onerror = function () {
-        errBox.textContent = 'เปิดรูปนี้ไม่ได้ ลองไฟล์อื่น';
-      };
-      im.src = url;
-    });
-
-    document.getElementById('removeBanner').addEventListener('click', function () {
-      pendingFile = null;
-      removeFlag = true;
-      preview.style.backgroundImage = '';
-    });
-
-    document.getElementById('saveBanner').addEventListener('click', async function () {
-      if (!pendingFile && !removeFlag) {
-        errBox.textContent = 'กรุณาเลือกรูปหรือกดลบก่อนบันทึก';
-        return;
-      }
-      const fd = new FormData();
-      if (pendingFile) fd.append('banner', pendingFile);
-      else fd.append('remove', '1');
-      try {
-        const res = await fetch("{{ url_for('profile_banner') }}", { method: 'POST', body: fd });
-        const data = await res.json();
-        if (data.ok) {
-          location.reload();
-          return;
-        }
-        errBox.textContent = 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง';
-      } catch (err) {
-        errBox.textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
-      }
-    });
   })();
 
   // ---------- ป๊อปอัปแจ้งผลการทำงาน (จาก flash message) ----------
