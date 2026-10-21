@@ -29,6 +29,21 @@
   .qr-img img { width: 180px; height: 180px; display: block; }
   .qr-note { color: #94a3b8; font-size: 13px; margin-top: 12px; }
 
+  /* ---- กล่องรอ QR: ขนาดเท่า QR จริง กันหน้าขยับ ---- */
+  .qr-loading {
+    width: 180px; height: 180px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 10px; color: #334155;
+  }
+  .qr-spinner {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 3px solid #e2e8f0; border-top-color: var(--primary);
+    animation: qrspin 0.8s linear infinite;
+  }
+  @keyframes qrspin { to { transform: rotate(360deg); } }
+  .qr-loading-text { font-size: 14px; font-weight: 700; }
+  .qr-countdown { font-size: 12px; color: var(--muted); }
+  .qr-countdown span { font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
+
   .hint { margin: 0 0 14px; font-size: 14px; color: var(--muted); }
 
   .slip-drop {
@@ -131,7 +146,13 @@
             <span class="amt">฿{{ "%.2f"|format(amount_to_pay) }}</span>
           </div>
           <div class="qr-img">
-            <img src="{{ qr }}" alt="PromptPay QR">
+            <!-- กล่องรอโหลด: แสดงจนกว่ารูป QR จะโหลดเสร็จ -->
+            <div id="qrLoading" class="qr-loading">
+              <div class="qr-spinner"></div>
+              <div class="qr-loading-text" id="qrLoadingText">กรุณารอสักครู่</div>
+              <div class="qr-countdown" id="qrCountdown">กำลังโหลด <span id="qrCount">0</span> วินาที</div>
+            </div>
+            <img id="qrImg" src="{{ qr }}" alt="PromptPay QR" style="display:none;">
           </div>
           <div class="qr-note">สแกนแล้วโอน {{ "%.2f"|format(amount_to_pay) }} บาท ระบบจะตรวจสอบทันที</div>
         </div>
@@ -211,6 +232,42 @@
     modal.style.height = inner.offsetHeight + 'px';
   });
   ro.observe(inner);
+
+  // ---- รอ QR: แสดงกล่องรอ + นับเวลาจริง จนกว่ารูปจะโหลดเสร็จ ----
+  (function () {
+    const qrImg = document.getElementById('qrImg');
+    const qrLoading = document.getElementById('qrLoading');
+    if (!qrImg || !qrLoading) return;
+
+    const textEl = document.getElementById('qrLoadingText');
+    const countdownEl = document.getElementById('qrCountdown');
+    const startTime = performance.now();
+
+    // นับเวลาที่ใช้ไปจริง (วินาที) ตามเน็ตของแต่ละคน
+    const timer = setInterval(function () {
+      const elapsed = Math.floor((performance.now() - startTime) / 1000);
+      countdownEl.innerHTML = 'กำลังโหลด <span id="qrCount">' + elapsed + '</span> วินาที';
+    }, 500);
+
+    function showQr() {
+      clearInterval(timer);
+      qrLoading.style.display = 'none';
+      qrImg.style.display = 'block';
+    }
+
+    function showError() {
+      clearInterval(timer);
+      textEl.textContent = 'โหลด QR ไม่สำเร็จ';
+      countdownEl.textContent = 'กรุณารีเฟรชหน้านี้อีกครั้ง';
+    }
+
+    if (qrImg.complete && qrImg.naturalWidth > 0) {
+      showQr();
+    } else {
+      qrImg.addEventListener('load', showQr);
+      qrImg.addEventListener('error', showError);
+    }
+  })();
 
   function switchTab(tab) {
     document.querySelectorAll('.pay-tab').forEach(function (btn) {
