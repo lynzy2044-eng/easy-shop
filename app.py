@@ -334,6 +334,18 @@ def register():
             
     return render_template("auth.html", mode="register")
 
+@app.route("/check_username", methods=["POST"])
+def check_username():
+    data = request.get_json()
+    username = data.get("username", "").strip().lower()
+    if not username:
+        return jsonify(available=False, message="กรุณากรอก Username")
+        
+    user = User.query.filter_by(username=username).first()
+    if user:
+        return jsonify(available=False, message="❌ Username นี้มีคนใช้แล้ว")
+    return jsonify(available=True, message="✅ Username นี้ใช้งานได้")
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
