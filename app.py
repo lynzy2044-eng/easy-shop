@@ -27,11 +27,11 @@ app.config.update(
     SECRET_KEY=os.getenv("SECRET_KEY") or secrets.token_hex(32),
     # ใช้ DATABASE_URL จาก Environment Variable (เช่น Neon PostgreSQL)
     SQLALCHEMY_DATABASE_URI=os.getenv("DATABASE_URL", "sqlite:///shop.db"),
-    MAX_CONTENT_LENGTH=10 * 1024 * 1024, # เพิ่มเป็น 10MB สำหรับอัปโหลดแบนเนอร์
+    MAX_CONTENT_LENGTH=10 * 1024 * 1024, # 10MB สำหรับอัปโหลดแบนเนอร์
     GOOGLE_CLIENT_ID=os.getenv("GOOGLE_CLIENT_ID", ""),
     GOOGLE_CLIENT_SECRET=os.getenv("GOOGLE_CLIENT_SECRET", ""),
     PROMPTPAY_PHONE=os.getenv("PROMPTPAY_PHONE", ""),
-    ADMIN_EMAIL=os.getenv("ADMIN_EMAIL", "") # อีเมลสำหรับเข้า Admin
+    ADMIN_EMAIL=os.getenv("ADMIN_EMAIL", "")
 )
 
 # แก้ไข URL ของ PostgreSQL ให้ Flask-SQLAlchemy รู้จัก (บางที Vercel ให้มาเป็น postgres://)
@@ -43,6 +43,8 @@ db = SQLAlchemy(app)
 SHOP_NAME = os.getenv("SHOP_NAME", "CapCut PC Course")
 PROMPTPAY_PHONE = os.getenv("PROMPTPAY_PHONE", "")
 ORDER_TTL = timedelta(minutes=30)
+
+# ดึงอีเมลแอดมินและแปลงเป็นตัวพิมพ์เล็กเพื่อความแม่นยำ
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").strip().lower()
 
 # ราคาเป็นตัวอย่าง แก้ได้ตามต้องการ
@@ -169,8 +171,11 @@ def admin_required(view):
         if not user:
             flash("กรุณาเข้าสู่ระบบก่อน", "err")
             return redirect(url_for("login"))
-        if user.email.lower() != ADMIN_EMAIL:
-            abort(403)  # ห้ามเข้า
+        
+        # ตรวจสอบสิทธิ์แบบไม่สนตัวพิมพ์เล็ก-ใหญ่
+        if user.email.strip().lower() != ADMIN_EMAIL:
+            flash(f"❌ คุณไม่มีสิทธิ์เข้าถึงหน้านี้ (อีเมลที่ใช้คือ: {user.email})", "err")
+            return redirect(url_for("index"))
         return view(*args, **kwargs)
     return wrapper
 
@@ -196,10 +201,15 @@ def qr_data_uri(text):
 @app.context_processor
 def inject_globals():
     user = current_user()
+    # ตรวจสอบสิทธิ์แอดมินเพื่อส่งไปให้หน้าเว็บ (ใช้โชว์ปุ่ม)
+    is_admin = False
+    if user and ADMIN_EMAIL:
+        is_admin = user.email.strip().lower() == ADMIN_EMAIL
+
     return {
         "user": user,
         "shop_name": SHOP_NAME,
-        "is_admin": user and user.email.lower() == ADMIN_EMAIL,
+        "is_admin": is_admin,
         # ส่งค่าจาก CMS ไปให้หน้าเว็บ
         "hero_title": get_setting("hero_title", "เรียนตัดต่อ CapCut PC ตั้งแต่ศูนย์"),
         "hero_subtitle": get_setting("hero_subtitle", "จนทำงานได้สไตล์ของตัวเอง ทดลองเรียนฟรีได้ทุกบทแรก"),
@@ -594,7 +604,7 @@ def account():
     )
 
 
-# สร้างตารางฐานข้อมูลอัตโนมัติเมื่อเริ่มรัน
+# สร้างตารางฐานข้อมูลอัตโนมัติเมื่อเริ่มรัน (รวมถึงบน Vercel ด้วย)
 with app.app_context():
     db.create_all()
 
