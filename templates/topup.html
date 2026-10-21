@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width: 600px; margin: 40px auto; padding: 0 16px;">
+  
+  <!-- ส่วนหัวและยอดเงิน -->
+  <div class="card" style="text-align: center; background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%); border: 1px solid #bfdbfe; margin-bottom: 24px;">
+    <h2 style="color: #0f172a; margin: 0 0 8px; font-size: 20px;">ยอดเงินในกระเป๋าของคุณ</h2>
+    <p style="font-size: 48px; font-weight: 800; color: var(--primary); margin: 0; letter-spacing: -1px;">
+      {{ "%.2f"|format(user.balance) }} ฿
+    </p>
+  </div>
+
+  <!-- ส่วนเติมเงินผ่าน TrueMoney -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+      <div style="background: #fef2f2; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+        🧧
+      </div>
+      <div>
+        <h3 style="margin: 0; font-size: 18px;">เติมเงินผ่าน TrueMoney วอเล็ต</h3>
+        <p class="muted" style="margin: 0; font-size: 14px;">แลกซองอั่งเปาเข้าสู่ระบบอัตโนมัติ</p>
+      </div>
+    </div>
+
+    <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+      <h4 style="margin: 0 0 8px; font-size: 15px; color: #0f172a;">📌 วิธีเติมเงิน:</h4>
+      <ol style="margin: 0; padding-left: 20px; color: #475569; font-size: 14px; line-height: 1.8;">
+        <li>กดรับซองอั่งเปาจากแอป TrueMoney</li>
+        <li>ก๊อปปี้ลิ้งค์ซอง (จะขึ้นต้นด้วย <code>https://gift.truemoney.com/...</code>)</li>
+        <li>นำลิ้งค์มาวางในช่องด้านล่าง แล้วกด "แลกซองอั่งเปาเลย"</li>
+      </ol>
+    </div>
+    
+    <form method="post">
+      <input type="hidden" name="method" value="truemoney">
+      <div style="position: relative; margin-bottom: 16px;">
+        <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+        </span>
+        <input type="url" name="truemoney_link" placeholder="https://gift.truemoney.com/campaign/?v=..." required
+               style="width: 100%; padding: 16px 16px 16px 48px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 16px; background: #f8fafc; transition: all 0.2s;"
+               onfocus="this.style.borderColor='#2563eb'; this.style.background='#fff';"
+               onblur="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc';">
+      </div>
+      <button class="btn" type="submit" style="width: 100%; border-radius: 12px; font-size: 16px; padding: 16px;">
+        แลกซองอั่งเปาเลย
+      </button>
+    </form>
+  </div>
+
+  <!-- ส่วนประวัติการเติมเงิน -->
+  <div class="card">
+    <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 18px;">ประวัติการเติมเงินล่าสุด</h3>
+    
+    {% if history %}
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        {% for h in history %}
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 40px; height: 40px; border-radius: 50%; background: #ecfdf5; display: flex; align-items: center; justify-content: center; color: #059669; font-size: 18px;">
+                ✓
+              </div>
+              <div>
+                <strong style="display: block; font-size: 15px; color: #0f172a; text-transform: capitalize;">
+                  เติมเงินผ่าน {{ h.method }}
+                </strong>
+                <span class="muted" style="font-size: 13px;">
+                  {{ h.created_at.strftime('%d/%m/%Y เวลา %H:%M น.') }}
+                </span>
+              </div>
+            </div>
+            <div style="color: var(--ok); font-weight: 700; font-size: 16px;">
+              +{{ "%.2f"|format(h.amount) }} ฿
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div style="text-align: center; padding: 32px 0;">
+        <p class="muted" style="margin: 0;">ยังไม่มีประวัติการเติมเงิน</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
