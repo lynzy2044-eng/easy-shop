@@ -20,24 +20,7 @@
 
   .icon { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
 
-  /* ==================================================== */
-  /* ✨ เพิ่ม Animation ยืดหดให้เนื้อหาใน Modal */
-  /* ==================================================== */
-  .tab-content-wrapper {
-    display: grid;
-    /* ใช้ Grid ในการจำลองความสูงที่เปลี่ยนไปมา */
-    grid-template-rows: 1fr; 
-    transition: grid-template-rows 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-  }
-
-  .tab-pane {
-    overflow: hidden; /* ซ่อนส่วนที่เกินความสูงเพื่อให้แอนิเมชันทำงาน */
-  }
-
-  .hidden-pane {
-    grid-template-rows: 0fr; /* ยุบความสูงลงเหลือ 0 */
-  }
-  /* ==================================================== */
+  .hidden { display: none !important; }
 
   .qr-box { background: #0f172a; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 16px; }
   .qr-head { display: flex; justify-content: space-between; color: #fff; font-size: 14px; margin-bottom: 16px; }
@@ -89,13 +72,15 @@
   }
   .enough p { color: var(--ok); font-weight: 700; font-size: 17px; margin: 0 0 16px; }
 
-  /* ---- แถบเลื่อนแบบมือถือ ---- */
+  /* ---- กล่อง modal: ความกว้างคงที่ ความสูงยืดหดตามเนื้อหาอัตโนมัติ ---- */
   .modal-content {
+    width: 100%;
+    max-width: 380px;
+    box-sizing: border-box;
+    overflow: hidden;
+    transition: height 0.35s cubic-bezier(0.22, 1, 0.36, 1);
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
-    transition: scrollbar-color 0.3s ease;
-    /* 🌟 เพิ่ม Transition ให้กับตัว Modal เผื่อในอนาคต */
-    transition: max-height 0.4s ease; 
   }
   .modal-content.is-scrolling {
     scrollbar-color: #cbd5e1 transparent;
@@ -112,35 +97,33 @@
 
 <div class="modal-overlay">
   <div class="modal-content" id="payModal">
+    <div id="payInner">
 
-    <!-- หัวข้อ + ปุ่มปิด -->
-    <div class="pay-head">
-      <div>
-        <div class="label">ชำระเงิน</div>
-        <div class="title">{{ package.name }}</div>
+      <!-- หัวข้อ + ปุ่มปิด -->
+      <div class="pay-head">
+        <div>
+          <div class="label">ชำระเงิน</div>
+          <div class="title">{{ package.name }}</div>
+        </div>
+        <a href="{{ url_for('index') }}" class="btn-close" aria-label="ปิด">✕</a>
       </div>
-      <a href="{{ url_for('index') }}" class="btn-close" aria-label="ปิด">✕</a>
-    </div>
 
-    <!-- สลับช่องทาง -->
-    <div class="pay-tabs">
-      <button type="button" class="pay-tab active" data-tab="p" onclick="switchTab('p')">
-        <img class="icon" src="{{ url_for('static', filename='icons/promptpay.png') }}" alt="">
-        พร้อมเพย์
-      </button>
-      <button type="button" class="pay-tab" data-tab="t" onclick="switchTab('t')">
-        <img class="icon" src="{{ url_for('static', filename='icons/truemoney.png') }}" alt="">
-        TrueMoney
-      </button>
-    </div>
+      <!-- สลับช่องทาง -->
+      <div class="pay-tabs">
+        <button type="button" class="pay-tab active" data-tab="p" onclick="switchTab('p')">
+          <img class="icon" src="{{ url_for('static', filename='icons/promptpay.png') }}" alt="">
+          พร้อมเพย์
+        </button>
+        <button type="button" class="pay-tab" data-tab="t" onclick="switchTab('t')">
+          <img class="icon" src="{{ url_for('static', filename='icons/truemoney.png') }}" alt="">
+          TrueMoney
+        </button>
+      </div>
 
-    <!-- ==================================================== -->
-    <!-- ✨ ห่อด้วย tab-content-wrapper เพื่อทำ Animation -->
-    <!-- ==================================================== -->
-    <div class="tab-content-wrapper" id="tabWrapper">
-      
+      <!-- ==================================================== -->
       <!-- แท็บที่ 1: พร้อมเพย์ -->
-      <div id="sec-p" class="tab-pane">
+      <!-- ==================================================== -->
+      <div id="sec-p">
         {% if amount_to_pay > 0 %}
         <div class="qr-box">
           <div class="qr-head">
@@ -190,8 +173,10 @@
         {% endif %}
       </div>
 
+      <!-- ==================================================== -->
       <!-- แท็บที่ 2: TrueMoney -->
-      <div id="sec-t" class="tab-pane hidden-pane">
+      <!-- ==================================================== -->
+      <div id="sec-t" class="hidden">
         <p class="hint">วางลิงก์ซองอั่งเปา TrueMoney ที่ต้องการใช้ชำระเงิน</p>
         <form method="post" onsubmit="showLoading(this)">
           <input type="hidden" name="method" value="truemoney">
@@ -204,40 +189,35 @@
         </form>
       </div>
 
+      <p class="hint" style="text-align:center; margin: 16px 0 0; font-size:12px;">หากระบบไม่ตอบสนอง โปรดรอสักครู่แล้วลองใหม่</p>
+
+      <!-- รายละเอียดคำสั่งซื้อ (อยู่ด้านล่าง) -->
+      <div class="pay-summary">
+        <div class="row"><span class="muted">ราคาคอร์ส</span><span>{{ "%.2f"|format(amount) }} ฿</span></div>
+        <div class="row discount"><span>หักจากกระเป๋า</span><span>-{{ "%.2f"|format(pay_from_balance) }} ฿</span></div>
+        <div class="row total"><span>ยอดที่ต้องชำระ</span><span>{{ "%.2f"|format(amount_to_pay) }} ฿</span></div>
+      </div>
+
     </div>
-    <!-- ==================================================== -->
-
-    <p class="hint" style="text-align:center; margin: 16px 0 0; font-size:12px;">หากระบบไม่ตอบสนอง โปรดรอสักครู่แล้วลองใหม่</p>
-
-    <!-- รายละเอียดคำสั่งซื้อ (อยู่ด้านล่าง) -->
-    <div class="pay-summary">
-      <div class="row"><span class="muted">ราคาคอร์ส</span><span>{{ "%.2f"|format(amount) }} ฿</span></div>
-      <div class="row discount"><span>หักจากกระเป๋า</span><span>-{{ "%.2f"|format(pay_from_balance) }} ฿</span></div>
-      <div class="row total"><span>ยอดที่ต้องชำระ</span><span>{{ "%.2f"|format(amount_to_pay) }} ฿</span></div>
-    </div>
-
   </div>
 </div>
 
 <script>
-  function switchTab(tab) {
-    const wrapper = document.getElementById('tabWrapper');
-    const secP = document.getElementById('sec-p');
-    const secT = document.getElementById('sec-t');
+  const modal = document.getElementById('payModal');
+  const inner = document.getElementById('payInner');
 
-    // อัปเดตปุ่ม
+  // กรอบ (modal) จะตามความสูงของเนื้อหาข้างในทุกครั้งที่เนื้อหาเปลี่ยน
+  const ro = new ResizeObserver(function () {
+    modal.style.height = inner.offsetHeight + 'px';
+  });
+  ro.observe(inner);
+
+  function switchTab(tab) {
     document.querySelectorAll('.pay-tab').forEach(function (btn) {
       btn.classList.toggle('active', btn.dataset.tab === tab);
     });
-
-    // สลับการแสดงผลด้วย Animation Grid
-    if (tab === 'p') {
-      secP.classList.remove('hidden-pane');
-      secT.classList.add('hidden-pane');
-    } else {
-      secP.classList.add('hidden-pane');
-      secT.classList.remove('hidden-pane');
-    }
+    document.getElementById('sec-p').classList.toggle('hidden', tab !== 'p');
+    document.getElementById('sec-t').classList.toggle('hidden', tab !== 't');
   }
 
   function showLoading(form) {
@@ -265,9 +245,8 @@
     }
   }
 
-  // แสดงแถบเลื่อนตอนกำลังเลื่อน แล้วซ่อนหลังหยุดเลื่อน
+  // แถบเลื่อนตอนกำลังเลื่อน แล้วซ่อนหลังหยุดเลื่อนประมาณ 0.6 วินาที
   (function () {
-    const modal = document.getElementById('payModal');
     let timer = null;
     modal.addEventListener('scroll', function () {
       modal.classList.add('is-scrolling');
