@@ -20,12 +20,11 @@
     </button>
   </div>
 
-  <!-- Section 1: PromptPay (กรอกเงิน -> สร้าง QR -> แนบสลิปตรวจสอบ) -->
+  <!-- Section 1: PromptPay -->
   <div id="section-promptpay" class="card" style="display: block;">
     <h3 style="margin-top: 0;">🏦 เติมเงินผ่านพร้อมเพย์</h3>
     
     {% if not qr_code %}
-    <!-- ฟอร์มกรอกจำนวนเงิน (โชว์เฉพาะตอนที่ยังไม่มี QR) -->
     <p class="muted" style="font-size: 14px; margin-bottom: 16px;">
       กรอกจำนวนเงินที่ต้องการเติม ระบบจะสร้าง QR Code ให้คุณสแกน
     </p>
@@ -38,7 +37,6 @@
       </div>
     </form>
     {% else %}
-    <!-- แสดง QR (โชว์ตอนที่สร้าง QR แล้ว) -->
     <div style="background: #0f172a; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 24px;">
       <div style="display: flex; justify-content: space-between; color: #fff; margin-bottom: 16px; font-size: 14px;">
         <span>สแกน QR พร้อมเพย์</span>
@@ -56,10 +54,24 @@
     <form method="post" enctype="multipart/form-data">
       <input type="hidden" name="method" value="verify_slip">
       <input type="hidden" name="expected_amount" value="{{ amount }}">
-      <label for="slipUpload" style="display:flex; flex-direction:column; align-items:center; justify-content:center; border:2px dashed var(--line); border-radius:12px; padding:24px; cursor:pointer; background:#f8fafc; transition:var(--transition); margin-bottom:16px;">
-        <span style="font-weight:600; font-size: 14px;" id="fileNameDisplay">แนบสลิปโอนเงิน (ยอด {{ "%.2f"|format(amount) }} บาท)</span>
-        <input type="file" name="slip" id="slipUpload" accept="image/*" required style="display:none;" onchange="document.getElementById('fileNameDisplay').innerText = this.files[0].name;">
+      
+      <!-- ช่องแนบสลิป (แบบรูปที่ 2) -->
+      <label for="slipUpload" style="display:flex; flex-direction:column; align-items:center; justify-content:center; border:2px dashed var(--line); border-radius:12px; padding:32px 16px; cursor:pointer; background:#f8fafc; transition:var(--transition); margin-bottom:16px;">
+        <!-- รูปพรีวิว (ซ่อนไว้ก่อน) -->
+        <img id="slipPreview" src="" style="max-width: 100%; max-height: 200px; border-radius: 8px; margin-bottom: 12px; display: none; object-fit: contain;">
+        
+        <!-- ไอคอนและข้อความ (แสดงตอนยังไม่อัปโหลด) -->
+        <div id="uploadPlaceholder" style="display: flex; flex-direction: column; align-items: center;">
+          <svg width="32" height="32" fill="none" stroke="var(--muted)" stroke-width="2" viewBox="0 0 24 24" style="margin-bottom:8px;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+          </svg>
+          <span style="font-weight:600; font-size: 15px; color:var(--text);" id="fileNameDisplay">กดเพื่ออัปโหลดรูปสลิป</span>
+          <span style="font-size:13px; color:var(--muted); margin-top:4px;">JPG, PNG (ไม่เกิน 5MB)</span>
+        </div>
+
+        <input type="file" name="slip" id="slipUpload" accept="image/*" required style="display:none;" onchange="previewSlip(event)">
       </label>
+
       <button class="btn" type="submit" style="width: 100%; border-radius: 12px;">ยืนยันการชำระเงิน</button>
     </form>
     {% endif %}
@@ -125,6 +137,27 @@
       btnP.style.background = 'transparent';
       btnP.style.color = 'var(--text)';
       btnP.style.border = '2px solid var(--line)';
+    }
+  }
+
+  // ฟังก์ชันพรีวิวรูปสลิป
+  function previewSlip(event) {
+    const file = event.target.files[0];
+    const preview = document.getElementById('slipPreview');
+    const placeholder = document.getElementById('uploadPlaceholder');
+
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        preview.src = e.target.result;
+        preview.style.display = 'block'; // แสดงรูป
+        placeholder.style.display = 'none'; // ซ่อนข้อความ/ไอคอน
+      }
+      reader.readAsDataURL(file);
+    } else {
+      preview.src = '';
+      preview.style.display = 'none';
+      placeholder.style.display = 'flex';
     }
   }
 </script>
