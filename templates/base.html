@@ -266,12 +266,12 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
       <a href="{{ url_for('contact') }}">ติดต่อแจ้งปัญหา</a>
       
       {% if user %}
-        <!-- แสดงชื่อผู้ใช้ (ตัดโดเมนออก) และยอดเงิน -->
+        <!-- แก้ไขตรงนี้: เปลี่ยนจาก user.email เป็น user.username -->
         <a href="{{ url_for('account') }}" style="color:var(--primary); font-weight:700;">
-          {{ user.email.split('@')[0] }} ({{ "%.2f"|format(user.balance) }} ฿)
+          {{ user.username.split('@')[0] }} ({{ "%.2f"|format(user.balance) }} ฿)
         </a>
         
-        <!-- ปุ่มแอดมิน (จะโผล่เฉพาะเมื่อ is_admin เป็น True) -->
+        <!-- ปุ่มแอดมิน -->
         {% if is_admin %}
           <a href="{{ url_for('admin_dashboard') }}" class="btn" style="background:#e11d48 !important; color:#fff !important; padding: 8px 16px;">
             ⚙️ จัดการหลังบ้าน
