@@ -25,12 +25,15 @@ load_dotenv()
 app = Flask(__name__)
 app.config.update(
     SECRET_KEY=os.getenv("SECRET_KEY") or secrets.token_hex(32),
+    # ใช้ DATABASE_URL จาก Environment Variable (เช่น Neon PostgreSQL)
     SQLALCHEMY_DATABASE_URI=os.getenv("DATABASE_URL", "sqlite:///shop.db"),
     MAX_CONTENT_LENGTH=5 * 1024 * 1024,
     GOOGLE_CLIENT_ID=os.getenv("GOOGLE_CLIENT_ID", ""),
     GOOGLE_CLIENT_SECRET=os.getenv("GOOGLE_CLIENT_SECRET", ""),
+    PROMPTPAY_PHONE=os.getenv("PROMPTPAY_PHONE", "")
 )
 
+# แก้ไข URL ของ PostgreSQL ให้ Flask-SQLAlchemy รู้จัก (บางที Vercel ให้มาเป็น postgres://)
 if app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgres://"):
     app.config["SQLALCHEMY_DATABASE_URI"] = app.config["SQLALCHEMY_DATABASE_URI"].replace("postgres://", "postgresql://", 1)
 
@@ -66,16 +69,16 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    balance = db.Column(db.Float, default=0.0)  # กระเป๋าเงิน
+    balance = db.Column(db.Float, default=0.0)  # ระบบกระเป๋าเงิน
     created_at = db.Column(db.DateTime, default=utcnow)
 
 
 class Lesson(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    track = db.Column(db.String(20), nullable=False)
+    track = db.Column(db.String(20), nullable=False)  # basic / advanced
     position = db.Column(db.Integer, default=0)
     title = db.Column(db.String(150), nullable=False)
-    video_url = db.Column(db.String(300), nullable=False)
+    video_url = db.Column(db.String(300), nullable=False)  # ลิงก์ embed (YouTube unlisted)
     is_free = db.Column(db.Boolean, default=False)
 
 
@@ -84,18 +87,21 @@ class Order(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     package = db.Column(db.String(20), nullable=False)
     amount_satang = db.Column(db.Integer, nullable=False)
-    status = db.Column(db.String(10), default="pending")
+    status = db.Column(db.String(10), default="pending")  # pending / paid / expired
     created_at = db.Column(db.DateTime, default=utcnow)
     paid_at = db.Column(db.DateTime)
     slip_ref = db.Column(db.String(100), unique=True)
 
 
 class Enrollment(db.Model):
+    """บันทึกว่า user คนไหนเคยเข้าเรียนบทไหน (ใช้กับบทเรียนฟรี)"""
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     lesson_id = db.Column(db.Integer, db.ForeignKey("lesson.id"), nullable=False)
     created_at = db.Column(db.DateTime, default=utcnow)
+
     __table_args__ = (db.UniqueConstraint("user_id", "lesson_id", name="uq_enroll"),)
+
     lesson = db.relationship("Lesson", backref="enrollments")
 
 
@@ -135,6 +141,7 @@ def login_required(view):
 
 
 def new_order_amount(price_baht):
+    """สุ่มสตางค์ 0.01-0.99 ที่ไม่ซ้ำกับออเดอร์ที่กำลังรอจ่าย"""
     cutoff = utcnow() - ORDER_TTL
     active = Order.query.filter(Order.status == "pending", Order.created_at > cutoff).all()
     used = {o.amount_satang for o in active}
@@ -177,7 +184,13 @@ def index():
 
 @app.route("/free")
 def free_lessons():
-    lessons = Lesson.query.filter_by(is_free=True).order_by(Lesson.track, Lesson.position).all()
+    """หน้าเรียนฟรีแยกจากแพ็กเกจเสียเงิน"""
+    lessons = (
+        Lesson.query
+        .filter_by(is_free=True)
+        .order_by(Lesson.track, Lesson.position)
+        .all()
+    )
     return render_template("free.html", lessons=lessons)
 
 
@@ -190,13 +203,17 @@ def lesson(lesson_id):
 
     item = db.get_or_404(Lesson, lesson_id)
 
+    # บทเรียนฟรี → บันทึก enrollment ครั้งแรกที่เข้า
     if item.is_free:
-        exists = Enrollment.query.filter_by(user_id=user.id, lesson_id=item.id).first()
+        exists = Enrollment.query.filter_by(
+            user_id=user.id, lesson_id=item.id
+        ).first()
         if not exists:
             db.session.add(Enrollment(user_id=user.id, lesson_id=item.id))
             db.session.commit()
         return render_template("lesson.html", lesson=item)
 
+    # บทเรียนเสียเงิน → ต้องมีสิทธิ์ใน track นั้น
     if item.track not in owned_tracks(user):
         flash("บทเรียนนี้สำหรับสมาชิกแพ็กเกจเท่านั้น", "err")
         return redirect(url_for("index") + "#packages")
@@ -247,6 +264,7 @@ def login():
 
 @app.route("/auth/google", methods=["POST"])
 def auth_google():
+    """รับ Code จาก Google OAuth2 แล้วแลกเป็นข้อมูล User"""
     if not app.config["GOOGLE_CLIENT_ID"] or not app.config["GOOGLE_CLIENT_SECRET"]:
         return jsonify(ok=False, error="google_not_configured"), 500
 
@@ -269,19 +287,28 @@ def auth_google():
         )
         flow.redirect_uri = "postmessage"
         flow.fetch_token(code=code)
+        
         credentials = flow.credentials
-        id_info = id_token.verify_oauth2_token(credentials.id_token, google_requests.Request(), app.config["GOOGLE_CLIENT_ID"])
+        id_info = id_token.verify_oauth2_token(
+            credentials.id_token, 
+            google_requests.Request(), 
+            app.config["GOOGLE_CLIENT_ID"]
+        )
         
         email = id_info.get("email", "").strip().lower()
         if not email:
             raise ValueError("No email found in token")
-
-        if not id_info.get("email_verified", False):
+            
+        email_verified = id_info.get("email_verified", False)
+        if not email_verified:
             return jsonify(ok=False, error="email_not_verified"), 401
 
         user = User.query.filter_by(email=email).first()
         if not user:
-            user = User(email=email, password_hash=generate_password_hash(secrets.token_hex(16)))
+            user = User(
+                email=email,
+                password_hash=generate_password_hash(secrets.token_hex(16)),
+            )
             db.session.add(user)
             db.session.commit()
 
@@ -310,7 +337,9 @@ def topup():
     if request.method == "POST":
         method = request.form.get("method")
         
+        # ----------------------------------------------------
         # ช่องทางที่ 1: TrueMoney
+        # ----------------------------------------------------
         if method == "truemoney":
             link = request.form.get("truemoney_link", "").strip()
             success, result, voucher_hash = redeem_truemoney(link)
@@ -329,17 +358,19 @@ def topup():
                     flash(f"✅ เติมเงินสำเร็จ {amount:.2f} บาท", "ok")
                     return redirect(url_for("topup"))
                     
-        # ช่องทางที่ 2: PromptPay QR (แนบสลิป)
+        # ----------------------------------------------------
+        # ช่องทางที่ 2: PromptPay (แนบสลิป)
+        # ----------------------------------------------------
         elif method == "promptpay":
             file = request.files.get("slip")
             if not file or not file.filename:
                 flash("กรุณาแนบรูปสลิปโอนเงิน", "err")
             else:
                 try:
-                    # ตรวจสลิปโดยระบุยอดเงินขั้นต่ำที่ 1 บาท (ไม่จำกัดยอด)
+                    # ใช้ expected_amount=0 หมายถึงไม่จำกัดยอดเงินขั้นต่ำ
                     slip = verify_slip(
                         file.read(), file.filename, 
-                        expected_amount=0, # กำหนด 0 เพื่อไม่ให้ตรวจยอดตรงเป๊ะ
+                        expected_amount=0, 
                         receiver_phone=PROMPTPAY_PHONE
                     )
                     
@@ -355,6 +386,8 @@ def topup():
                         return redirect(url_for("topup"))
                 except SlipError as e:
                     flash(f"❌ สลิปไม่ถูกต้อง: {e.user_message}", "err")
+                except Exception as e:
+                    flash(f"⚠️ เกิดข้อผิดพลาด: {str(e)}", "err")
                 
     history = TopupHistory.query.filter_by(user_id=user.id).order_by(TopupHistory.created_at.desc()).all()
     return render_template("topup.html", history=history)
