@@ -300,9 +300,11 @@ def auth_google():
             app.config["GOOGLE_CLIENT_ID"]
         )
         
-        email = id_info["email"].strip().lower()
-        email_verified = id_info.get("email_verified", False)
+        email = id_info.get("email", "").strip().lower()
+        if not email:
+            raise ValueError("No email found in token")
 
+        email_verified = id_info.get("email_verified", False)
         if not email_verified:
             return jsonify(ok=False, error="email_not_verified"), 401
 
@@ -321,8 +323,9 @@ def auth_google():
         return jsonify(ok=True, redirect=url_for("index"))
 
     except Exception as e:
-        print(f"Google Auth Error: {e}")
-        return jsonify(ok=False, error="auth_failed"), 401
+        import traceback
+        traceback.print_exc() # ปริ้นท์ error ลงใน Logs ของ Vercel เพื่อดูสาเหตุจริงๆ
+        return jsonify(ok=False, error=str(e)), 401 # ส่งข้อความ Error กลับไปให้หน้าเว็บเห็น
 
 
 @app.route("/logout")
