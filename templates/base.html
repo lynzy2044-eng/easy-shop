@@ -379,7 +379,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   font-family: 'Anuphan', sans-serif !important;
 }
 
-/* ✅ Mobile Auth Bar (ย้ายมาไว้ใต้ Navbar) */
+/* ✅ Mobile Auth Bar (ย้ายมาไว้ติดใต้ Navbar) */
 .mobile-auth-bar {
   display: none; /* ซ่อนไว้บนคอมพิวเตอร์ */
 }
@@ -387,8 +387,8 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 @media (max-width: 900px) {
   .mobile-auth-bar {
     display: flex;
-    position: sticky; /* ให้ติดอยู่ใต้ Navbar เวลาเลื่อน */
-    top: 61px; /* ความสูงของ Navbar (ประมาณ 60px) */
+    position: sticky; 
+    top: 61px; /* ความสูงของ Navbar */
     z-index: 40;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
@@ -482,8 +482,8 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   </div>
 </nav>
 
-{% if not user %}
-<!-- ✅ แถบเมนูสำหรับมือถือ (ย้ายมาไว้ใต้ Navbar แล้ว) -->
+<!-- ✅ แถบเมนูสำหรับมือถือ (แสดงเฉพาะเมื่อยังไม่ล็อกอิน และไม่อยู่ในหน้า login/register) -->
+{% if not user and request.endpoint not in ['login', 'register'] %}
 <div class="mobile-auth-bar">
   <a href="{{ url_for('register') }}" class="btn-signup">สมัครสมาชิก</a>
   <a href="{{ url_for('login') }}" class="btn-login">เข้าสู่ระบบ</a>
@@ -578,7 +578,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
     });
   }
 
-  // ปุ่มย้อนกลับ: กลับหน้าก่อนหน้า ถ้าไม่มีประวัติให้ไปหน้าแรก
+  // ปุ่มย้อนกลับ
   const backLink = document.getElementById('backLink');
   if (backLink) {
     backLink.addEventListener('click', function (e) {
