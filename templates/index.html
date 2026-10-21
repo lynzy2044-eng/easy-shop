@@ -5,7 +5,7 @@
 <section class="hero" style="{% if hero_img %}background-image: url('{{ hero_img }}'); background-size: cover; background-position: center; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5);{% endif %}">
   <h1>{{ hero_title }}</h1>
   <p style="color: {% if hero_img %}white{% else %}var(--muted){% endif %};">{{ hero_subtitle }}</p>
-  <a class="btn" href="#packages" style="padding: {{ btn_size }};">{{ btn_text }}</a>
+  <a class="btn" href="#packages" style="width: auto; padding: {{ btn_size }}; font-size: {{ btn_font_size }}; border-radius: {{ btn_radius }};">{{ btn_text }}</a>
 </section>
 
 <!-- Dashboard Menus -->
