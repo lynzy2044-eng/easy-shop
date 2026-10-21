@@ -782,16 +782,20 @@ def profile_accent():
 def profile_banner():
     user = current_user()
     p = db.session.get(UserProfile, user.id) or UserProfile(user_id=user.id)
-    if request.form.get("remove"):
+    
+    # รับข้อมูลแบบ JSON (Base64) ที่ผ่านการครอปจากหน้าเว็บแล้ว
+    data = request.get_json(silent=True) or {}
+    
+    if data.get("remove"):
         p.banner = ""
+    elif data.get("image"):
+        # ตรวจสอบว่าเป็น data URI ของรูปภาพ
+        if not data["image"].startswith("data:image/"):
+            return jsonify(ok=False, error="invalid_image"), 400
+        p.banner = data["image"]
     else:
-        file = request.files.get("banner")
-        if not file or not file.filename:
-            return jsonify(ok=False, error="no_file"), 400
-        mime = file.mimetype or ""
-        if not mime.startswith("image/"):
-            return jsonify(ok=False, error="not_image"), 400
-        p.banner = f"data:{mime};base64," + base64.b64encode(file.read()).decode("utf-8")
+        return jsonify(ok=False, error="no_file"), 400
+        
     db.session.add(p)
     db.session.commit()
     return jsonify(ok=True)
@@ -802,16 +806,19 @@ def profile_banner():
 def profile_avatar():
     user = current_user()
     p = db.session.get(UserProfile, user.id) or UserProfile(user_id=user.id)
-    if request.form.get("remove"):
+    
+    # รับข้อมูลแบบ JSON (Base64) ที่ผ่านการครอปจากหน้าเว็บแล้ว
+    data = request.get_json(silent=True) or {}
+    
+    if data.get("remove"):
         p.avatar_url = ""
+    elif data.get("image"):
+        if not data["image"].startswith("data:image/"):
+            return jsonify(ok=False, error="invalid_image"), 400
+        p.avatar_url = data["image"]
     else:
-        file = request.files.get("avatar")
-        if not file or not file.filename:
-            return jsonify(ok=False, error="no_file"), 400
-        mime = file.mimetype or ""
-        if not mime.startswith("image/"):
-            return jsonify(ok=False, error="not_image"), 400
-        p.avatar_url = f"data:{mime};base64," + base64.b64encode(file.read()).decode("utf-8")
+        return jsonify(ok=False, error="no_file"), 400
+        
     db.session.add(p)
     db.session.commit()
     return jsonify(ok=True)
