@@ -1,0 +1,17 @@
+@font-face {
+  font-family: 'Montserrat';
+  src: url(data:font/ttf;base64,AAEAAAARAQAABAB...ข้อมูลยาวมาก...) format('truetype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: block;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, ...;
+}
+
+@font-face {
+  font-family: 'Anuphan';
+  src: url(data:font/ttf;base64,AAEAAAARAQAABAB...ข้อมูลยาวมาก...) format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+  unicode-range: U+0E00-0E7F;
+}
