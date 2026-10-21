@@ -80,20 +80,23 @@ def promptpay_payload(target: str, amount: float) -> str:
     return data + _crc16(data)
 
 # ---------------------------------------------------------------- TrueMoney
-def redeem_truemoney(voucher_link: str) -> tuple[bool, float | str]:
-    """แลกซอง TrueMoney คืนค่า (สำเร็จ?, ยอดเงินหรือข้อความ error)"""
+def redeem_truemoney(voucher_link: str) -> tuple[bool, float | str, str | None]:
+    """
+    แลกซอง TrueMoney 
+    คืนค่า: (สำเร็จ?, ยอดเงินหรือข้อความ error, voucher_hash)
+    """
     if not TRUEMONEY_PHONE:
-        return False, "ระบบยังไม่ได้ตั้งค่าเบอร์ TrueMoney ใน .env"
+        return False, "ระบบยังไม่ได้ตั้งค่าเบอร์ TrueMoney ใน .env", None
 
     u = urlparse(voucher_link.strip().replace(' ', ''))
     if u.scheme != "https" or u.netloc != "gift.truemoney.com" or not u.path.startswith("/campaign"):
-        return False, "ลิ้งค์อั่งเปาไม่ถูกต้อง หรือรูปแบบไม่ถูกต้อง"
+        return False, "ลิ้งค์อั่งเปาไม่ถูกต้อง หรือรูปแบบไม่ถูกต้อง", None
 
     qs = parse_qs(u.query)
     voucher_hash = (qs.get("v") or [None])[0]
 
     if not voucher_hash or not re.fullmatch(r"[A-Za-z0-9]{18,64}", voucher_hash):
-        return False, "ลิ้งค์อั่งเปาไม่ถูกต้อง หรือรูปแบบไม่ถูกต้อง"
+        return False, "ลิ้งค์อั่งเปาไม่ถูกต้อง หรือรูปแบบไม่ถูกต้อง", None
 
     scraper = cloudscraper.create_scraper()
     try:
@@ -115,16 +118,16 @@ def redeem_truemoney(voucher_link: str) -> tuple[bool, float | str]:
         )
         data = resp.json()
     except Exception as e:
-        return False, f"เชื่อมต่อ TrueMoney ไม่ได้: {e}"
+        return False, f"เชื่อมต่อ TrueMoney ไม่ได้: {e}", None
 
     status_code = data.get('status', {}).get('code', 'UNKNOWN')
     if status_code != 'SUCCESS':
         error_message = data.get('status', {}).get('message', 'เกิดข้อผิดพลาดจาก API')
-        return False, error_message
+        return False, error_message, None
 
     amount_str = data.get('data', {}).get('my_ticket', {}).get('amount_baht')
     if not amount_str:
-        return False, "ไม่พบจำนวนเงินในซอง"
+        return False, "ไม่พบจำนวนเงินในซอง", None
 
     return True, float(amount_str), voucher_hash
 
