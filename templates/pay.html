@@ -20,29 +20,41 @@
 
   .icon { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
 
-  .hidden { display: none !important; }
+  /* ==================================================== */
+  /* ✨ Animation ยืดหด Modal */
+  /* ==================================================== */
+  .tab-content-wrapper {
+    display: grid;
+    grid-template-rows: 1fr; 
+    transition: grid-template-rows 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .tab-pane { overflow: hidden; }
+  .hidden-pane { grid-template-rows: 0fr; }
+  /* ==================================================== */
 
   .qr-box { background: #0f172a; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 16px; }
   .qr-head { display: flex; justify-content: space-between; color: #fff; font-size: 14px; margin-bottom: 16px; }
   .qr-head .amt { color: #38bdf8; font-weight: 700; }
-  .qr-img { background: #fff; padding: 12px; border-radius: 12px; display: inline-block; }
+  .qr-img { background: #fff; padding: 12px; border-radius: 12px; display: inline-block; position: relative; min-width: 180px; min-height: 180px; }
   .qr-img img { width: 180px; height: 180px; display: block; }
   .qr-note { color: #94a3b8; font-size: 13px; margin-top: 12px; }
 
-  /* ---- กล่องรอ QR: ขนาดเท่า QR จริง กันหน้าขยับ ---- */
+  /* ==================================================== */
+  /* ✨ สถานะการโหลด QR Code */
+  /* ==================================================== */
   .qr-loading {
-    width: 180px; height: 180px; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 10px; color: #334155;
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; background: #fff; border-radius: 12px;
+    z-index: 2;
   }
-  .qr-spinner {
-    width: 36px; height: 36px; border-radius: 50%;
-    border: 3px solid #e2e8f0; border-top-color: var(--primary);
-    animation: qrspin 0.8s linear infinite;
-  }
-  @keyframes qrspin { to { transform: rotate(360deg); } }
-  .qr-loading-text { font-size: 14px; font-weight: 700; }
-  .qr-countdown { font-size: 12px; color: var(--muted); }
-  .qr-countdown span { font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
+  .qr-loading-text { color: var(--muted); font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .qr-timer { color: var(--primary); font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  
+  /* คลาสสำหรับซ่อนเมื่อโหลดเสร็จ */
+  .qr-loaded .qr-loading { display: none; }
+  .qr-loaded img { opacity: 1; }
+  .qr-img img { opacity: 0; transition: opacity 0.3s ease; }
+  /* ==================================================== */
 
   .hint { margin: 0 0 14px; font-size: 14px; color: var(--muted); }
 
@@ -87,19 +99,14 @@
   }
   .enough p { color: var(--ok); font-weight: 700; font-size: 17px; margin: 0 0 16px; }
 
-  /* ---- กล่อง modal: ความกว้างคงที่ ความสูงยืดหดตามเนื้อหาอัตโนมัติ ---- */
+  /* ---- แถบเลื่อนแบบมือถือ ---- */
   .modal-content {
-    width: 100%;
-    max-width: 380px;
-    box-sizing: border-box;
-    overflow: hidden;
-    transition: height 0.35s cubic-bezier(0.22, 1, 0.36, 1);
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.3s ease;
+    transition: max-height 0.4s ease; 
   }
-  .modal-content.is-scrolling {
-    scrollbar-color: #cbd5e1 transparent;
-  }
+  .modal-content.is-scrolling { scrollbar-color: #cbd5e1 transparent; }
   .modal-content::-webkit-scrollbar { width: 6px; }
   .modal-content::-webkit-scrollbar-track { background: transparent; }
   .modal-content::-webkit-scrollbar-thumb {
@@ -112,48 +119,54 @@
 
 <div class="modal-overlay">
   <div class="modal-content" id="payModal">
-    <div id="payInner">
 
-      <!-- หัวข้อ + ปุ่มปิด -->
-      <div class="pay-head">
-        <div>
-          <div class="label">ชำระเงิน</div>
-          <div class="title">{{ package.name }}</div>
-        </div>
-        <a href="{{ url_for('index') }}" class="btn-close" aria-label="ปิด">✕</a>
+    <!-- หัวข้อ + ปุ่มปิด -->
+    <div class="pay-head">
+      <div>
+        <div class="label">ชำระเงิน</div>
+        <div class="title">{{ package.name }}</div>
       </div>
+      <a href="{{ url_for('index') }}" class="btn-close" aria-label="ปิด">✕</a>
+    </div>
 
-      <!-- สลับช่องทาง -->
-      <div class="pay-tabs">
-        <button type="button" class="pay-tab active" data-tab="p" onclick="switchTab('p')">
-          <img class="icon" src="{{ url_for('static', filename='icons/promptpay.png') }}" alt="">
-          พร้อมเพย์
-        </button>
-        <button type="button" class="pay-tab" data-tab="t" onclick="switchTab('t')">
-          <img class="icon" src="{{ url_for('static', filename='icons/truemoney.png') }}" alt="">
-          TrueMoney
-        </button>
-      </div>
+    <!-- สลับช่องทาง -->
+    <div class="pay-tabs">
+      <button type="button" class="pay-tab active" data-tab="p" onclick="switchTab('p')">
+        <img class="icon" src="{{ url_for('static', filename='icons/promptpay.png') }}" alt="">
+        พร้อมเพย์
+      </button>
+      <button type="button" class="pay-tab" data-tab="t" onclick="switchTab('t')">
+        <img class="icon" src="{{ url_for('static', filename='icons/truemoney.png') }}" alt="">
+        TrueMoney
+      </button>
+    </div>
 
-      <!-- ==================================================== -->
+    <!-- ==================================================== -->
+    <!-- ห่อด้วย tab-content-wrapper เพื่อทำ Animation -->
+    <!-- ==================================================== -->
+    <div class="tab-content-wrapper" id="tabWrapper">
+      
       <!-- แท็บที่ 1: พร้อมเพย์ -->
-      <!-- ==================================================== -->
-      <div id="sec-p">
+      <div id="sec-p" class="tab-pane">
         {% if amount_to_pay > 0 %}
         <div class="qr-box">
           <div class="qr-head">
             <span>สแกน QR พร้อมเพย์</span>
             <span class="amt">฿{{ "%.2f"|format(amount_to_pay) }}</span>
           </div>
-          <div class="qr-img">
-            <!-- กล่องรอโหลด: แสดงจนกว่ารูป QR จะโหลดเสร็จ -->
-            <div id="qrLoading" class="qr-loading">
-              <div class="qr-spinner"></div>
-              <div class="qr-loading-text" id="qrLoadingText">กรุณารอสักครู่</div>
-              <div class="qr-countdown" id="qrCountdown">กำลังโหลด <span id="qrCount">0</span> วินาที</div>
+          
+          <!-- 🔴 เพิ่ม ID และระบบโหลด QR -->
+          <div class="qr-img" id="qrContainer">
+            <!-- หน้าจอตอนกำลังโหลด -->
+            <div class="qr-loading">
+              <div class="qr-loading-text">กรุณารอสักครู่</div>
+              <div class="qr-timer" id="qrTimer">0.0 วินาที</div>
             </div>
-            <img id="qrImg" src="{{ qr }}" alt="PromptPay QR" style="display:none;">
+            <!-- รูป QR จริง (จะค่อยๆ โผล่มาตอนโหลดเสร็จ) -->
+            <img src="{{ qr }}" alt="PromptPay QR" id="qrImage">
           </div>
+          <!-- 🔴 จบส่วนที่แก้ -->
+
           <div class="qr-note">สแกนแล้วโอน {{ "%.2f"|format(amount_to_pay) }} บาท ระบบจะตรวจสอบทันที</div>
         </div>
 
@@ -194,10 +207,8 @@
         {% endif %}
       </div>
 
-      <!-- ==================================================== -->
       <!-- แท็บที่ 2: TrueMoney -->
-      <!-- ==================================================== -->
-      <div id="sec-t" class="hidden">
+      <div id="sec-t" class="tab-pane hidden-pane">
         <p class="hint">วางลิงก์ซองอั่งเปา TrueMoney ที่ต้องการใช้ชำระเงิน</p>
         <form method="post" onsubmit="showLoading(this)">
           <input type="hidden" name="method" value="truemoney">
@@ -210,71 +221,76 @@
         </form>
       </div>
 
-      <p class="hint" style="text-align:center; margin: 16px 0 0; font-size:12px;">หากระบบไม่ตอบสนอง โปรดรอสักครู่แล้วลองใหม่</p>
-
-      <!-- รายละเอียดคำสั่งซื้อ (อยู่ด้านล่าง) -->
-      <div class="pay-summary">
-        <div class="row"><span class="muted">ราคาคอร์ส</span><span>{{ "%.2f"|format(amount) }} ฿</span></div>
-        <div class="row discount"><span>หักจากกระเป๋า</span><span>-{{ "%.2f"|format(pay_from_balance) }} ฿</span></div>
-        <div class="row total"><span>ยอดที่ต้องชำระ</span><span>{{ "%.2f"|format(amount_to_pay) }} ฿</span></div>
-      </div>
-
     </div>
+
+    <p class="hint" style="text-align:center; margin: 16px 0 0; font-size:12px;">หากระบบไม่ตอบสนอง โปรดรอสักครู่แล้วลองใหม่</p>
+
+    <!-- รายละเอียดคำสั่งซื้อ -->
+    <div class="pay-summary">
+      <div class="row"><span class="muted">ราคาคอร์ส</span><span>{{ "%.2f"|format(amount) }} ฿</span></div>
+      <div class="row discount"><span>หักจากกระเป๋า</span><span>-{{ "%.2f"|format(pay_from_balance) }} ฿</span></div>
+      <div class="row total"><span>ยอดที่ต้องชำระ</span><span>{{ "%.2f"|format(amount_to_pay) }} ฿</span></div>
+    </div>
+
   </div>
 </div>
 
 <script>
-  const modal = document.getElementById('payModal');
-  const inner = document.getElementById('payInner');
+  // 🔴 ส่วนจัดการโหลด QR Code
+  document.addEventListener("DOMContentLoaded", function() {
+    const qrImage = document.getElementById('qrImage');
+    const qrContainer = document.getElementById('qrContainer');
+    const timerText = document.getElementById('qrTimer');
+    
+    // ถ้ามีรูป QR อยู่ในหน้า
+    if (qrImage) {
+      let startTime = Date.now();
+      let interval;
 
-  // กรอบ (modal) จะตามความสูงของเนื้อหาข้างในทุกครั้งที่เนื้อหาเปลี่ยน
-  const ro = new ResizeObserver(function () {
-    modal.style.height = inner.offsetHeight + 'px';
+      // เริ่มนับเวลาถอยหลัง
+      if (timerText) {
+        interval = setInterval(() => {
+          const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+          timerText.textContent = `${elapsed} วินาที`;
+        }, 100);
+      }
+
+      // ฟังก์ชันเมื่อโหลดรูปเสร็จ
+      const onImageLoaded = () => {
+        clearInterval(interval);
+        qrContainer.classList.add('qr-loaded'); // ซ่อนหน้าโหลด โชว์รูป
+      };
+
+      // ตรวจสอบว่ารูปโหลดเสร็จหรือยัง (ถ้า Browser แคชไว้แล้ว มันจะโหลดเสร็จทันที)
+      if (qrImage.complete) {
+        onImageLoaded();
+      } else {
+        qrImage.addEventListener('load', onImageLoaded);
+        // ดักจับ Error เผื่อรูปพัง
+        qrImage.addEventListener('error', () => {
+          clearInterval(interval);
+          timerText.textContent = "โหลดไม่สำเร็จ";
+          timerText.style.fontSize = "14px";
+        });
+      }
+    }
   });
-  ro.observe(inner);
-
-  // ---- รอ QR: แสดงกล่องรอ + นับเวลาจริง จนกว่ารูปจะโหลดเสร็จ ----
-  (function () {
-    const qrImg = document.getElementById('qrImg');
-    const qrLoading = document.getElementById('qrLoading');
-    if (!qrImg || !qrLoading) return;
-
-    const textEl = document.getElementById('qrLoadingText');
-    const countdownEl = document.getElementById('qrCountdown');
-    const startTime = performance.now();
-
-    // นับเวลาที่ใช้ไปจริง (วินาที) ตามเน็ตของแต่ละคน
-    const timer = setInterval(function () {
-      const elapsed = Math.floor((performance.now() - startTime) / 1000);
-      countdownEl.innerHTML = 'กำลังโหลด <span id="qrCount">' + elapsed + '</span> วินาที';
-    }, 500);
-
-    function showQr() {
-      clearInterval(timer);
-      qrLoading.style.display = 'none';
-      qrImg.style.display = 'block';
-    }
-
-    function showError() {
-      clearInterval(timer);
-      textEl.textContent = 'โหลด QR ไม่สำเร็จ';
-      countdownEl.textContent = 'กรุณารีเฟรชหน้านี้อีกครั้ง';
-    }
-
-    if (qrImg.complete && qrImg.naturalWidth > 0) {
-      showQr();
-    } else {
-      qrImg.addEventListener('load', showQr);
-      qrImg.addEventListener('error', showError);
-    }
-  })();
 
   function switchTab(tab) {
+    const secP = document.getElementById('sec-p');
+    const secT = document.getElementById('sec-t');
+
     document.querySelectorAll('.pay-tab').forEach(function (btn) {
       btn.classList.toggle('active', btn.dataset.tab === tab);
     });
-    document.getElementById('sec-p').classList.toggle('hidden', tab !== 'p');
-    document.getElementById('sec-t').classList.toggle('hidden', tab !== 't');
+
+    if (tab === 'p') {
+      secP.classList.remove('hidden-pane');
+      secT.classList.add('hidden-pane');
+    } else {
+      secP.classList.add('hidden-pane');
+      secT.classList.remove('hidden-pane');
+    }
   }
 
   function showLoading(form) {
@@ -302,8 +318,8 @@
     }
   }
 
-  // แถบเลื่อนตอนกำลังเลื่อน แล้วซ่อนหลังหยุดเลื่อนประมาณ 0.6 วินาที
   (function () {
+    const modal = document.getElementById('payModal');
     let timer = null;
     modal.addEventListener('scroll', function () {
       modal.classList.add('is-scrolling');
