@@ -31,14 +31,27 @@
   }
 
   /* ============================================================
-     ✨ Hover Reveal (เวอร์ชันแก้เบลอ 100% ด้วย CSS Grid)
+     ✨ Focus Effect (ขยายใบที่ชี้ / เบลอและหดใบที่เหลือ)
      ============================================================ */
+  
+  /* จัดการให้ Container เป็นตัวควบคุมการซูม */
+  .dashboard-grid {
+    position: relative; /* เพื่อให้ z-index ของการ์ดที่ชี้ ทำงานได้ถูกต้อง */
+  }
+
   @media (hover: hover) and (pointer: fine) {
+    /* --- สถานะปกติ --- */
     .dash-card {
       position: relative;
       align-items: center;
       min-height: 104px;
-      padding: 16px 20px; /* กำหนด Padding ให้คงที่ */
+      padding: 16px 20px;
+      /* แอนิเมชันความเร็วในการขยาย/หด */
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), 
+                  filter 0.3s ease, 
+                  box-shadow 0.3s ease,
+                  opacity 0.3s ease;
+      z-index: 1;
     }
 
     .dash-card .dash-text {
@@ -54,12 +67,11 @@
       font-size: 18px;
       font-weight: 700;
       line-height: 1.4;
-      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       transform: translate3d(0, 0, 0);
-      will-change: transform; /* ให้ GPU ช่วยเรนเดอร์ตัวหนังสือ */
     }
 
-    /* ใช้ Grid ซ่อนคำอธิบาย เพื่อไม่ให้เบราว์เซอร์บีบตัวหนังสือ */
+    /* ซ่อนคำอธิบายปกติ */
     .dash-card .dash-desc {
       margin: 0;
       font-size: 14px;
@@ -67,37 +79,52 @@
       color: #000;
       display: grid;
       grid-template-rows: 0fr;
-      transition: grid-template-rows 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      transition: grid-template-rows 0.3s ease;
     }
 
-    /* ตัวห่อชั้นใน ต้องใส่ overflow hidden */
     .dash-card .dash-desc > span {
       overflow: hidden;
       display: block;
     }
 
-    /* เมื่อ Hover */
-    .dash-card:hover .dash-title,
-    .dash-card:focus-visible .dash-title {
-      transform: translate3d(0, -10px, 0);
+    /* --- เมื่อเอาเมาส์ชี้ที่ Container (เพื่อทำ Effect ใบอื่น) --- */
+    .dashboard-grid:has(.dash-card:hover) .dash-card {
+      /* ใบที่ไม่ได้ชี้: หดลง เบลอลง และจางลงนิดนึง */
+      transform: scale(0.95);
+      filter: blur(2px) grayscale(30%);
+      opacity: 0.7;
     }
 
-    .dash-card:hover .dash-desc,
-    .dash-card:focus-visible .dash-desc {
+    /* --- เมื่อชี้ที่การ์ดใบใดใบหนึ่ง (Override ค่าเดิม) --- */
+    .dash-card:hover {
+      /* ใบที่ชี้: ขยายใหญ่ขึ้น ลอยขึ้น ไม่เบลอ */
+      transform: scale(1.05) translateY(-4px); 
+      filter: blur(0) grayscale(0%);
+      opacity: 1;
+      z-index: 10; /* ดันให้ลอยทับใบอื่น */
+      box-shadow: 0 12px 24px -8px rgba(37, 99, 235, 0.3); /* เงาสีฟ้าฟุ้งๆ */
+      border-color: var(--primary);
+    }
+
+    /* คำอธิบายโผล่ขึ้นมาเฉพาะใบที่ชี้ */
+    .dash-card:hover .dash-title {
+      transform: translate3d(0, -6px, 0);
+    }
+
+    .dash-card:hover .dash-desc {
       grid-template-rows: 1fr;
     }
 
-    /* ไอคอนขยับเล็กน้อยให้ดูมีชีวิต */
+    /* ไอคอนขยับ */
     .dash-card .dash-icon {
-      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-      transform: translate3d(0, 0, 0);
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     }
     .dash-card:hover .dash-icon {
-      transform: translate3d(0, 0, 0) scale(1.08);
+      transform: scale(1.1);
     }
   }
 
-  /* มือถือ/ทัชสกรีน: แสดงผลปกติ คมชัด ไม่มีแอนิเมชัน */
+  /* มือถือ/ทัชสกรีน: แสดงผลปกติ ไม่มี Effect ซูม */
   @media (hover: none), (pointer: coarse) {
     .dash-card .dash-title { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
     .dash-card .dash-desc { margin: 0; font-size: 14px; color: #000; }
@@ -114,7 +141,9 @@
 <!-- Dashboard Menus -->
 <section style="margin-bottom: 40px;">
   <h2>เมนูทั้งหมด</h2>
-  <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));">
+  
+  <!-- 🔴 เพิ่ม Class dashboard-grid เพื่อให้ CSS ตรวจสอบการ Hover ได้ -->
+  <div class="grid dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));">
 
     <!-- ซื้อคอร์ส -->
     <a href="#packages" class="dash-card">
@@ -187,8 +216,7 @@
 </section>
 
 <script>
-  // เล่น GIF เฉพาะตอนเอาเมาส์ชี้ (เฉพาะอุปกรณ์ที่ใช้เมาส์ได้)
-  // ปกติจะแสดงภาพนิ่งเฟรมแรก
+  // เล่น GIF เฉพาะตอนเอาเมาส์ชี้
   if (window.matchMedia('(hover: hover)').matches) {
     document.querySelectorAll('.hover-gif').forEach(function (el) {
       const still = el.querySelector('.still');
