@@ -102,7 +102,7 @@ nav {
   letter-spacing: -.02em; white-space: nowrap;
 }
 
-/* ---- ชื่อผู้ใช้ + รูปโปรไฟล์ ---- */
+/* ---- ชื่อผู้ใช้ + รูปโปรไฟล์ (ไฮไลท์ด้วยสีของผู้ใช้) ---- */
 .user-chip {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 4px 6px 4px 4px; border-radius: 999px;
@@ -123,7 +123,7 @@ nav {
   background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
 }
 
-/* รูปโปรไฟล์ */
+/* รูปโปรไฟล์ (วงกลมมีขอบสีไฮไลท์) */
 .avatar {
   width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
   border: 2px solid var(--accent); background: var(--accent); color: #fff;
@@ -276,7 +276,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 }
 .btn-close:hover { background: var(--line); color: var(--text); }
 
-/* ---- ป๊อปอัปทั้งหมดของโปรไฟล์ ---- */
+/* ---- ป๊อปอัปทั้งหมดของโปรไฟล์ (พื้นหลังเบลอ) ---- */
 .pop-overlay {
   position: fixed; inset: 0; z-index: 200;
   background: rgba(15, 23, 42, 0.35);
@@ -312,6 +312,12 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   font-family: 'AnuphanAll', 'Anuphan', sans-serif;
 }
 
+/* ช่องดูตัวอย่างแบนเนอร์ */
+.banner-preview {
+  aspect-ratio: 8 / 3; border-radius: 16px; border: 1px solid var(--line);
+  background: linear-gradient(135deg, var(--accent), var(--accent-soft)) center / cover no-repeat;
+}
+
 /* วงล้อสี */
 .wheel-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; }
 .wheel {
@@ -336,7 +342,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   background: var(--surface); border: 1px dashed var(--line);
 }
 
-/* ---- Notice popup ---- */
+/* ---- Notice popup (แจ้งผลการทำงาน) ---- */
 .notice-overlay {
   position: fixed; inset: 0; z-index: 9999;
   background: rgba(15, 23, 42, 0.35);
@@ -379,16 +385,14 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   font-family: 'Anuphan', sans-serif !important;
 }
 
-/* ✅ Mobile Auth Bar (ย้ายมาไว้ติดใต้ Navbar) */
-.mobile-auth-bar {
-  display: none; /* ซ่อนไว้บนคอมพิวเตอร์ */
-}
+/* ✅ Mobile Auth Bar */
+.mobile-auth-bar { display: none; }
 
 @media (max-width: 900px) {
   .mobile-auth-bar {
     display: flex;
     position: sticky; 
-    top: 61px; /* ความสูงของ Navbar */
+    top: 61px;
     z-index: 40;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
@@ -397,7 +401,6 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
     gap: 10px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.02);
   }
-  
   .mobile-auth-bar .btn-signup {
     flex: 1;
     display: flex; align-items: center; justify-content: center;
@@ -413,7 +416,6 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
     transition: all 0.2s;
   }
   .mobile-auth-bar .btn-signup:active { background: var(--primary-soft); }
-
   .mobile-auth-bar .btn-login {
     flex: 1;
     display: flex; align-items: center; justify-content: center;
@@ -482,7 +484,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   </div>
 </nav>
 
-<!-- ✅ แถบเมนูสำหรับมือถือ (แสดงเฉพาะเมื่อยังไม่ล็อกอิน และไม่อยู่ในหน้า login/register) -->
+<!-- ✅ แถบเมนูสำหรับมือถือ (แสดงเฉพาะเมื่อยังไม่ล็อกอิน และ ไม่อยู่ในหน้า login/register) -->
 {% if not user and request.endpoint not in ['login', 'register'] %}
 <div class="mobile-auth-bar">
   <a href="{{ url_for('register') }}" class="btn-signup">สมัครสมาชิก</a>
@@ -571,7 +573,6 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   // สลับเมนูมือถือ
   const menuToggle = document.getElementById('menuToggle');
   const navLinks = document.getElementById('navLinks');
-
   if (menuToggle && navLinks) {
     menuToggle.addEventListener('click', () => {
       navLinks.classList.toggle('active');
@@ -632,7 +633,6 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
     el.hidden = false;
     requestAnimationFrame(function () { el.classList.add('show'); });
   }
-
   function closeModal(id) {
     const el = document.getElementById(id);
     if (!el) return;
