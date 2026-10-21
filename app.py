@@ -69,7 +69,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    balance = db.Column(db.Float, default=0.0)  # ระบบกระเป๋าเงิน
+    balance = db.Column(db.Float, default=0.0)  # กระเป๋าเงิน
     created_at = db.Column(db.DateTime, default=utcnow)
 
 
@@ -334,12 +334,13 @@ def logout():
 @login_required
 def topup():
     user = current_user()
+    qr_code = None
+    amount = None
+    
     if request.method == "POST":
         method = request.form.get("method")
         
-        # ----------------------------------------------------
-        # ช่องทางที่ 1: TrueMoney
-        # ----------------------------------------------------
+        # 1. TrueMoney
         if method == "truemoney":
             link = request.form.get("truemoney_link", "").strip()
             success, result, voucher_hash = redeem_truemoney(link)
@@ -347,42 +348,48 @@ def topup():
             if not success:
                 flash(f"❌ เติมเงินไม่สำเร็จ: {result}", "err")
             else:
-                amount = result
+                amt = result
                 if TopupHistory.query.filter_by(ref=voucher_hash).first():
                     flash("❌ ซองอั่งเปานี้ถูกใช้ไปแล้ว", "err")
                 else:
-                    user.balance += amount
-                    db.session.add(TopupHistory(user_id=user.id, method="truemoney", amount=amount, ref=voucher_hash))
+                    user.balance += amt
+                    db.session.add(TopupHistory(user_id=user.id, method="truemoney", amount=amt, ref=voucher_hash))
                     db.session.commit()
-                    discord_notify("🧧 เติมเงิน TrueMoney สำเร็จ", fields={"ผู้ใช้": user.email, "ยอด": f"{amount:.2f} บาท"})
-                    flash(f"✅ เติมเงินสำเร็จ {amount:.2f} บาท", "ok")
+                    discord_notify("🧧 เติมเงิน TrueMoney สำเร็จ", fields={"ผู้ใช้": user.email, "ยอด": f"{amt:.2f} บาท"})
+                    flash(f"✅ เติมเงินสำเร็จ {amt:.2f} บาท", "ok")
                     return redirect(url_for("topup"))
                     
-        # ----------------------------------------------------
-        # ช่องทางที่ 2: PromptPay (แนบสลิป)
-        # ----------------------------------------------------
-        elif method == "promptpay":
+        # 2. PromptPay: สร้าง QR Code
+        elif method == "generate_qr":
+            try:
+                amount = float(request.form.get("promptpay_amount", 0))
+                if amount < 10:
+                    flash("❌ ขั้นต่ำ 10 บาท", "err")
+                    amount = None
+                else:
+                    payload = promptpay_payload(PROMPTPAY_PHONE, amount)
+                    qr_code = qr_data_uri(payload)
+            except ValueError:
+                flash("❌ กรุณากรอกจำนวนเงินเป็นตัวเลข", "err")
+
+        # 3. PromptPay: ตรวจสอบสลิป
+        elif method == "verify_slip":
             file = request.files.get("slip")
+            expected = float(request.form.get("expected_amount", 0))
             if not file or not file.filename:
-                flash("กรุณาแนบรูปสลิปโอนเงิน", "err")
+                flash("กรุณาแนบรูปสลิป", "err")
             else:
                 try:
-                    # ใช้ expected_amount=0 หมายถึงไม่จำกัดยอดเงินขั้นต่ำ
-                    slip = verify_slip(
-                        file.read(), file.filename, 
-                        expected_amount=0, 
-                        receiver_phone=PROMPTPAY_PHONE
-                    )
+                    slip = verify_slip(file.read(), file.filename, expected_amount=expected, receiver_phone=PROMPTPAY_PHONE)
                     
                     if TopupHistory.query.filter_by(ref=slip.trans_ref).first():
                         flash("❌ สลิปนี้ถูกใช้ไปแล้ว", "err")
                     else:
-                        amount = slip.amount
-                        user.balance += amount
-                        db.session.add(TopupHistory(user_id=user.id, method="promptpay", amount=amount, ref=slip.trans_ref))
+                        user.balance += slip.amount
+                        db.session.add(TopupHistory(user_id=user.id, method="promptpay", amount=slip.amount, ref=slip.trans_ref))
                         db.session.commit()
-                        discord_notify("🏦 เติมเงินผ่านสลิปสำเร็จ", fields={"ผู้ใช้": user.email, "ยอด": f"{amount:.2f} บาท"})
-                        flash(f"✅ เติมเงินผ่านสลิปสำเร็จ {amount:.2f} บาท", "ok")
+                        discord_notify("🏦 เติมเงินผ่านสลิปสำเร็จ", fields={"ผู้ใช้": user.email, "ยอด": f"{slip.amount:.2f} บาท"})
+                        flash(f"✅ เติมเงินผ่านสลิปสำเร็จ {slip.amount:.2f} บาท", "ok")
                         return redirect(url_for("topup"))
                 except SlipError as e:
                     flash(f"❌ สลิปไม่ถูกต้อง: {e.user_message}", "err")
@@ -390,7 +397,7 @@ def topup():
                     flash(f"⚠️ เกิดข้อผิดพลาด: {str(e)}", "err")
                 
     history = TopupHistory.query.filter_by(user_id=user.id).order_by(TopupHistory.created_at.desc()).all()
-    return render_template("topup.html", history=history)
+    return render_template("topup.html", history=history, qr_code=qr_code, amount=amount)
 
 
 @app.route("/contact")
@@ -432,35 +439,62 @@ def pay(order_id):
         return redirect(url_for("index") + "#packages")
 
     expected = order.amount_satang / 100
+    payload = promptpay_payload(PROMPTPAY_PHONE, expected)
+    qr_code = qr_data_uri(payload)
 
     if request.method == "POST":
-        file = request.files.get("slip")
-        if not file or not file.filename:
-            flash("กรุณาเลือกรูปสลิป", "err")
-        else:
-            try:
-                slip = verify_slip(file.read(), file.filename, expected_amount=expected, receiver_phone=PROMPTPAY_PHONE)
-                if Order.query.filter_by(slip_ref=slip.trans_ref).first():
-                    raise SlipError("duplicate", "สลิปนี้ถูกใช้ไปแล้ว")
-                
-                order.status = "paid"
-                order.paid_at = utcnow()
-                order.slip_ref = slip.trans_ref
-                db.session.commit()
-            except SlipError as e:
-                db.session.rollback()
-                discord_notify("⚠️ สลิปไม่ผ่านการตรวจ", color=0xFF5C7A, fields={"รหัส": e.code, "ออเดอร์": f"#{order.id}", "ยอด": f"{expected:.2f}"})
-                flash(e.user_message, "err")
-            except IntegrityError:
-                db.session.rollback()
-                flash("สลิปนี้ถูกใช้ไปแล้ว", "err")
+        method = request.form.get("method")
+        
+        # 1. ชำระด้วยการแนบสลิป
+        if method == "verify_slip":
+            file = request.files.get("slip")
+            if not file or not file.filename:
+                flash("กรุณาแนบรูปสลิป", "err")
             else:
-                discord_notify("💰 มีออเดอร์ใหม่ชำระแล้ว", fields={"แพ็กเกจ": PACKAGES[order.package]["name"], "ยอด": f"{expected:,.2f} บาท", "ผู้ซื้อ": user.email, "ออเดอร์": f"#{order.id}"})
-                flash("ชำระเงินสำเร็จ เริ่มเรียนได้เลย!", "ok")
-                return redirect(url_for("account"))
+                try:
+                    slip = verify_slip(file.read(), file.filename, expected_amount=expected, receiver_phone=PROMPTPAY_PHONE)
+                    if Order.query.filter_by(slip_ref=slip.trans_ref).first():
+                        raise SlipError("duplicate", "สลิปนี้ถูกใช้ไปแล้ว")
+                    
+                    order.status = "paid"
+                    order.paid_at = utcnow()
+                    order.slip_ref = slip.trans_ref
+                    db.session.commit()
+                    
+                    discord_notify("💰 มีออเดอร์ใหม่ชำระแล้ว", fields={"แพ็กเกจ": PACKAGES[order.package]["name"], "ยอด": f"{expected:,.2f} บาท", "ผู้ซื้อ": user.email, "ออเดอร์": f"#{order.id}"})
+                    flash("ชำระเงินสำเร็จ เริ่มเรียนได้เลย!", "ok")
+                    return redirect(url_for("account"))
+                except SlipError as e:
+                    flash(e.user_message, "err")
+                except IntegrityError:
+                    db.session.rollback()
+                    flash("สลิปนี้ถูกใช้ไปแล้ว", "err")
+                    
+        # 2. ชำระด้วย TrueMoney
+        elif method == "truemoney":
+            link = request.form.get("truemoney_link", "").strip()
+            success, result, voucher_hash = redeem_truemoney(link)
+            
+            if not success:
+                flash(f"❌ เติมเงินไม่สำเร็จ: {result}", "err")
+            else:
+                if Order.query.filter_by(slip_ref=voucher_hash).first():
+                    flash("❌ ซองอั่งเปานี้ถูกใช้ไปแล้ว", "err")
+                else:
+                    change = result - expected
+                    if change > 0:
+                        user.balance += change
+                        
+                    order.status = "paid"
+                    order.paid_at = utcnow()
+                    order.slip_ref = voucher_hash
+                    db.session.commit()
+                    
+                    discord_notify("💰 มีออเดอร์ใหม่ชำระแล้ว (TrueMoney)", fields={"แพ็กเกจ": PACKAGES[order.package]["name"], "ยอด": f"{expected:,.2f} บาท", "ผู้ซื้อ": user.email, "ออเดอร์": f"#{order.id}"})
+                    flash(f"✅ ชำระเงินสำเร็จ (ทอนเงินคืนกระเป๋า {change:.2f} บาท)", "ok")
+                    return redirect(url_for("account"))
 
-    payload = promptpay_payload(PROMPTPAY_PHONE, expected)
-    return render_template("pay.html", order=order, package=PACKAGES[order.package], amount=expected, qr=qr_data_uri(payload))
+    return render_template("pay.html", order=order, package=PACKAGES[order.package], amount=expected, qr=qr_code)
 
 
 @app.route("/account")
