@@ -18,7 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from notify import discord_notify
-from payments import SlipError, promptpay_payload, verify_slip
+from payments import (SlipError, promptpay_payload, verify_slip, redeem_truemoney)
 
 load_dotenv()
 
@@ -68,6 +68,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
+    balance = db.Column(db.Float, default=0.0)  # เพิ่มระบบกระเป๋าเงิน
     created_at = db.Column(db.DateTime, default=utcnow)
 
 
@@ -102,6 +103,16 @@ class Enrollment(db.Model):
     __table_args__ = (db.UniqueConstraint("user_id", "lesson_id", name="uq_enroll"),)
 
     lesson = db.relationship("Lesson", backref="enrollments")
+
+
+class TopupHistory(db.Model):
+    """ประวัติการเติมเงินผ่านช่องทางต่างๆ"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    method = db.Column(db.String(20), nullable=False)  # truemoney / promptpay
+    amount = db.Column(db.Float, nullable=False)
+    ref = db.Column(db.String(100), unique=True)  # voucher_hash หรือ trans_ref
+    created_at = db.Column(db.DateTime, default=utcnow)
 
 
 # ---------------------------------------------------------------- Helpers
@@ -321,6 +332,50 @@ def logout():
     return redirect(url_for("index"))
 
 
+# ---------------------------------------------------------------- Topup Routes
+@app.route("/topup", methods=["GET", "POST"])
+@login_required
+def topup():
+    user = current_user()
+    if request.method == "POST":
+        method = request.form.get("method")
+        
+        if method == "truemoney":
+            link = request.form.get("truemoney_link", "").strip()
+            success, result, voucher_hash = redeem_truemoney(link)
+            
+            if not success:
+                flash(f"❌ เติมเงินไม่สำเร็จ: {result}", "err")
+            else:
+                amount = result
+                # เช็กว่าซองนี้เคยใช้หรือยัง
+                if TopupHistory.query.filter_by(ref=voucher_hash).first():
+                    flash("❌ ซองอั่งเปานี้ถูกใช้ไปแล้ว", "err")
+                else:
+                    user.balance += amount
+                    db.session.add(TopupHistory(user_id=user.id, method="truemoney", amount=amount, ref=voucher_hash))
+                    db.session.commit()
+                    discord_notify("🧧 เติมเงิน TrueMoney สำเร็จ", fields={"ผู้ใช้": user.email, "ยอด": f"{amount:.2f} บาท"})
+                    flash(f"✅ เติมเงินสำเร็จ {amount:.2f} บาท", "ok")
+                    return redirect(url_for("topup"))
+                    
+        elif method == "promptpay":
+            amount = float(request.form.get("promptpay_amount", 0))
+            if amount < 10:
+                flash("❌ ขั้นต่ำ 10 บาท", "err")
+            else:
+                flash("⚠️ ระบบเติมเงินผ่าน PromptPay QR อยู่ในช่วงพัฒนา กรุณาใช้ TrueMoney ก่อน", "err")
+                
+    history = TopupHistory.query.filter_by(user_id=user.id).order_by(TopupHistory.created_at.desc()).all()
+    return render_template("topup.html", history=history)
+
+
+@app.route("/contact")
+def contact():
+    return render_template("contact.html")
+
+
+# ---------------------------------------------------------------- Checkout & Account
 @app.route("/checkout/<package>")
 @login_required
 def checkout(package):
@@ -331,14 +386,8 @@ def checkout(package):
         flash("คุณมีสิทธิ์ของแพ็กเกจนี้แล้ว", "ok")
         return redirect(url_for("account"))
 
-    Order.query.filter_by(user_id=user.id, package=package, status="pending").update(
-        {"status": "expired"}
-    )
-    order = Order(
-        user_id=user.id,
-        package=package,
-        amount_satang=new_order_amount(PACKAGES[package]["price"]),
-    )
+    Order.query.filter_by(user_id=user.id, package=package, status="pending").update({"status": "expired"})
+    order = Order(user_id=user.id, package=package, amount_satang=new_order_amount(PACKAGES[package]["price"]))
     db.session.add(order)
     db.session.commit()
     return redirect(url_for("pay", order_id=order.id))
@@ -367,71 +416,36 @@ def pay(order_id):
             flash("กรุณาเลือกรูปสลิป", "err")
         else:
             try:
-                slip = verify_slip(
-                    file.read(), file.filename,
-                    expected_amount=expected,
-                    receiver_phone=PROMPTPAY_PHONE,
-                )
+                slip = verify_slip(file.read(), file.filename, expected_amount=expected, receiver_phone=PROMPTPAY_PHONE)
                 if Order.query.filter_by(slip_ref=slip.trans_ref).first():
                     raise SlipError("duplicate", "สลิปนี้ถูกใช้ไปแล้ว")
+                
                 order.status = "paid"
                 order.paid_at = utcnow()
                 order.slip_ref = slip.trans_ref
                 db.session.commit()
             except SlipError as e:
                 db.session.rollback()
-                discord_notify(
-                    "⚠️ สลิปไม่ผ่านการตรวจ",
-                    color=0xFF5C7A,
-                    fields={
-                        "รหัส": e.code,
-                        "ออเดอร์": f"#{order.id}",
-                        "ยอด": f"{expected:.2f}",
-                    },
-                )
+                discord_notify("⚠️ สลิปไม่ผ่านการตรวจ", color=0xFF5C7A, fields={"รหัส": e.code, "ออเดอร์": f"#{order.id}", "ยอด": f"{expected:.2f}"})
                 flash(e.user_message, "err")
             except IntegrityError:
                 db.session.rollback()
                 flash("สลิปนี้ถูกใช้ไปแล้ว", "err")
             else:
-                discord_notify(
-                    "💰 มีออเดอร์ใหม่ชำระแล้ว",
-                    fields={
-                        "แพ็กเกจ": PACKAGES[order.package]["name"],
-                        "ยอด": f"{expected:,.2f} บาท",
-                        "ผู้ซื้อ": user.email,
-                        "ออเดอร์": f"#{order.id}",
-                    },
-                )
+                discord_notify("💰 มีออเดอร์ใหม่ชำระแล้ว", fields={"แพ็กเกจ": PACKAGES[order.package]["name"], "ยอด": f"{expected:,.2f} บาท", "ผู้ซื้อ": user.email, "ออเดอร์": f"#{order.id}"})
                 flash("ชำระเงินสำเร็จ เริ่มเรียนได้เลย!", "ok")
                 return redirect(url_for("account"))
 
     payload = promptpay_payload(PROMPTPAY_PHONE, expected)
-    return render_template(
-        "pay.html",
-        order=order,
-        package=PACKAGES[order.package],
-        amount=expected,
-        qr=qr_data_uri(payload),
-    )
+    return render_template("pay.html", order=order, package=PACKAGES[order.package], amount=expected, qr=qr_data_uri(payload))
 
 
 @app.route("/account")
 @login_required
 def account():
     user = current_user()
-    orders = (
-        Order.query
-        .filter_by(user_id=user.id)
-        .order_by(Order.created_at.desc())
-        .all()
-    )
-    enrollments = (
-        Enrollment.query
-        .filter_by(user_id=user.id)
-        .order_by(Enrollment.created_at.desc())
-        .all()
-    )
+    orders = Order.query.filter_by(user_id=user.id).order_by(Order.created_at.desc()).all()
+    enrollments = Enrollment.query.filter_by(user_id=user.id).order_by(Enrollment.created_at.desc()).all()
     return render_template(
         "account.html",
         orders=orders,
@@ -444,6 +458,7 @@ def account():
 # สร้างตารางฐานข้อมูลอัตโนมัติเมื่อเริ่มรัน (รวมถึงบน Vercel ด้วย)
 with app.app_context():
     db.create_all()
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=False)
