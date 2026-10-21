@@ -85,15 +85,15 @@
       transition: opacity 0.3s ease;
     }
 
-    /* การ์ดอื่นตอนมีการ์ดใดถูกชี้: เบลอและเล็กลง */
-    .menu-grid:hover .menu-tile {
-      opacity: 0.55;
-      filter: blur(1.5px);
+    /* การ์ดที่ไม่ได้ถูกชี้ (เมื่อมีการ์ดใดถูกชี้อยู่): เบลอ จาง และเล็กลง */
+    .menu-grid:hover .menu-tile:not(:hover) {
+      opacity: 0.45;
+      filter: blur(3px);
       transform: scale(0.96);
     }
 
-    /* การ์ดที่ถูกชี้: ขยาย ชัด และมีเงา */
-    .menu-tile:hover {
+    /* การ์ดที่ถูกชี้: ชัด ไม่เบลอ ขยายขึ้น และมีเงา */
+    .menu-grid .menu-tile:hover {
       opacity: 1;
       filter: none;
       transform: scale(1.06);
@@ -103,12 +103,12 @@
     }
 
     /* หัวข้อขยับขึ้นเล็กน้อย */
-    .menu-tile:hover .menu-tile-text h3 {
+    .menu-grid .menu-tile:hover .menu-tile-text h3 {
       transform: translateY(-6px);
     }
 
     /* แสดงคำอธิบาย */
-    .menu-tile:hover .menu-tile-text p {
+    .menu-grid .menu-tile:hover .menu-tile-text p {
       opacity: 1;
     }
 
