@@ -31,24 +31,29 @@
   }
 
   /* ============================================================
-     ✨ Hover Reveal (เฉพาะอุปกรณ์ที่มีเมาส์)
-     - ปกติ: ซ่อนคำอธิบาย
-     - ตอน hover: หัวข้อเลื่อนขึ้น แล้วเผยคำอธิบายด้านล่าง
+     ✨ Hover Reveal (แก้ปัญหาเบลอ)
      ============================================================ */
   @media (hover: hover) and (pointer: fine) {
+    /* ล็อกความสูงการ์ดไม่ให้กระตุก */
     .dash-card {
       position: relative;
+      height: 104px; /* ปรับตัวเลขนี้ได้ตามความเหมาะสม */
+      align-items: center;
       overflow: hidden;
-      align-items: flex-start;
+      /* เปิด Hardware Acceleration ให้ตัวหนังสือคมชัด */
+      transform: translateZ(0);
+      -webkit-font-smoothing: subpixel-antialiased;
     }
 
     .dash-card .dash-text {
       display: flex;
       flex-direction: column;
       justify-content: center;
-      min-height: 56px; /* ความสูงเท่ากับ dash-icon */
       flex: 1;
       min-width: 0;
+      /* ขยับข้อความขึ้นโดยใช้ transform3d */
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      transform: translate3d(0, 0, 0);
     }
 
     .dash-card .dash-title {
@@ -56,8 +61,6 @@
       font-size: 18px;
       font-weight: 700;
       line-height: 1.4;
-      transform: translateY(0);
-      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .dash-card .dash-desc {
@@ -65,40 +68,42 @@
       font-size: 14px;
       line-height: 1.5;
       color: #000;
-      opacity: 0;
+      /* ซ่อนคำอธิบายโดยใช้ max-height และ opacity */
       max-height: 0;
-      transform: translateY(6px);
-      transition:
-        opacity 0.3s ease 0.05s,
-        transform 0.35s cubic-bezier(0.4, 0, 0.2, 1) 0.05s,
-        max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity: 0;
+      transition: 
+        max-height 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.3s ease,
+        margin-top 0.35s ease;
       overflow: hidden;
-      pointer-events: none;
     }
 
-    /* เลื่อนหัวข้อขึ้น + เผยคำอธิบาย */
-    .dash-card:hover .dash-title,
-    .dash-card:focus-visible .dash-title {
-      transform: translateY(-10px);
+    /* เมื่อ Hover */
+    .dash-card:hover .dash-text,
+    .dash-card:focus-visible .dash-text {
+      /* เลื่อนกล่องข้อความขึ้น 10px */
+      transform: translate3d(0, -10px, 0);
     }
 
     .dash-card:hover .dash-desc,
     .dash-card:focus-visible .dash-desc {
+      /* ให้คำอธิบายโผล่ขึ้นมา */
+      max-height: 40px;
       opacity: 1;
-      max-height: 60px;
-      transform: translateY(-10px);
+      margin-top: 4px;
     }
 
     /* ไอคอนขยับเล็กน้อยให้ดูมีชีวิต */
     .dash-card .dash-icon {
-      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      transform: translate3d(0, 0, 0);
     }
     .dash-card:hover .dash-icon {
-      transform: scale(1.06);
+      transform: translate3d(0, 0, 0) scale(1.08);
     }
   }
 
-  /* มือถือ/ทัชสกรีน: แสดงคำอธิบายปกติ ไม่ต้องมี animation */
+  /* มือถือ/ทัชสกรีน: แสดงผลปกติ คมชัด ไม่มีแอนิเมชัน */
   @media (hover: none), (pointer: coarse) {
     .dash-card .dash-title { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
     .dash-card .dash-desc { margin: 0; font-size: 14px; color: #000; }
