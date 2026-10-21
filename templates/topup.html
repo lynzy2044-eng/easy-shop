@@ -2,7 +2,7 @@
 {% block content %}
 <div style="max-width: 600px; margin: 40px auto; padding: 0 16px;">
   
-  <!-- ส่วนหัวและยอดเงิน -->
+  <!-- ยอดเงินคงเหลือ -->
   <div class="card" style="text-align: center; background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%); border: 1px solid #bfdbfe; margin-bottom: 24px;">
     <h2 style="color: #0f172a; margin: 0 0 8px; font-size: 20px;">ยอดเงินในกระเป๋าของคุณ</h2>
     <p style="font-size: 48px; font-weight: 800; color: var(--primary); margin: 0; letter-spacing: -1px;">
@@ -10,77 +10,112 @@
     </p>
   </div>
 
-  <!-- ส่วนเติมเงินผ่าน TrueMoney -->
-  <div class="card" style="margin-bottom: 24px;">
-    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-      <div style="background: #fef2f2; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
-        🧧
-      </div>
-      <div>
-        <h3 style="margin: 0; font-size: 18px;">เติมเงินผ่าน TrueMoney วอเล็ต</h3>
-        <p class="muted" style="margin: 0; font-size: 14px;">แลกซองอั่งเปาเข้าสู่ระบบอัตโนมัติ</p>
-      </div>
-    </div>
+  <!-- ปุ่มสลับแท็บ -->
+  <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+    <button id="tab-truemoney" class="btn" style="flex: 1; border-radius: 12px; background: var(--primary) !important;" onclick="switchTab('truemoney')">
+      🧧 ซองอั่งเปา TrueMoney
+    </button>
+    <button id="tab-bank" class="btn ghost" style="flex: 1; border-radius: 12px; border: 2px solid var(--line); background: transparent !important; color: var(--text) !important;" onclick="switchTab('bank')">
+      🏦 โอนผ่านธนาคาร (แนบสลิป)
+    </button>
+  </div>
 
-    <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-      <h4 style="margin: 0 0 8px; font-size: 15px; color: #0f172a;">📌 วิธีเติมเงิน:</h4>
-      <ol style="margin: 0; padding-left: 20px; color: #475569; font-size: 14px; line-height: 1.8;">
-        <li>กดรับซองอั่งเปาจากแอป TrueMoney</li>
-        <li>ก๊อปปี้ลิ้งค์ซอง (จะขึ้นต้นด้วย <code>https://gift.truemoney.com/...</code>)</li>
-        <li>นำลิ้งค์มาวางในช่องด้านล่าง แล้วกด "แลกซองอั่งเปาเลย"</li>
-      </ol>
-    </div>
-    
+  <!-- ส่วนที่ 1: TrueMoney -->
+  <div id="section-truemoney" class="card" style="display: block;">
+    <h3 style="margin-top: 0;">🧧 เติมเงินผ่าน TrueMoney วอเล็ต</h3>
+    <p class="muted" style="font-size: 14px; margin-bottom: 16px;">
+      1. กดรับซองอั่งเปาจากแอป TrueMoney<br>
+      2. ก๊อปปี้ลิ้งค์ซอง (ขึ้นต้นด้วย https://gift.truemoney.com/...)<br>
+      3. นำมาวางในช่องด้านล่างนี้
+    </p>
     <form method="post">
       <input type="hidden" name="method" value="truemoney">
-      <div style="position: relative; margin-bottom: 16px;">
-        <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
-          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-        </span>
-        <input type="url" name="truemoney_link" placeholder="https://gift.truemoney.com/campaign/?v=..." required
-               style="width: 100%; padding: 16px 16px 16px 48px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 16px; background: #f8fafc; transition: all 0.2s;"
-               onfocus="this.style.borderColor='#2563eb'; this.style.background='#fff';"
-               onblur="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc';">
-      </div>
-      <button class="btn" type="submit" style="width: 100%; border-radius: 12px; font-size: 16px; padding: 16px;">
-        แลกซองอั่งเปาเลย
-      </button>
+      <input type="url" name="truemoney_link" placeholder="https://gift.truemoney.com/campaign/?v=..." required
+             style="width: 100%; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 16px; font-size: 16px;">
+      <button class="btn" type="submit" style="width: 100%; border-radius: 12px;">แลกซองอั่งเปาเลย</button>
     </form>
   </div>
 
-  <!-- ส่วนประวัติการเติมเงิน -->
-  <div class="card">
-    <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 18px;">ประวัติการเติมเงินล่าสุด</h3>
-    
+  <!-- ส่วนที่ 2: โอนผ่านธนาคาร (แนบสลิป) -->
+  <div id="section-bank" class="card" style="display: none;">
+    <h3 style="margin-top: 0;">🏦 เติมเงินผ่านการโอนธนาคาร</h3>
+    <p class="muted" style="font-size: 14px; margin-bottom: 16px;">
+      1. โอนเงินเข้าบัญชีพร้อมเพย์เบอร์ <strong>{{ config.PROMPTPAY_PHONE }}</strong><br>
+      2. แคปเจอร์รูปสลิปโอนเงินให้เห็น QR Code ชัดเจน<br>
+      3. แนบรูปสลิปด้านล่างเพื่อให้ระบบตรวจสอบอัตโนมัติ
+    </p>
+    <form method="post" enctype="multipart/form-data">
+      <input type="hidden" name="method" value="promptpay">
+      
+      <label for="slipUpload" style="display:flex; flex-direction:column; align-items:center; justify-content:center; border:2px dashed var(--line); border-radius:12px; padding:32px 16px; cursor:pointer; background:#f8fafc; transition:var(--transition); margin-bottom:16px;">
+        <svg width="32" height="32" fill="none" stroke="var(--muted)" stroke-width="2" viewBox="0 0 24 24" style="margin-bottom:8px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+        <span style="font-weight:600; font-size: 15px; color:var(--text);" id="fileNameDisplay">กดเพื่อแนบรูปสลิป</span>
+        <span style="font-size:13px; color:var(--muted); margin-top:4px;">JPG, PNG (ไม่เกิน 5MB)</span>
+        <input type="file" name="slip" id="slipUpload" accept="image/*" required style="display:none;" onchange="document.getElementById('fileNameDisplay').innerText = this.files[0].name;">
+      </label>
+
+      <button class="btn" type="submit" style="width: 100%; border-radius: 12px;">ตรวจสอบสลิปและเติมเงิน</button>
+    </form>
+  </div>
+
+  <!-- ประวัติการเติมเงิน -->
+  <div class="card" style="margin-top: 24px;">
+    <h3 style="margin-top: 0; margin-bottom: 16px;">ประวัติการเติมเงินล่าสุด</h3>
     {% if history %}
       <div style="display: flex; flex-direction: column; gap: 12px;">
         {% for h in history %}
           <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 12px;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <div style="width: 40px; height: 40px; border-radius: 50%; background: #ecfdf5; display: flex; align-items: center; justify-content: center; color: #059669; font-size: 18px;">
-                ✓
-              </div>
-              <div>
-                <strong style="display: block; font-size: 15px; color: #0f172a; text-transform: capitalize;">
-                  เติมเงินผ่าน {{ h.method }}
-                </strong>
-                <span class="muted" style="font-size: 13px;">
-                  {{ h.created_at.strftime('%d/%m/%Y เวลา %H:%M น.') }}
-                </span>
-              </div>
+            <div>
+              <strong style="display: block; font-size: 15px; color: #0f172a; text-transform: capitalize;">
+                {% if h.method == 'truemoney' %}🧧 TrueMoney{% else %}🏦 โอนธนาคาร{% endif %}
+              </strong>
+              <span class="muted" style="font-size: 13px;">{{ h.created_at.strftime('%d/%m/%Y เวลา %H:%M น.') }}</span>
             </div>
-            <div style="color: var(--ok); font-weight: 700; font-size: 16px;">
-              +{{ "%.2f"|format(h.amount) }} ฿
-            </div>
+            <div style="color: var(--ok); font-weight: 700; font-size: 16px;">+{{ "%.2f"|format(h.amount) }} ฿</div>
           </div>
         {% endfor %}
       </div>
     {% else %}
-      <div style="text-align: center; padding: 32px 0;">
-        <p class="muted" style="margin: 0;">ยังไม่มีประวัติการเติมเงิน</p>
-      </div>
+      <p class="muted" style="text-align: center; padding: 24px 0;">ยังไม่มีประวัติการเติมเงิน</p>
     {% endif %}
   </div>
 
 </div>
+
+<script>
+  function switchTab(tab) {
+    const btnTrue = document.getElementById('tab-truemoney');
+    const btnBank = document.getElementById('tab-bank');
+    const secTrue = document.getElementById('section-truemoney');
+    const secBank = document.getElementById('section-bank');
+
+    if (tab === 'truemoney') {
+      // เปิด TrueMoney
+      secTrue.style.display = 'block';
+      secBank.style.display = 'none';
+      
+      // เปลี่ยนสีปุ่ม
+      btnTrue.style.background = 'var(--primary)';
+      btnTrue.style.color = '#fff';
+      btnTrue.style.border = 'none';
+      
+      btnBank.style.background = 'transparent';
+      btnBank.style.color = 'var(--text)';
+      btnBank.style.border = '2px solid var(--line)';
+    } else {
+      // เปิด Bank
+      secTrue.style.display = 'none';
+      secBank.style.display = 'block';
+      
+      // เปลี่ยนสีปุ่ม
+      btnBank.style.background = 'var(--primary)';
+      btnBank.style.color = '#fff';
+      btnBank.style.border = 'none';
+
+      btnTrue.style.background = 'transparent';
+      btnTrue.style.color = 'var(--text)';
+      btnTrue.style.border = '2px solid var(--line)';
+    }
+  }
+</script>
 {% endblock %}
