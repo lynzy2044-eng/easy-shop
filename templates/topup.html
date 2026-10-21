@@ -22,15 +22,20 @@
     border: 0; background: transparent; color: var(--muted);
     padding: 12px; border-radius: 10px; font-family: inherit; font-size: 15px; font-weight: 700;
     cursor: pointer; transition: var(--transition);
+    display: flex; align-items: center; justify-content: center; gap: 6px;
   }
   .tab:hover { color: var(--text); }
   .tab.active { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35); }
+
+  .icon { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
+  .icon-lg { width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; }
+  .icon-sm { width: 18px; height: 18px; object-fit: contain; flex-shrink: 0; }
 
   .panel {
     background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
     padding: 24px; box-shadow: var(--shadow); margin-bottom: 20px;
   }
-  .panel h3 { margin: 0 0 6px; }
+  .panel h3 { margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }
   .panel .hint { margin: 0 0 18px; font-size: 14px; color: var(--muted); }
 
   .field {
@@ -42,8 +47,12 @@
     width: 100%; border: 0; border-radius: 12px; background: var(--primary); color: #fff;
     padding: 14px; font-size: 16px; font-weight: 700; font-family: inherit; cursor: pointer;
     box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3); transition: var(--transition);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
   }
   .submit:hover { background: var(--primary-dark); }
+  .submit .spinner { width: 20px; height: 20px; display: none; }
+  .submit.loading .spinner { display: block; }
+  .submit.loading .submit-text { opacity: 0.85; }
 
   .qr-box { background: #0f172a; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 18px; }
   .qr-head { display: flex; justify-content: space-between; color: #fff; font-size: 14px; margin-bottom: 16px; }
@@ -57,14 +66,15 @@
     cursor: pointer; background: #f8fafc; margin-bottom: 12px; transition: var(--transition);
   }
   .slip-drop:hover { border-color: var(--primary); }
-  .slip-drop img { max-width: 100%; max-height: 180px; border-radius: 8px; margin-bottom: 10px; display: none; object-fit: contain; }
+  .slip-drop img.preview { max-width: 100%; max-height: 180px; border-radius: 8px; margin-bottom: 10px; display: none; object-fit: contain; }
 
   .history-row {
     display: flex; justify-content: space-between; align-items: center;
     padding: 14px 0; border-bottom: 1px solid var(--line);
   }
   .history-row:last-child { border-bottom: 0; }
-  .history-row strong { display: block; font-size: 15px; }
+  .history-row .name { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; }
+  .history-row .when { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
   .history-amount { color: var(--ok); font-weight: 700; font-size: 16px; }
   .empty { text-align: center; padding: 24px 0; color: var(--muted); margin: 0; }
 </style>
@@ -79,21 +89,33 @@
 
   <!-- สลับช่องทาง -->
   <div class="tabs">
-    <button type="button" class="tab active" data-tab="promptpay" onclick="switchTab('promptpay')">🏦 พร้อมเพย์ QR Code</button>
-    <button type="button" class="tab" data-tab="truemoney" onclick="switchTab('truemoney')">🧧 TrueMoney วอเล็ต</button>
+    <button type="button" class="tab active" data-tab="promptpay" onclick="switchTab('promptpay')">
+      <img class="icon" src="{{ url_for('static', filename='icons/promptpay.png') }}" alt="">
+      พร้อมเพย์ QR Code
+    </button>
+    <button type="button" class="tab" data-tab="truemoney" onclick="switchTab('truemoney')">
+      <img class="icon" src="{{ url_for('static', filename='icons/truemoney.png') }}" alt="">
+      TrueMoney วอเล็ต
+    </button>
   </div>
 
   <!-- พร้อมเพย์ -->
   <div id="section-promptpay" class="panel">
-    <h3>🏦 เติมเงินผ่านพร้อมเพย์</h3>
+    <h3>
+      <img class="icon-lg" src="{{ url_for('static', filename='icons/promptpay.png') }}" alt="">
+      เติมเงินผ่านพร้อมเพย์
+    </h3>
 
     {% if not qr_code %}
     <p class="hint">กรอกจำนวนเงินที่ต้องการเติม ระบบจะสร้าง QR Code ให้คุณสแกน</p>
-    <form method="post">
+    <form method="post" onsubmit="showLoading(this)">
       <input type="hidden" name="method" value="generate_qr">
       <input type="number" class="field" name="promptpay_amount" min="10" step="0.01"
              placeholder="ระบุจำนวนเงิน (บาท)" required>
-      <button class="submit" type="submit">ยืนยัน</button>
+      <button class="submit" type="submit">
+        <img class="spinner" src="{{ url_for('static', filename='icons/spinner-blue.gif') }}" alt="">
+        <span class="submit-text">ยืนยัน</span>
+      </button>
     </form>
     {% else %}
     <div class="qr-box">
@@ -107,12 +129,12 @@
     </div>
 
     <p class="hint">โอนเงินตามยอดด้านบน แล้วแนบสลิปเพื่อให้ระบบตรวจสอบอัตโนมัติ</p>
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" onsubmit="showLoading(this)">
       <input type="hidden" name="method" value="verify_slip">
       <input type="hidden" name="expected_amount" value="{{ amount }}">
 
       <label for="slipUpload" class="slip-drop">
-        <img id="slipPreview" src="" alt="">
+        <img id="slipPreview" class="preview" src="" alt="">
         <div id="uploadPlaceholder" style="display:flex; flex-direction:column; align-items:center;">
           <svg width="32" height="32" fill="none" stroke="var(--muted)" stroke-width="2" viewBox="0 0 24 24" style="margin-bottom:8px;">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
@@ -123,20 +145,29 @@
         <input type="file" name="slip" id="slipUpload" accept="image/*" required style="display:none;" onchange="previewSlip(event)">
       </label>
 
-      <button class="submit" type="submit">ยืนยัน</button>
+      <button class="submit" type="submit">
+        <img class="spinner" src="{{ url_for('static', filename='icons/spinner-blue.gif') }}" alt="">
+        <span class="submit-text">ยืนยัน</span>
+      </button>
     </form>
     {% endif %}
   </div>
 
   <!-- TrueMoney -->
   <div id="section-truemoney" class="panel" style="display:none;">
-    <h3>🧧 เติมเงินผ่าน TrueMoney วอเล็ต</h3>
+    <h3>
+      <img class="icon-lg" src="{{ url_for('static', filename='icons/truemoney.png') }}" alt="">
+      เติมเงินผ่าน TrueMoney วอเล็ต
+    </h3>
     <p class="hint">วางลิงก์ซองอั่งเปา TrueMoney ที่ต้องการแลกเข้ากระเป๋า</p>
-    <form method="post">
+    <form method="post" onsubmit="showLoading(this)">
       <input type="hidden" name="method" value="truemoney">
       <input type="url" class="field" name="truemoney_link"
              placeholder="https://gift.truemoney.com/campaign/?v=..." required>
-      <button class="submit" type="submit">ยืนยัน</button>
+      <button class="submit" type="submit">
+        <img class="spinner" src="{{ url_for('static', filename='icons/spinner-blue.gif') }}" alt="">
+        <span class="submit-text">ยืนยัน</span>
+      </button>
     </form>
   </div>
 
@@ -147,8 +178,14 @@
       {% for h in history %}
         <div class="history-row">
           <div>
-            <strong>{% if h.method == 'truemoney' %}🧧 TrueMoney{% else %}🏦 พร้อมเพย์{% endif %}</strong>
-            <span class="muted" style="font-size:13px;">{{ h.created_at.strftime('%d/%m/%Y เวลา %H:%M น.') }}</span>
+            <span class="name">
+              {% if h.method == 'truemoney' %}
+                <img class="icon-sm" src="{{ url_for('static', filename='icons/truemoney.png') }}" alt="">TrueMoney
+              {% else %}
+                <img class="icon-sm" src="{{ url_for('static', filename='icons/promptpay.png') }}" alt="">พร้อมเพย์
+              {% endif %}
+            </span>
+            <span class="when">{{ h.created_at.strftime('%d/%m/%Y เวลา %H:%M น.') }}</span>
           </div>
           <div class="history-amount">+{{ "%.2f"|format(h.amount) }} ฿</div>
         </div>
@@ -167,6 +204,11 @@
     });
     document.getElementById('section-promptpay').style.display = tab === 'promptpay' ? 'block' : 'none';
     document.getElementById('section-truemoney').style.display = tab === 'truemoney' ? 'block' : 'none';
+  }
+
+  function showLoading(form) {
+    const btn = form.querySelector('.submit');
+    if (btn) btn.classList.add('loading');
   }
 
   function previewSlip(event) {
