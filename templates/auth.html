@@ -27,11 +27,15 @@
         </span>
         <input type="text" name="username" id="username" required placeholder="Username (ภาษาอังกฤษ)"
                style="width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; color: #0f172a; padding: 16px 16px 16px 48px; border-radius: 12px; font-size: 16px; outline: none; transition: border 0.2s;"
-               oninput="checkUsername(this.value)">
+               {% if mode == "register" %}oninput="checkUsername(this.value)"{% endif %}>
       </div>
       
-      <!-- ข้อความแจ้งเตือน Username -->
+      <!-- ข้อความแจ้งเตือน Username (แสดงเฉพาะหน้าสมัคร) -->
+      {% if mode == "register" %}
       <div id="username-msg" style="font-size: 13px; margin-bottom: 16px; min-height: 20px; padding-left: 4px;"></div>
+      {% else %}
+      <div style="margin-bottom: 16px;"></div>
+      {% endif %}
 
       <!-- ช่องรหัสผ่าน -->
       <div style="position: relative; margin-bottom: {% if mode == 'register' %}16px{% else %}8px{% endif %};">
@@ -40,14 +44,14 @@
         </span>
         <input type="password" name="password" id="password" required minlength="6" placeholder="รหัสผ่าน"
                style="width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; color: #0f172a; padding: 16px 48px 16px 48px; border-radius: 12px; font-size: 16px; outline: none; transition: border 0.2s;"
-               oninput="checkStrength(this.value); checkMatch()">
+               {% if mode == "register" %}oninput="checkStrength(this.value); checkMatch()"{% endif %}>
         <!-- ปุ่มรูปตา -->
         <span onclick="togglePassword('password')" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; cursor: pointer;">
           <svg id="eyeIcon-password" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
         </span>
       </div>
 
-      <!-- แถบวัดความปลอดภัย -->
+      <!-- แถบวัดความปลอดภัย (แสดงเฉพาะหน้าสมัคร) -->
       {% if mode == "register" %}
       <div style="margin-bottom: 16px;">
         <div style="display: flex; gap: 4px; height: 4px; margin-bottom: 4px;">
@@ -59,7 +63,7 @@
         <div id="strength-text" style="font-size: 12px; color: #94a3b8;">ระดับความปลอดภัย</div>
       </div>
 
-      <!-- ช่องยืนยันรหัสผ่าน -->
+      <!-- ช่องยืนยันรหัสผ่าน (แสดงเฉพาะหน้าสมัคร) -->
       <div style="position: relative; margin-bottom: 8px;">
         <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8;">
           <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -76,6 +80,7 @@
       <div id="match-msg" style="font-size: 13px; margin-bottom: 16px; min-height: 20px; padding-left: 4px;"></div>
       
       {% else %}
+      <!-- ลิงก์ลืมรหัสผ่าน (แสดงเฉพาะหน้า Login) -->
       <div style="text-align: right; margin-bottom: 24px;">
         <a href="{{ url_for('forgot_password') }}" style="color: #64748b; font-size: 14px; text-decoration: none; font-weight: 500; transition: color 0.2s;" onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#64748b'">ลืมรหัสผ่าน?</a>
       </div>
@@ -87,7 +92,6 @@
       </button>
     </form>
 
-    <!-- ส่วนปุ่ม Google -->
     <div style="display: flex; align-items: center; margin: 24px 0; color: #94a3b8; font-size: 13px;">
       <div style="flex: 1; height: 1px; background: #e2e8f0;"></div>
       <span style="padding: 0 12px;">หรือ</span>
@@ -119,13 +123,13 @@
 
 <script>
   // ---------------------------------------------------------
-  // 1. ระบบเช็ก Username ซ้ำ (Real-time AJAX)
+  // 1. ระบบเช็ก Username ซ้ำ (ทำงานเฉพาะตอนสมัคร)
   // ---------------------------------------------------------
   let usernameTimeout = null;
   function checkUsername(val) {
     const msgBox = document.getElementById("username-msg");
-    
-    // ถ้าช่องว่างให้ซ่อนข้อความ
+    if (!msgBox) return; // ถ้าไม่ใช่หน้าสมัคร ให้ข้ามไปเลย
+
     if (!val.trim()) {
       msgBox.innerText = "";
       return;
@@ -134,7 +138,6 @@
     msgBox.innerText = "⏳ กำลังตรวจสอบ...";
     msgBox.style.color = "#64748b";
 
-    // หน่วงเวลา 0.5 วินาทีเพื่อไม่ให้ยิง API รัวเกินไป
     clearTimeout(usernameTimeout);
     usernameTimeout = setTimeout(() => {
       fetch("/check_username", {
@@ -146,10 +149,10 @@
       .then(data => {
         if (data.available) {
           msgBox.innerText = data.message;
-          msgBox.style.color = "#059669"; // สีเขียว
+          msgBox.style.color = "#059669";
         } else {
           msgBox.innerText = data.message;
-          msgBox.style.color = "#dc2626"; // สีแดง
+          msgBox.style.color = "#dc2626";
         }
       })
       .catch(() => {
@@ -159,14 +162,18 @@
   }
 
   // ---------------------------------------------------------
-  // 2. ระบบเช็กรหัสผ่านตรงกัน (Real-time)
+  // 2. ระบบเช็กรหัสผ่านตรงกัน (ทำงานเฉพาะตอนสมัคร)
   // ---------------------------------------------------------
   function checkMatch() {
-    const pass = document.getElementById("password").value;
-    const confirmPass = document.getElementById("confirm_password").value;
+    const passInput = document.getElementById("password");
+    const confirmInput = document.getElementById("confirm_password");
     const msgBox = document.getElementById("match-msg");
 
-    // ถ้ายังไม่ได้กรอกช่องไหนเลย ให้ซ่อนไว้ก่อน
+    if (!passInput || !confirmInput || !msgBox) return;
+
+    const pass = passInput.value;
+    const confirmPass = confirmInput.value;
+
     if (!pass || !confirmPass) {
       msgBox.innerText = "";
       return;
@@ -199,7 +206,8 @@
   function checkStrength(password) {
     const bars = document.querySelectorAll('.strength-bar');
     const text = document.getElementById('strength-text');
-    
+    if (!bars.length || !text) return; 
+
     bars.forEach(bar => bar.style.background = '#e2e8f0');
     
     if (password.length === 0) {
@@ -253,7 +261,7 @@
     const btn = document.getElementById("googleBtn");
     
     if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.trim() === "") {
-      console.error("❌ GOOGLE_CLIENT_ID is empty! กรุณาตั้งค่าใน Vercel Environment Variables");
+      console.error("❌ GOOGLE_CLIENT_ID is empty!");
       btn.onclick = () => alert("ระบบยังไม่ได้ตั้งค่า Client ID กรุณาแจ้งแอดมิน");
       return;
     }
@@ -288,7 +296,6 @@
           });
         } catch (error) {
           console.error("Google Init Error:", error);
-          alert("ตั้งค่า Google ผิดพลาด: " + error.message);
         }
       } else {
         setTimeout(initGoogle, 200);
@@ -302,10 +309,10 @@
         try {
           googleClient.requestCode();
         } catch (err) {
-          alert("ไม่สามารถเปิดหน้าต่าง Google ได้ (อาจโดนบล็อก Popup) กรุณาอนุญาต Popup สำหรับเว็บนี้ครับ");
+          alert("ไม่สามารถเปิดหน้าต่าง Google ได้ (อาจโดนบล็อก Popup)");
         }
       } else {
-        alert("ระบบ Google ยังโหลดไม่เสร็จ กรุณารอสักครู่แล้วลองใหม่ครับ");
+        alert("ระบบ Google ยังโหลดไม่เสร็จ กรุณารอสักครู่");
       }
     });
   };
