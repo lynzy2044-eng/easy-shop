@@ -1,94 +1,125 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-  .menu-icon {
-    width: 28px; height: 28px; object-fit: contain; display: block;
-  }
-  .menu-icon .still,
-  .menu-icon img {
-    width: 100%; height: 100%; object-fit: contain; display: block;
-  }
-
-  /* บังคับสีลิงก์หลักให้เป็นสีดำ */
-  a.dash-card,
-  a.dash-card:link,
-  a.dash-card:visited,
-  a.dash-card:hover,
-  a.dash-card:active {
-    text-decoration: none !important;
-    color: #000000 !important;
+  /* ================= เมนูทั้งหมด (ใช้ class ใหม่ ไม่ซ้ำกับ base.html) ================= */
+  .menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-top: 12px;
   }
 
-  .dash-card h3 {
-    color: #000000 !important;
-  }
-
-  .dash-card p.muted {
-    color: #000000 !important;
-  }
-
-  /* ---- ตัวการ์ด: ความสูงขยายตามเนื้อหาเสมอ ---- */
-  .dash-grid > a.dash-card {
-    position: relative;
+  .menu-tile {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
     box-sizing: border-box;
-    display: flex !important;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    padding: 20px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    color: #000000;
+    text-decoration: none;
+    transition: transform 0.35s ease, opacity 0.35s ease, filter 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+  }
+
+  .menu-tile-icon {
+    position: relative;
+    flex: 0 0 56px;
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
     align-items: center;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    overflow: visible !important;
-    line-height: 1.5;
-    transition: transform 0.35s ease, opacity 0.35s ease, filter 0.35s ease, box-shadow 0.35s ease;
+    justify-content: center;
   }
 
-  .dash-grid > a.dash-card > div {
-    height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
+  .menu-tile-icon img {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 32px;
+    height: 32px;
+    transform: translate(-50%, -50%);
+    object-fit: contain;
+    display: block;
+  }
+
+  .menu-tile-icon .anim {
+    opacity: 0;
+  }
+
+  .menu-tile-text {
+    flex: 1;
     min-width: 0;
+    height: auto;
+    overflow: visible;
   }
 
-  .dash-card h3 {
+  .menu-tile-text h3 {
+    margin: 0 0 4px;
+    font-size: 17px;
+    line-height: 1.4;
+    color: #000000;
     transition: transform 0.35s ease;
+  }
+
+  .menu-tile-text p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #000000;
   }
 
   /* ---- เฉพาะอุปกรณ์ที่ใช้เมาส์ได้ ---- */
   @media (hover: hover) and (pointer: fine) {
 
-    /* ซ่อนคำอธิบายไว้ก่อน แต่ยังคงพื้นที่ในเลย์เอาต์ เพื่อไม่ให้การ์ดขยับตอน hover */
-    .dash-card p.muted {
+    /* ซ่อนคำอธิบายไว้ก่อน แต่ยังจองพื้นที่ไว้ เพื่อไม่ให้การ์ดขยับตอน hover */
+    .menu-tile-text p {
       opacity: 0;
-      pointer-events: none;
-      line-height: 1.6;
       transition: opacity 0.3s ease;
     }
 
-    /* การ์ดอื่นตอนมีการ์ดใดถูกชี้อยู่: เบลอและเล็กลง */
-    .dash-grid:hover > a.dash-card {
+    /* การ์ดอื่นตอนมีการ์ดใดถูกชี้: เบลอและเล็กลง */
+    .menu-grid:hover .menu-tile {
       opacity: 0.55;
       filter: blur(1.5px);
       transform: scale(0.96);
     }
 
-    /* การ์ดที่ถูกชี้: ขยายขึ้น ชัด และมีเงาเล็กน้อย */
-    .dash-grid > a.dash-card:hover,
-    .dash-grid > a.dash-card:focus-visible {
+    /* การ์ดที่ถูกชี้: ขยาย ชัด และมีเงา */
+    .menu-tile:hover {
       opacity: 1;
       filter: none;
       transform: scale(1.06);
       z-index: 2;
+      border-color: #2563eb;
       box-shadow: 0 12px 28px rgba(37, 99, 235, 0.18);
     }
 
     /* หัวข้อขยับขึ้นเล็กน้อย */
-    .dash-grid > a.dash-card:hover h3,
-    .dash-grid > a.dash-card:focus-visible h3 {
+    .menu-tile:hover .menu-tile-text h3 {
       transform: translateY(-6px);
     }
 
     /* แสดงคำอธิบาย */
-    .dash-grid > a.dash-card:hover p.muted,
-    .dash-grid > a.dash-card:focus-visible p.muted {
+    .menu-tile:hover .menu-tile-text p {
+      opacity: 1;
+    }
+
+    /* สลับภาพนิ่ง -> GIF เมื่อชี้ */
+    .menu-tile .still {
+      transition: opacity 0.2s ease;
+    }
+    .menu-tile:hover .still {
+      opacity: 0;
+    }
+    .menu-tile:hover .anim {
       opacity: 1;
     }
   }
@@ -104,63 +135,52 @@
 <!-- Dashboard Menus -->
 <section style="margin-bottom: 40px;">
   <h2>เมนูทั้งหมด</h2>
-  <div class="grid dash-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); grid-auto-rows: auto; align-items: stretch;">
+  <div class="menu-grid">
 
     <!-- ซื้อคอร์ส -->
-    <a href="#packages" class="dash-card" data-hover-gif>
-      <div class="dash-icon" style="background: #eff6ff;">
-        <span class="menu-icon">
-          <img class="still" src="{{ url_for('static', filename='icons/still/cart-still.png') }}" alt=""
-               data-still="{{ url_for('static', filename='icons/still/cart-still.png') }}"
-               data-anim="{{ url_for('static', filename='icons/cart.gif') }}">
-        </span>
+    <a href="#packages" class="menu-tile">
+      <div class="menu-tile-icon" style="background: #eff6ff;">
+        <img class="still" src="{{ url_for('static', filename='icons/still/cart-still.png') }}" alt="">
+        <img class="anim" src="{{ url_for('static', filename='icons/cart.gif') }}" alt="">
       </div>
-      <div>
-        <h3 style="margin: 0 0 4px;">ซื้อคอร์สเรียน</h3>
-        <p class="muted" style="margin: 0; font-size: 14px;">เลือกแพ็กเกจที่ใช่สำหรับคุณ</p>
+      <div class="menu-tile-text">
+        <h3>ซื้อคอร์สเรียน</h3>
+        <p>เลือกแพ็กเกจที่ใช่สำหรับคุณ</p>
       </div>
     </a>
 
     <!-- เรียนฟรี -->
-    <a href="{{ url_for('free_lessons') }}" class="dash-card" data-hover-gif>
-      <div class="dash-icon" style="background: #ecfdf5;">
-        <span class="menu-icon">
-          <img class="still" src="{{ url_for('static', filename='icons/still/verified-still.png') }}" alt=""
-               data-still="{{ url_for('static', filename='icons/still/verified-still.png') }}"
-               data-anim="{{ url_for('static', filename='icons/verified.gif') }}">
-        </span>
+    <a href="{{ url_for('free_lessons') }}" class="menu-tile">
+      <div class="menu-tile-icon" style="background: #ecfdf5;">
+        <img class="still" src="{{ url_for('static', filename='icons/still/verified-still.png') }}" alt="">
+        <img class="anim" src="{{ url_for('static', filename='icons/verified.gif') }}" alt="">
       </div>
-      <div>
-        <h3 style="margin: 0 0 4px;">คอร์สเรียนฟรี</h3>
-        <p class="muted" style="margin: 0; font-size: 14px;">ทดลองเรียนก่อนตัดสินใจ</p>
+      <div class="menu-tile-text">
+        <h3>คอร์สเรียนฟรี</h3>
+        <p>ทดลองเรียนก่อนตัดสินใจ</p>
       </div>
     </a>
 
     <!-- เติมเงิน -->
-    <a href="{{ url_for('topup') }}" class="dash-card">
-      <div class="dash-icon" style="background: #fffbeb;">
-        <span class="menu-icon">
-          <img src="{{ url_for('static', filename='icons/wallet.png') }}" alt="">
-        </span>
+    <a href="{{ url_for('topup') }}" class="menu-tile">
+      <div class="menu-tile-icon" style="background: #fffbeb;">
+        <img src="{{ url_for('static', filename='icons/wallet.png') }}" alt="">
       </div>
-      <div>
-        <h3 style="margin: 0 0 4px;">เติมเงินเข้ากระเป๋า</h3>
-        <p class="muted" style="margin: 0; font-size: 14px;">ผ่าน TrueMoney วอเล็ต</p>
+      <div class="menu-tile-text">
+        <h3>เติมเงินเข้ากระเป๋า</h3>
+        <p>ผ่าน TrueMoney วอเล็ต</p>
       </div>
     </a>
 
     <!-- ติดต่อแอดมิน -->
-    <a href="{{ url_for('contact') }}" class="dash-card" data-hover-gif>
-      <div class="dash-icon" style="background: #fef2f2;">
-        <span class="menu-icon">
-          <img class="still" src="{{ url_for('static', filename='icons/still/announce-still.png') }}" alt=""
-               data-still="{{ url_for('static', filename='icons/still/announce-still.png') }}"
-               data-anim="{{ url_for('static', filename='icons/announce.gif') }}">
-        </span>
+    <a href="{{ url_for('contact') }}" class="menu-tile">
+      <div class="menu-tile-icon" style="background: #fef2f2;">
+        <img class="still" src="{{ url_for('static', filename='icons/still/announce-still.png') }}" alt="">
+        <img class="anim" src="{{ url_for('static', filename='icons/announce.gif') }}" alt="">
       </div>
-      <div>
-        <h3 style="margin: 0 0 4px;">ติดต่อแอดมิน</h3>
-        <p class="muted" style="margin: 0; font-size: 14px;">สอบถามข้อมูลหรือแจ้งปัญหา</p>
+      <div class="menu-tile-text">
+        <h3>ติดต่อแอดมิน</h3>
+        <p>สอบถามข้อมูลหรือแจ้งปัญหา</p>
       </div>
     </a>
 
@@ -181,27 +201,4 @@
     {% endfor %}
   </div>
 </section>
-
-<script>
-  // เล่น GIF เมื่อเอาเมาส์ชี้ที่การ์ด (เฉพาะอุปกรณ์ที่ใช้เมาส์ได้) ปกติแสดงภาพนิ่ง
-  if (window.matchMedia('(hover: hover)').matches) {
-    document.querySelectorAll('[data-hover-gif]').forEach(function (card) {
-      const img = card.querySelector('img.still');
-      if (!img) return;
-      const animSrc = img.dataset.anim;
-      const stillSrc = img.dataset.still;
-
-      // โหลด GIF ไว้ล่วงหน้า จะได้เล่นทันทีตอนชี้
-      const preload = new Image();
-      preload.src = animSrc;
-
-      card.addEventListener('mouseenter', function () {
-        img.src = animSrc;
-      });
-      card.addEventListener('mouseleave', function () {
-        img.src = stillSrc;
-      });
-    });
-  }
-</script>
 {% endblock %}
