@@ -16,7 +16,7 @@
   a.dash-card:hover,
   a.dash-card:active {
     text-decoration: none !important;
-    color: #000000 !important; /* บังคับสีดำ */
+    color: #000000 !important;
   }
 
   /* ✅ บังคับสีหัวข้อ (h3) ให้เป็นสีดำ */
@@ -28,6 +28,24 @@
   /* ✅ บังคับสีคำอธิบายย่อย (p) ให้เป็นสีดำ */
   .dash-card p.muted {
     color: #000000 !important;
+  }
+
+  /* ✅ เฉพาะอุปกรณ์ที่ใช้เมาส์ได้: ซ่อนคำอธิบาย แล้วโชว์ตอน hover */
+  @media (hover: hover) and (pointer: fine) {
+    .dash-card p.muted {
+      max-height: 0 !important;
+      opacity: 0;
+      overflow: hidden;
+      margin: 0 !important;
+      transition: max-height 0.3s ease, opacity 0.25s ease, margin 0.3s ease;
+    }
+
+    .dash-card:hover p.muted,
+    .dash-card:focus-visible p.muted {
+      max-height: 60px !important;
+      opacity: 1;
+      margin-top: 4px !important;
+    }
   }
 </style>
 
