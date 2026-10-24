@@ -436,20 +436,11 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 
 /* ================= CHAT WIDGET STYLES ================= */
 .chat-fab-container { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; align-items: flex-end; gap: 16px; }
-
-/* ปุ่มหลัก */
-.chat-fab { 
-  width: 60px; height: 60px; border-radius: 50%; background: #60a5fa; color: #fff; 
-  display: flex; align-items: center; justify-content: center; cursor: pointer; 
-  box-shadow: 0 4px 14px rgba(96, 165, 250, 0.4); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: none;
-}
+.chat-fab { width: 60px; height: 60px; border-radius: 50%; background: #60a5fa; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 14px rgba(96, 165, 250, 0.4); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: none; }
 .chat-fab:hover { transform: scale(1.05); background: #3b82f6; }
 .chat-fab.active { transform: rotate(90deg); background: #ef4444; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4); }
-
-/* เมนูตัวเลือก */
 .chat-menu { display: flex; flex-direction: column; gap: 12px; align-items: flex-end; opacity: 0; pointer-events: none; transform: translateY(20px); transition: all 0.3s ease; }
 .chat-menu.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
-
 .chat-option { display: flex; align-items: center; gap: 12px; cursor: pointer; }
 .chat-option-label { background: #fff; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 700; color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
 .chat-option-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
@@ -457,25 +448,14 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 .chat-option-icon.line { background: #00B900; }
 .chat-option-icon.discord { background: #5865F2; }
 .chat-option-icon.web { background: var(--primary); color: #fff; }
-
-/* หน้าต่างแชทในเว็บ */
-.chat-window {
-  position: absolute; bottom: 80px; right: 0; width: 320px; height: 450px;
-  background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-  display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--line);
-  opacity: 0; pointer-events: none; transform: translateY(20px) scale(0.95); transition: all 0.3s ease;
-  transform-origin: bottom right;
-}
+.chat-window { position: absolute; bottom: 80px; right: 0; width: 320px; height: 450px; background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--line); opacity: 0; pointer-events: none; transform: translateY(20px) scale(0.95); transition: all 0.3s ease; transform-origin: bottom right; }
 .chat-window.show { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
-
 .chat-win-header { background: var(--primary); color: #fff; padding: 16px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
 .chat-win-close { cursor: pointer; background: none; border: none; color: #fff; font-size: 20px; padding: 0; }
-
 .chat-win-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #f8fafc; }
 .chat-win-bubble { max-width: 80%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.4; word-break: break-word; }
 .chat-win-bubble.user { background: #fff; border: 1px solid var(--line); align-self: flex-end; border-bottom-right-radius: 4px; color: var(--text); }
 .chat-win-bubble.admin { background: var(--primary); color: #fff; align-self: flex-start; border-bottom-left-radius: 4px; }
-
 .chat-win-input { padding: 12px; border-top: 1px solid var(--line); display: flex; gap: 8px; background: #fff; }
 .chat-win-input input { margin: 0; padding: 10px 14px; border-radius: 20px; font-size: 14px; }
 .chat-win-input button { padding: 0 16px; border-radius: 20px; width: auto; font-size: 14px; }
@@ -615,7 +595,7 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 {% endif %}
 
 <!-- ================= CHAT WIDGET ================= -->
-<!-- เอา {% if user %} ออกเพื่อให้แสดงตลอดเวลา -->
+<!-- ลบ {% if user %} ออกเพื่อให้ปุ่มแชทโชว์ตลอดเวลา -->
 <div class="chat-fab-container">
   <!-- หน้าต่างแชท -->
   <div class="chat-window" id="chatWindow">
@@ -654,13 +634,11 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
     </div>
   </div>
 
-  <!-- ปุ่มหลัก (เปลี่ยนไอคอนเป็นแบบที่แนบมา) -->
+  <!-- ปุ่มหลัก -->
   <button class="chat-fab" id="chatFab" onclick="toggleChat('menu')">
-    <!-- ไอคอนแชทสีฟ้า 3 จุด -->
     <svg id="iconChat" width="32" height="32" fill="currentColor" viewBox="0 0 24 24">
       <path d="M12 2C6.486 2 2 6.262 2 11.5c0 2.89 1.42 5.488 3.672 7.148L4.5 22l3.6-1.385C9.225 21.195 10.567 21.5 12 21.5c5.514 0 10-4.262 10-9.5S17.514 2 12 2zm-3 9.5c-.828 0-1.5-.672-1.5-1.5s.672-1.5 1.5-1.5 1.5.672 1.5 1.5-.672 1.5-1.5 1.5zm3 0c-.828 0-1.5-.672-1.5-1.5s.672-1.5 1.5-1.5 1.5.672 1.5 1.5-.672 1.5-1.5 1.5zm3 0c-.828 0-1.5-.672-1.5-1.5s.672-1.5 1.5-1.5 1.5.672 1.5 1.5-.672 1.5-1.5 1.5z"/>
     </svg>
-    <!-- ไอคอนกากบาทตอนเปิด -->
     <svg id="iconClose" style="display:none;" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
   </button>
 </div>
