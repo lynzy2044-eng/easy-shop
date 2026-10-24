@@ -1,6 +1,5 @@
 <!-- templates/chat_widget.html -->
 <style>
-  /* สไตล์หลักของ Widget */
   .chat-widget-container {
     position: fixed;
     bottom: 24px;
@@ -9,16 +8,16 @@
     font-family: 'Anuphan', sans-serif;
   }
 
-  /* ปุ่มหลัก (สีฟ้าตามธีมเว็บ) */
+  /* ปุ่มหลัก สีฟ้าธีมเว็บ */
   .chat-fab {
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: var(--primary, #2563eb); /* ใช้สีฟ้าตามธีมเว็บ */
+    background: var(--primary, #2563eb);
     color: white;
     border: none;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4); /* เงาสีฟ้า */
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -36,7 +35,7 @@
     transform: scale(0.95);
   }
 
-  /* ไอคอนในปุ่มหลัก (สลับระหว่างแชตและกากบาท) */
+  /* ไอคอนแชตและกากบาท */
   .chat-fab svg {
     width: 28px;
     height: 28px;
@@ -50,17 +49,17 @@
     transform: rotate(-90deg) scale(0.5);
   }
 
-  /* เมื่อเมนูเปิด ให้เปลี่ยนไอคอน */
-  .chat-fab.active .icon-chat {
+  /* เมื่อเปิดเมนู (Hover หรือ Click) ให้เปลี่ยนไอคอน */
+  .chat-widget-container.active .chat-fab .icon-chat {
     opacity: 0;
     transform: rotate(90deg) scale(0.5);
   }
-  .chat-fab.active .icon-close {
+  .chat-widget-container.active .chat-fab .icon-close {
     opacity: 1;
     transform: rotate(0deg) scale(1);
   }
 
-  /* กล่องเมนูแชต */
+  /* กล่องเมนู */
   .chat-menu {
     position: absolute;
     bottom: 70px;
@@ -75,7 +74,8 @@
     pointer-events: none;
   }
 
-  .chat-menu.active {
+  /* แสดงเมนูเมื่อ Container มีคลาส active */
+  .chat-widget-container.active .chat-menu {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
@@ -107,7 +107,6 @@
     color: var(--primary, #2563eb);
   }
 
-  /* รูปภาพไอคอน */
   .chat-icon {
     width: 38px;
     height: 38px;
@@ -127,73 +126,46 @@
     border-radius: 50%;
   }
 
-  /* ปรับแต่งสำหรับมือถือ */
+  /* มือถือ */
   @media (max-width: 768px) {
-    .chat-widget-container {
-      bottom: 16px;
-      right: 16px;
-    }
-    .chat-fab {
-      width: 50px;
-      height: 50px;
-    }
-    .chat-fab svg {
-      width: 24px;
-      height: 24px;
-    }
-    .chat-menu {
-      bottom: 64px;
-      gap: 10px;
-    }
-    .chat-item {
-      font-size: 13px;
-      padding: 5px 14px 5px 5px;
-    }
-    .chat-icon {
-      width: 32px;
-      height: 32px;
-    }
+    .chat-widget-container { bottom: 16px; right: 16px; }
+    .chat-fab { width: 50px; height: 50px; }
+    .chat-fab svg { width: 24px; height: 24px; }
+    .chat-menu { bottom: 64px; gap: 10px; }
+    .chat-item { font-size: 13px; padding: 5px 14px 5px 5px; }
+    .chat-icon { width: 32px; height: 32px; }
   }
 </style>
 
-<div class="chat-widget-container">
+<div class="chat-widget-container" id="chatWidget">
   <!-- เมนูรายการแชต -->
   <div class="chat-menu" id="chatMenu">
-    <!-- LINE -->
     <a href="https://lin.ee/pXT7nEf" target="_blank" class="chat-item">
       <div class="chat-icon">
-        <!-- ใช้ลิงก์รูป LINE ที่คุณให้มา -->
         <img src="https://media.discordapp.net/attachments/1554254223837757482/1563568355909308426/Pngtreeline_logo_icon_vector_21750904.png?ex=6ade1a01&is=6adcc881&hm=5b0937a0d7d75eee41d42b0a084e707e751d3a1042e969ed718d0664263e49f5&=&format=webp&quality=lossless&width=1024&height=1024" alt="LINE">
       </div>
       <span>ช่องทาง LINE</span>
     </a>
 
-    <!-- Discord -->
     <a href="https://discord.gg/tgYdqS8DAU" target="_blank" class="chat-item">
       <div class="chat-icon">
-        <!-- ใช้ลิงก์รูป Discord ที่คุณให้มา -->
         <img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/discord-round-color-icon.png" alt="Discord">
       </div>
       <span>ช่องทาง Discord</span>
     </a>
 
-    <!-- แชตในเว็บ -->
     <a href="{{ url_for('contact') }}" class="chat-item">
       <div class="chat-icon">
-        <!-- ใช้ลิงก์รูป GIF แชตที่คุณให้มา -->
         <img src="https://media.discordapp.net/attachments/1554254223837757482/1563535515108638801/121.gif?ex=6addfb6b&is=6adca9eb&hm=0b147071012e92d6c05cb3691f2a9995573903f4dee73ad3ea11f4b00980b721&=&width=1024&height=1024" alt="Web Chat">
       </div>
       <span>ช่องทาง Website</span>
     </a>
   </div>
 
-  <!-- ปุ่มหลักสำหรับเปิด/ปิด -->
   <button class="chat-fab" id="chatFab" aria-label="เปิดเมนูแชต">
-    <!-- ไอคอนแชต (แสดงตอนปิด) -->
     <svg class="icon-chat" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
     </svg>
-    <!-- ไอคอนกากบาท (แสดงตอนเปิด) -->
     <svg class="icon-close" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
     </svg>
@@ -202,22 +174,40 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
+    const widget = document.getElementById('chatWidget');
     const fab = document.getElementById('chatFab');
-    const menu = document.getElementById('chatMenu');
 
-    // กดปุ่มเพื่อเปิด/ปิดเมนู
-    fab.addEventListener('click', function(e) {
-      e.preventDefault();
-      fab.classList.toggle('active');
-      menu.classList.toggle('active');
-    });
+    // ตรวจสอบว่าเป็นอุปกรณ์ที่มีเมาส์ (คอมพิวเตอร์) หรือไม่
+    const isDesktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
-    // ปิดเมนูเมื่อคลิกพื้นที่ว่าง
-    document.addEventListener('click', function(e) {
-      if (!fab.contains(e.target) && !menu.contains(e.target)) {
-        fab.classList.remove('active');
-        menu.classList.remove('active');
-      }
-    });
+    if (isDesktop) {
+      // === สำหรับคอมพิวเตอร์: ใช้ Hover ===
+      widget.addEventListener('mouseenter', function() {
+        widget.classList.add('active');
+      });
+      
+      widget.addEventListener('mouseleave', function() {
+        widget.classList.remove('active');
+      });
+      
+      // ป้องกันไม่ให้ต้องกดปุ่ม (แต่ถ้าผู้ใช้เผลอกดก็ไม่เป็นไร)
+      fab.addEventListener('click', function(e) {
+        e.preventDefault(); 
+      });
+
+    } else {
+      // === สำหรับมือถือ/แท็บเล็ต: ใช้การคลิก (ทัชสกรีน) ===
+      fab.addEventListener('click', function(e) {
+        e.preventDefault();
+        widget.classList.toggle('active');
+      });
+
+      // ปิดเมนูเมื่อคลิกพื้นที่ว่าง
+      document.addEventListener('click', function(e) {
+        if (!widget.contains(e.target)) {
+          widget.classList.remove('active');
+        }
+      });
+    }
   });
 </script>
