@@ -93,7 +93,7 @@
        เงื่อนไขที่ 1: "เมื่อเอาเมาส์ไปวางในกริด"
        ให้การ์ดทุกใบ "หดเล็กลง + เบลอ + จางลง"
        ======================================================= */
-    .dashboard-grid:hover .dash-card {
+    .dashboard-grid:has(.dash-card:hover) .dash-card {
       transform: scale(0.92);
       filter: blur(3px) grayscale(20%);
       opacity: 0.6;
@@ -101,10 +101,10 @@
 
     /* =======================================================
        เงื่อนไขที่ 2: "เมื่อชี้ที่การ์ดใบนั้นโดยเฉพาะ"
-       ให้กลับมาขยายใหญ่ + ไม่เบลอ + ไม่จาง + ลอยขึ้น (แก้บั๊กแล้ว)
+       ให้กลับมาขยายใหญ่ + ไม่เบลอ + ไม่จาง + ลอยขึ้น
        ======================================================= */
-    .dashboard-grid .dash-card:hover {
-      transform: scale(1.05) translateY(-5px) !important; /* บังคับให้ขยายและลอยขึ้น */
+    .dash-card:hover {
+      transform: scale(1.05) translateY(-5px); /* ขยาย 5% และลอยขึ้น */
       filter: blur(0) grayscale(0%) !important; /* บังคับให้ไม่เบลอและไม่เป็นสีเทา */
       opacity: 1 !important; /* บังคับให้ไม่จาง */
       z-index: 10; /* ดันให้ลอยทับใบอื่น */
@@ -113,12 +113,12 @@
     }
 
     /* ให้หัวข้อขยับขึ้นนิดนึงเพื่อโชว์คำอธิบาย */
-    .dashboard-grid .dash-card:hover .dash-title {
+    .dash-card:hover .dash-title {
       transform: translateY(-10px);
     }
 
     /* ให้คำอธิบายโผล่ */
-    .dashboard-grid .dash-card:hover .dash-desc {
+    .dash-card:hover .dash-desc {
       grid-template-rows: 1fr;
     }
 
@@ -126,7 +126,7 @@
     .dash-card .dash-icon {
       transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
     }
-    .dashboard-grid .dash-card:hover .dash-icon {
+    .dash-card:hover .dash-icon {
       transform: scale(1.1);
     }
   }
