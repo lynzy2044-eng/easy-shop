@@ -3,7 +3,7 @@
 <style>
   .admin-chat-wrap { display: flex; height: 75vh; max-width: 1000px; margin: 30px auto; background: #fff; border-radius: 16px; border: 1px solid var(--line); overflow: hidden; box-shadow: var(--shadow); }
   .user-list { width: 300px; border-right: 1px solid var(--line); overflow-y: auto; background: #f8fafc; flex-shrink: 0; }
-  .user-list h3 { padding: 16px; margin: 0; font-size: 16px; border-bottom: 1px solid var(--line); background: #fff; }
+  .user-list h3 { padding: 16px; margin: 0; font-size: 16px; border-bottom: 1px solid var(--line); background: #fff; display: flex; justify-content: space-between; align-items: center; }
   .user-item { display: block; padding: 14px 16px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--text); cursor: pointer; transition: background 0.2s; }
   .user-item:hover, .user-item.active { background: var(--primary-soft); border-left: 4px solid var(--primary); }
   .user-item .name { font-weight: 700; font-size: 15px; display: block; }
@@ -23,6 +23,7 @@
   .chat-input-admin input { margin: 0; border-radius: 8px; padding: 12px 16px; border: 1px solid var(--line); flex: 1; }
   
   .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; color: var(--muted); }
+  .refresh-btn { background: #e2e8f0; border: none; padding: 4px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 700; }
 </style>
 
 <div style="max-width: 1000px; margin: 0 auto; padding: 20px 16px;">
@@ -32,15 +33,20 @@
   </div>
 
   <div class="admin-chat-wrap">
-    <div class="user-list" id="userList">
-      <h3>รายชื่อผู้ติดต่อ</h3>
-      {% for u in chat_users %}
-        <div class="user-item" data-id="{{ u.id }}" onclick="openChat({{ u.id }}, '{{ u.username.split('@')[0] }}')">
-          <span class="name">👤 {{ u.username.split('@')[0] }}</span>
-        </div>
-      {% else %}
-        <div style="padding: 20px; text-align: center; color: var(--muted); font-size: 13px;" id="noUserMsg">ยังไม่มีใครทักมา</div>
-      {% endfor %}
+    <div class="user-list">
+      <h3>
+        รายชื่อผู้ติดต่อ
+        <button class="refresh-btn" onclick="forceReloadList()">🔄 โหลดใหม่</button>
+      </h3>
+      <div id="userListContainer">
+        {% for u in chat_users %}
+          <div class="user-item" data-id="{{ u.id }}" onclick="openChat({{ u.id }}, '{{ u.username.split('@')[0] }}')">
+            <span class="name">👤 {{ u.username.split('@')[0] }}</span>
+          </div>
+        {% else %}
+          <div style="padding: 20px; text-align: center; color: var(--muted); font-size: 13px;" id="noUserMsg">ยังไม่มีใครทักมา</div>
+        {% endfor %}
+      </div>
     </div>
 
     <div class="chat-area" id="chatArea">
@@ -63,25 +69,52 @@
 <script>
   let currentUserId = null;
   let lastMsgCount = 0;
-  let refreshInterval = null;
 
   const chatBox = document.getElementById('chatBoxAdmin');
   const chatForm = document.getElementById('chatFormAdmin');
   const msgInput = document.getElementById('msgInputAdmin');
+  const userListContainer = document.getElementById('userListContainer');
+
+  // ฟังก์ชันโหลดรายชื่อ (ใช้แทนการรีเฟรชหน้า)
+  async function forceReloadList() {
+    try {
+      const res = await fetch("{{ url_for('api_chat_users') }}");
+      const data = await res.json();
+      console.log("รายชื่อที่ดึงมาได้:", data); // ดูใน Console
+
+      if (data.ok) {
+        if (data.users.length === 0) {
+          userListContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--muted); font-size: 13px;">ยังไม่มีใครทักมา</div>';
+        } else {
+          userListContainer.innerHTML = '';
+          data.users.forEach(u => {
+            const div = document.createElement('div');
+            div.className = 'user-item';
+            div.dataset.id = u.id;
+            div.onclick = () => openChat(u.id, u.username);
+            div.innerHTML = `<span class="name">👤 ${u.username}</span>`;
+            userListContainer.appendChild(div);
+          });
+        }
+      }
+    } catch (e) { alert("Error: " + e.message); }
+  }
 
   function openChat(userId, username) {
     currentUserId = userId;
     lastMsgCount = 0;
     chatBox.innerHTML = '';
+    
+    // ลบ active เก่า
     document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active'));
-    document.querySelector(`.user-item[data-id="${userId}"]`).classList.add('active');
+    const currentItem = document.querySelector(`.user-item[data-id="${userId}"]`);
+    if (currentItem) currentItem.classList.add('active');
+
     document.getElementById('emptyState').style.display = 'none';
     document.getElementById('activeChat').style.display = 'flex';
     document.getElementById('chatWithName').textContent = 'คุยกับ: ' + username;
 
     loadAdminMessages();
-    if (refreshInterval) clearInterval(refreshInterval);
-    refreshInterval = setInterval(loadAdminMessages, 3000); // โหลดทุก 3 วิ
   }
 
   async function loadAdminMessages() {
@@ -128,28 +161,10 @@
     loadAdminMessages();
   });
 
-  // โหลดรายชื่อใหม่ทุกๆ 5 วินาที (ถ้ามีคนทักมาใหม่ จะได้ขึ้น)
-  setInterval(async () => {
-    const res = await fetch("{{ url_for('api_chat_users') }}");
-    const data = await res.json();
-    if (data.ok) {
-      const list = document.getElementById('userList');
-      const noMsg = document.getElementById('noUserMsg');
-      if (data.users.length > 0 && noMsg) noMsg.remove();
-      
-      // อัปเดตรายชื่อ (แบบง่ายๆ)
-      data.users.forEach(u => {
-        if (!document.querySelector(`.user-item[data-id="${u.id}"]`)) {
-          const div = document.createElement('div');
-          div.className = 'user-item';
-          div.dataset.id = u.id;
-          div.onclick = () => openChat(u.id, u.username);
-          div.innerHTML = `<span class="name">👤 ${u.username}</span>`;
-          list.appendChild(div);
-        }
-      });
-    }
-  }, 5000);
+  // รีเฟรชข้อความทุก 3 วิ
+  setInterval(() => {
+    if(currentUserId) loadAdminMessages();
+  }, 3000);
 
 </script>
 {% endblock %}
