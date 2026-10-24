@@ -469,16 +469,16 @@ def admin_adjust_balance(user_id):
     return redirect(back)
 
 
-# ---------------------------------------------------------------- Chat API (แบบ AJAX)
+# ---------------------------------------------------------------- Chat API (แบบ AJAX Polling)
 @app.route("/api/chat/send", methods=["POST"])
 @login_required
 def api_chat_send():
     user = current_user()
     data = request.get_json(silent=True) or {}
     msg = data.get("message", "").strip()
-    if not msg: return jsonify(ok=False, error="empty_message"), 400
+    if not msg: 
+        return jsonify(ok=False, error="empty_message"), 400
     
-    # ถ้าแอดมินส่ง ให้ระบุ user_id ปลายทาง
     target_id = data.get("target_id")
     sender = "admin" if is_admin_user(user) else "user"
     actual_user_id = int(target_id) if sender == "admin" and target_id else user.id
@@ -489,42 +489,98 @@ def api_chat_send():
     
     return jsonify(ok=True)
 
-
 @app.route("/api/chat/messages")
 @login_required
 def api_chat_messages():
     user = current_user()
-    
-    # 1. ถ้าเป็นแอดมิน และส่ง user_id มา ให้ดึงข้อความของ user คนนั้น
     target_id = request.args.get("user_id")
-    if is_admin_user(user) and target_id:
+    if is_admin_user(user) and target_id: 
         actual_id = int(target_id)
-    else:
+    else: 
         actual_id = user.id
     
     msgs = ChatMessage.query.filter_by(user_id=actual_id).order_by(ChatMessage.created_at.asc()).all()
     
-    # มาร์คว่าอ่านแล้ว
     if is_admin_user(user):
         ChatMessage.query.filter_by(user_id=actual_id, sender="user", is_read=False).update({"is_read": True})
         db.session.commit()
         
     return jsonify(ok=True, messages=[{"sender": m.sender, "message": m.message, "time": m.created_at.strftime("%H:%M")} for m in msgs])
 
-
 @app.route("/api/chat/users")
 @admin_required
 def api_chat_users():
-    # ดึงรายชื่อคนที่เคยทักมา (เรียงจากล่าสุด)
     users_with_chats = db.session.query(User).join(ChatMessage).group_by(User.id).order_by(db.func.max(ChatMessage.created_at).desc()).all()
     return jsonify(ok=True, users=[{"id": u.id, "username": u.username.split('@')[0], "full": u.username} for u in users_with_chats])
-
 
 @app.route("/admin/chats")
 @admin_required
 def admin_chats():
     users_with_chats = db.session.query(User).join(ChatMessage).group_by(User.id).order_by(db.func.max(ChatMessage.created_at).desc()).all()
     return render_template("admin_chats.html", chat_users=users_with_chats)
+
+
+# ---------------------------------------------------------------- Profile API
+@app.route("/profile/accent", methods=["POST"])
+@login_required
+def profile_accent():
+    data = request.get_json(silent=True) or {}
+    accent = str(data.get("accent", "")).strip()
+    if not HEX_RE.match(accent):
+        return jsonify(ok=False, error="invalid_color"), 400
+    user = current_user()
+    p = db.session.get(UserProfile, user.id) or UserProfile(user_id=user.id)
+    p.accent = accent.lower()
+    db.session.add(p)
+    db.session.commit()
+    return jsonify(ok=True, accent=p.accent)
+
+
+@app.route("/profile/banner", methods=["POST"])
+@login_required
+def profile_banner():
+    user = current_user()
+    p = db.session.get(UserProfile, user.id) or UserProfile(user_id=user.id)
+    
+    # รับข้อมูลแบบ JSON (Base64) ที่ผ่านการครอปจากหน้าเว็บแล้ว
+    data = request.get_json(silent=True) or {}
+    
+    if data.get("remove"):
+        p.banner = ""
+    elif data.get("image"):
+        # ตรวจสอบว่าเป็น data URI ของรูปภาพ
+        if not data["image"].startswith("data:image/"):
+            return jsonify(ok=False, error="invalid_image"), 400
+        p.banner = data["image"]
+    else:
+        return jsonify(ok=False, error="no_file"), 400
+        
+    db.session.add(p)
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.route("/profile/avatar", methods=["POST"])
+@login_required
+def profile_avatar():
+    user = current_user()
+    p = db.session.get(UserProfile, user.id) or UserProfile(user_id=user.id)
+    
+    # รับข้อมูลแบบ JSON (Base64) ที่ผ่านการครอปจากหน้าเว็บแล้ว
+    data = request.get_json(silent=True) or {}
+    
+    if data.get("remove"):
+        p.avatar_url = ""
+    elif data.get("image"):
+        if not data["image"].startswith("data:image/"):
+            return jsonify(ok=False, error="invalid_image"), 400
+        p.avatar_url = data["image"]
+    else:
+        return jsonify(ok=False, error="no_file"), 400
+        
+    db.session.add(p)
+    db.session.commit()
+    return jsonify(ok=True)
 
 
 # ---------------------------------------------------------------- Pages
@@ -949,6 +1005,7 @@ def pay(order_id):
         enough=enough,
     )
 
+
 @app.route("/account")
 @login_required
 def account():
@@ -973,68 +1030,6 @@ def account():
         owned=sorted(owned_tracks(user)),
         enrollments=enrollment_data,  # ส่งข้อมูลที่จัดรูปแบบแล้วไปให้หน้าเว็บ
     )
-
-
-@app.route("/profile/accent", methods=["POST"])
-@login_required
-def profile_accent():
-    data = request.get_json(silent=True) or {}
-    accent = str(data.get("accent", "")).strip()
-    if not HEX_RE.match(accent):
-        return jsonify(ok=False, error="invalid_color"), 400
-    user = current_user()
-    p = db.session.get(UserProfile, user.id) or UserProfile(user_id=user.id)
-    p.accent = accent.lower()
-    db.session.add(p)
-    db.session.commit()
-    return jsonify(ok=True, accent=p.accent)
-
-
-@app.route("/profile/banner", methods=["POST"])
-@login_required
-def profile_banner():
-    user = current_user()
-    p = db.session.get(UserProfile, user.id) or UserProfile(user_id=user.id)
-    
-    # รับข้อมูลแบบ JSON (Base64) ที่ผ่านการครอปจากหน้าเว็บแล้ว
-    data = request.get_json(silent=True) or {}
-    
-    if data.get("remove"):
-        p.banner = ""
-    elif data.get("image"):
-        # ตรวจสอบว่าเป็น data URI ของรูปภาพ
-        if not data["image"].startswith("data:image/"):
-            return jsonify(ok=False, error="invalid_image"), 400
-        p.banner = data["image"]
-    else:
-        return jsonify(ok=False, error="no_file"), 400
-        
-    db.session.add(p)
-    db.session.commit()
-    return jsonify(ok=True)
-
-
-@app.route("/profile/avatar", methods=["POST"])
-@login_required
-def profile_avatar():
-    user = current_user()
-    p = db.session.get(UserProfile, user.id) or UserProfile(user_id=user.id)
-    
-    # รับข้อมูลแบบ JSON (Base64) ที่ผ่านการครอปจากหน้าเว็บแล้ว
-    data = request.get_json(silent=True) or {}
-    
-    if data.get("remove"):
-        p.avatar_url = ""
-    elif data.get("image"):
-        if not data["image"].startswith("data:image/"):
-            return jsonify(ok=False, error="invalid_image"), 400
-        p.avatar_url = data["image"]
-    else:
-        return jsonify(ok=False, error="no_file"), 400
-        
-    db.session.add(p)
-    db.session.commit()
-    return jsonify(ok=True)
 
 
 def ensure_dev_account():
