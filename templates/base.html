@@ -802,7 +802,38 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 </script>
 
 {% if request.endpoint != 'contact' %}
-    {% include 'chat_widget.html' %}
+  {% include 'chat_widget.html' %}
+{% endif %}
+
+
+{% if user and is_admin %}
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+  const socketAdmin = io();
+  socketAdmin.emit('join_chat', {});
+  socketAdmin.on('update_admin_list', (data) => {
+    // สร้าง Toast แจ้งเตือน
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed; top:20px; right:20px; background:#fff; padding:16px; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.1); border-left:4px solid #2563eb; z-index:9999; transform:translateX(120%); transition:transform 0.3s ease; display:flex; align-items:center; gap:12px; cursor:pointer;';
+    toast.innerHTML = `
+      <div style="background:#eff6ff; padding:10px; border-radius:50%; color:#2563eb;">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+      </div>
+      <div>
+        <div style="font-weight:700; font-size:14px;">มีแชตใหม่จาก ${data.username.split('@')[0]}</div>
+        <div style="font-size:13px; color:#64748b;">${data.last_msg}</div>
+      </div>
+    `;
+    toast.onclick = () => window.location.href = "{{ url_for('admin_chats') }}";
+    document.body.appendChild(toast);
+    
+    requestAnimationFrame(() => toast.style.transform = 'translateX(0)');
+    setTimeout(() => {
+      toast.style.transform = 'translateX(120%)';
+      setTimeout(() => toast.remove(), 300);
+    }, 5000);
+  });
+</script>
 {% endif %}
 
 </body>
