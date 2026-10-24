@@ -8,7 +8,7 @@
     font-family: 'Anuphan', sans-serif;
     display: flex;
     flex-direction: column;
-    align-items: flex-end; /* ชิดขวา */
+    align-items: flex-end;
   }
 
   /* ปุ่มหลัก สีฟ้าธีมเว็บ */
@@ -32,10 +32,6 @@
   .chat-fab:hover {
     transform: scale(1.05) translateY(-2px);
     box-shadow: 0 6px 16px rgba(37, 99, 235, 0.5);
-  }
-
-  .chat-fab:active {
-    transform: scale(0.95);
   }
 
   /* ไอคอนแชตและกากบาท */
@@ -67,32 +63,32 @@
     flex-direction: column;
     align-items: flex-end;
     gap: 12px;
-    margin-bottom: 14px; /* ระยะห่างระหว่างเมนูกับปุ่ม */
+    margin-bottom: 14px;
     
     opacity: 0;
     visibility: hidden;
     transform: translateY(20px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    pointer-events: none;
+    pointer-events: none; /* ปิดการคลิกตอนซ่อนอยู่ */
   }
 
   .chat-widget-container.active .chat-menu {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
-    pointer-events: auto;
+    pointer-events: auto; /* เปิดให้คลิกได้ */
   }
 
-  /* ท่าไม้ตาย: สร้างพื้นที่โปร่งใสเชื่อมระหว่างเมนูกับปุ่ม 
-     เพื่อไม่ให้เมาส์หลุดโซนเวลาเลื่อนลงมา */
+  /* ท่าไม้ตาย: พื้นที่เชื่อมโยงระหว่างเมนูกับปุ่ม เพื่อไม่ให้เมาส์หลุด */
   .chat-menu::after {
     content: '';
     position: absolute;
-    bottom: -20px; /* ขยายพื้นที่ลงไปหาปุ่ม */
+    bottom: -20px;
     left: 0;
     right: 0;
     height: 30px;
     background: transparent;
+    pointer-events: auto; /* ให้พื้นที่นี้รับเมาส์ด้วย */
   }
 
   /* ปุ่มแต่ละอันในเมนู */
@@ -111,6 +107,7 @@
     font-size: 14px;
     font-weight: 600;
     white-space: nowrap;
+    cursor: pointer; /* บังคับให้เป็นรูปมือ */
   }
 
   .chat-item:hover {
@@ -130,6 +127,7 @@
     overflow: hidden;
     background: #fff;
     border: 1px solid #f1f5f9;
+    pointer-events: none; /* ป้องกันการคลิกติดที่รูป */
   }
 
   .chat-icon img {
@@ -137,6 +135,7 @@
     height: 100%;
     object-fit: cover;
     border-radius: 50%;
+    pointer-events: none;
   }
 
   /* มือถือ */
@@ -189,32 +188,37 @@
   document.addEventListener('DOMContentLoaded', function() {
     const widget = document.getElementById('chatWidget');
     const fab = document.getElementById('chatFab');
+    const menu = document.getElementById('chatMenu');
     
     const isDesktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
     if (isDesktop) {
-      let hoverTimeout;
-
-      // เอาเมาส์เข้าที่ตัว Widget ให้เปิดเมนู
+      // === สำหรับคอมพิวเตอร์: ใช้ Hover เพื่อเปิด และคลิกเพื่อปิด/เปิด ===
+      
+      // 1. เอาเมาส์มาชี้ที่ปุ่มหลัก หรือเมนู -> เปิดค้างไว้
       widget.addEventListener('mouseenter', function() {
-        clearTimeout(hoverTimeout);
         widget.classList.add('active');
       });
-      
-      // เอาเมาส์ออกจาก Widget
+
+      // 2. เอาเมาส์ออกจากพื้นที่ทั้งหมด (ปุ่ม + เมนู) -> หุบลง
       widget.addEventListener('mouseleave', function() {
-        hoverTimeout = setTimeout(function() {
-          widget.classList.remove('active');
-        }, 300); 
+        widget.classList.remove('active');
       });
-      
-    } else {
-      // === สำหรับมือถือ/แท็บเล็ต ===
+
+      // 3. ถ้าผู้ใช้กดปุ่มหลัก (คลิก) -> ให้สลับสถานะ (เผื่อใครอยากกดล็อก)
       fab.addEventListener('click', function(e) {
         e.preventDefault();
         widget.classList.toggle('active');
       });
 
+    } else {
+      // === สำหรับมือถือ/แท็บเล็ต: ใช้การคลิก (ทัชสกรีน) ===
+      fab.addEventListener('click', function(e) {
+        e.preventDefault();
+        widget.classList.toggle('active');
+      });
+
+      // ปิดเมนูเมื่อคลิกพื้นที่ว่าง
       document.addEventListener('click', function(e) {
         if (!widget.contains(e.target)) {
           widget.classList.remove('active');
