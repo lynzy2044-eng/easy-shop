@@ -433,6 +433,64 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   }
   .mobile-auth-bar .btn-login:active { background: var(--primary-dark); transform: scale(0.98); }
 }
+
+/* ---- ปุ่มติดต่อลอยมุมขวาล่าง ---- */
+.cw {
+  position: fixed; right: 20px; bottom: 20px; z-index: 90;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+}
+.cw-toggle {
+  width: 60px; height: 60px; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
+  background: var(--primary); box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--transition);
+}
+.cw-toggle:hover { background: var(--primary-dark); transform: translateY(-2px); }
+.cw-toggle img { width: 34px; height: 34px; object-fit: contain; }
+.cw-menu { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.cw-menu[hidden] { display: none; }
+.cw-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
+  padding: 6px 16px 6px 6px; font-family: inherit; font-size: 15px; font-weight: 700;
+  color: var(--text); text-decoration: none; cursor: pointer;
+  box-shadow: var(--shadow-hover); transition: var(--transition);
+}
+.cw-item:hover { border-color: var(--primary); color: var(--primary); }
+.cw-item img { width: 36px; height: 36px; border-radius: 50%; object-fit: contain; }
+
+/* ---- หน้าต่างแชตในเว็บ ---- */
+.sc {
+  position: fixed; right: 20px; bottom: 100px; z-index: 90;
+  width: 320px; max-width: calc(100vw - 40px); height: 420px;
+  background: var(--surface); border-radius: var(--radius);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.sc[hidden] { display: none; }
+.sc-head {
+  background: var(--primary); color: #fff; font-weight: 700; padding: 14px 16px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.sc-head button { background: none; border: 0; color: #fff; font-size: 18px; cursor: pointer; }
+.sc-body {
+  flex: 1; overflow-y: auto; padding: 12px; background: var(--bg);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.sc-msg { max-width: 80%; padding: 8px 12px; border-radius: 12px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }
+.sc-msg.me { align-self: flex-end; background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
+.sc-msg.admin { align-self: flex-start; background: var(--surface); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+.sc-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--line); }
+.sc-form input { flex: 1; width: auto; margin: 0; }
+.sc-form button {
+  background: var(--primary); color: #fff; border: 0; border-radius: var(--radius-sm);
+  padding: 0 16px; font-family: inherit; font-weight: 700; cursor: pointer;
+}
+
+@media (max-width: 480px) {
+  .cw { right: 14px; bottom: 14px; }
+  .sc { right: 10px; bottom: 90px; }
+}
 </style>
 </head>
 <body>
@@ -566,6 +624,37 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   </div>
 </div>
 {% endif %}
+
+<!-- ===== ปุ่มติดต่อลอยมุมขวาล่าง ===== -->
+<div class="cw">
+  <div class="cw-menu" id="cwMenu" hidden>
+    <a class="cw-item" href="https://lin.ee/pXT7nEf" target="_blank" rel="noopener">
+      <img src="{{ url_for('static', filename='icons/contact-line.png') }}" alt="">LINE
+    </a>
+    <a class="cw-item" href="https://discord.gg/tgYdqS8DAU" target="_blank" rel="noopener">
+      <img src="{{ url_for('static', filename='icons/contact-discord.png') }}" alt="">Discord
+    </a>
+    <button type="button" class="cw-item" onclick="openSupportChat()">
+      <img src="{{ url_for('static', filename='icons/contact-chat.png') }}" alt="">แชทในเว็บ
+    </button>
+  </div>
+  <button type="button" class="cw-toggle" id="cwToggle" aria-label="ติดต่อเรา">
+    <img src="{{ url_for('static', filename='icons/contact-bubble.png') }}" alt="">
+  </button>
+</div>
+
+<!-- ===== หน้าต่างแชตในเว็บ ===== -->
+<div class="sc" id="supportChat" hidden>
+  <div class="sc-head">
+    <span>แชทกับแอดมิน</span>
+    <button type="button" onclick="closeSupportChat()" aria-label="ปิด">✕</button>
+  </div>
+  <div class="sc-body" id="scBody"></div>
+  <form class="sc-form" onsubmit="sendSupport(event)">
+    <input type="text" id="scInput" placeholder="พิมพ์ข้อความ..." autocomplete="off" required>
+    <button type="submit">ส่ง</button>
+  </form>
+</div>
 
 <script>
   const ACCENT = "{{ profile.accent }}";
@@ -734,6 +823,69 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 
     resetToCurrent();
   })();
+
+  // ---------- ปุ่มติดต่อลอยมุมขวาล่าง ----------
+  (function () {
+    const toggle = document.getElementById('cwToggle');
+    const menu = document.getElementById('cwMenu');
+    if (!toggle || !menu) return;
+
+    toggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      menu.hidden = !menu.hidden;
+    });
+
+    // คลิกนอกปุ่มแล้วปิดเมนู
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.cw')) menu.hidden = true;
+    });
+  })();
+
+  // ---------- แชตในเว็บ ----------
+  let supportTimer = null;
+
+  function openSupportChat() {
+    document.getElementById('cwMenu').hidden = true;
+    document.getElementById('supportChat').hidden = false;
+    loadSupport();
+    clearInterval(supportTimer);
+    supportTimer = setInterval(loadSupport, 5000);
+  }
+
+  function closeSupportChat() {
+    document.getElementById('supportChat').hidden = true;
+    clearInterval(supportTimer);
+  }
+
+  async function loadSupport() {
+    try {
+      const res = await fetch('/support/messages');
+      const data = await res.json();
+      const body = document.getElementById('scBody');
+      body.innerHTML = '';
+      data.messages.forEach(function (m) {
+        const div = document.createElement('div');
+        div.className = 'sc-msg ' + (m.sender === 'user' ? 'me' : 'admin');
+        div.textContent = m.text;
+        body.appendChild(div);
+      });
+      body.scrollTop = body.scrollHeight;
+    } catch (err) { }
+  }
+
+  async function sendSupport(e) {
+    e.preventDefault();
+    const input = document.getElementById('scInput');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    await fetch('/support/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text })
+    });
+    loadSupport();
+  }
 
   // ---------- ป๊อปอัปแจ้งผลการทำงาน ----------
   (function () {
