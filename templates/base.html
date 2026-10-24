@@ -433,33 +433,6 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   }
   .mobile-auth-bar .btn-login:active { background: var(--primary-dark); transform: scale(0.98); }
 }
-
-/* ================= CHAT WIDGET STYLES ================= */
-.chat-fab-container { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; align-items: flex-end; gap: 16px; }
-.chat-fab { width: 60px; height: 60px; border-radius: 50%; background: #60a5fa; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 14px rgba(96, 165, 250, 0.4); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: none; }
-.chat-fab:hover { transform: scale(1.05); background: #3b82f6; }
-.chat-fab.active { transform: rotate(90deg); background: #ef4444; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4); }
-.chat-menu { display: flex; flex-direction: column; gap: 12px; align-items: flex-end; opacity: 0; pointer-events: none; transform: translateY(20px); transition: all 0.3s ease; }
-.chat-menu.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
-.chat-option { display: flex; align-items: center; gap: 12px; cursor: pointer; }
-.chat-option-label { background: #fff; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 700; color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-.chat-option-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
-.chat-option-icon img { width: 28px; height: 28px; border-radius: 50%; object-fit: contain; }
-.chat-option-icon.line { background: #00B900; }
-.chat-option-icon.discord { background: #5865F2; }
-.chat-option-icon.web { background: var(--primary); color: #fff; }
-.chat-window { position: absolute; bottom: 80px; right: 0; width: 320px; height: 450px; background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--line); opacity: 0; pointer-events: none; transform: translateY(20px) scale(0.95); transition: all 0.3s ease; transform-origin: bottom right; }
-.chat-window.show { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
-.chat-win-header { background: var(--primary); color: #fff; padding: 16px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
-.chat-win-close { cursor: pointer; background: none; border: none; color: #fff; font-size: 20px; padding: 0; }
-.chat-win-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #f8fafc; }
-.chat-win-bubble { max-width: 80%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.4; word-break: break-word; }
-.chat-win-bubble.user { background: #fff; border: 1px solid var(--line); align-self: flex-end; border-bottom-right-radius: 4px; color: var(--text); }
-.chat-win-bubble.admin { background: var(--primary); color: #fff; align-self: flex-start; border-bottom-left-radius: 4px; }
-.chat-win-input { padding: 12px; border-top: 1px solid var(--line); display: flex; gap: 8px; background: #fff; }
-.chat-win-input input { margin: 0; padding: 10px 14px; border-radius: 20px; font-size: 14px; }
-.chat-win-input button { padding: 0 16px; border-radius: 20px; width: auto; font-size: 14px; }
-/* ====================================================== */
 </style>
 </head>
 <body>
@@ -593,56 +566,6 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   </div>
 </div>
 {% endif %}
-
-<!-- ================= CHAT WIDGET ================= -->
-<!-- ลบ {% if user %} ออกเพื่อให้ปุ่มแชทโชว์ตลอดเวลา -->
-<div class="chat-fab-container">
-  <!-- หน้าต่างแชท -->
-  <div class="chat-window" id="chatWindow">
-    <div class="chat-win-header">
-      <span>พูดคุยกับแอดมิน</span>
-      <button class="chat-win-close" onclick="toggleChat('window')">✕</button>
-    </div>
-    <div class="chat-win-messages" id="userChatBox">
-      <div style="text-align:center; font-size:12px; color:var(--muted); margin-bottom:10px;">เริ่มการสนทนาได้เลย</div>
-    </div>
-    <div class="chat-win-input">
-      <input type="text" id="userChatInput" placeholder="พิมพ์ข้อความ..." onkeypress="handleUserEnter(event)">
-      <button class="btn" onclick="sendUserMsg()">ส่ง</button>
-    </div>
-  </div>
-
-  <!-- เมนูตัวเลือก -->
-  <div class="chat-menu" id="chatMenu">
-    <div class="chat-option" onclick="openExternal('line')">
-      <div class="chat-option-label">LINE</div>
-      <div class="chat-option-icon line">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" alt="LINE">
-      </div>
-    </div>
-    <div class="chat-option" onclick="openExternal('discord')">
-      <div class="chat-option-label">Discord</div>
-      <div class="chat-option-icon discord">
-        <img src="https://assets-global.website-files.com/6257adef93867e64f84d5521/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Discord" style="object-fit:contain; width:32px; height:32px;">
-      </div>
-    </div>
-    <div class="chat-option" onclick="toggleChat('window')">
-      <div class="chat-option-label">แชทเว็บ</div>
-      <div class="chat-option-icon web">
-        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-      </div>
-    </div>
-  </div>
-
-  <!-- ปุ่มหลัก -->
-  <button class="chat-fab" id="chatFab" onclick="toggleChat('menu')">
-    <svg id="iconChat" width="32" height="32" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M12 2C6.486 2 2 6.262 2 11.5c0 2.89 1.42 5.488 3.672 7.148L4.5 22l3.6-1.385C9.225 21.195 10.567 21.5 12 21.5c5.514 0 10-4.262 10-9.5S17.514 2 12 2zm-3 9.5c-.828 0-1.5-.672-1.5-1.5s.672-1.5 1.5-1.5 1.5.672 1.5 1.5-.672 1.5-1.5 1.5zm3 0c-.828 0-1.5-.672-1.5-1.5s.672-1.5 1.5-1.5 1.5.672 1.5 1.5-.672 1.5-1.5 1.5zm3 0c-.828 0-1.5-.672-1.5-1.5s.672-1.5 1.5-1.5 1.5.672 1.5 1.5-.672 1.5-1.5 1.5z"/>
-    </svg>
-    <svg id="iconClose" style="display:none;" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
-  </button>
-</div>
-<!-- ================= END CHAT WIDGET ================= -->
 
 <script>
   const ACCENT = "{{ profile.accent }}";
@@ -876,99 +799,6 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 
     requestAnimationFrame(function () { overlay.classList.add('show'); });
   })();
-
-  // ---------- ระบบแชท (Chat Widget) ----------
-  let isChatOpen = false;
-  let userChatPoll = null;
-
-  function toggleChat(type) {
-    const menu = document.getElementById('chatMenu');
-    const windowEl = document.getElementById('chatWindow');
-    const fab = document.getElementById('chatFab');
-    const iconChat = document.getElementById('iconChat');
-    const iconClose = document.getElementById('iconClose');
-
-    if (type === 'menu') {
-      isChatOpen = !isChatOpen;
-      menu.classList.toggle('show', isChatOpen);
-      fab.classList.toggle('active', isChatOpen);
-      iconChat.style.display = isChatOpen ? 'none' : 'block';
-      iconClose.style.display = isChatOpen ? 'block' : 'none';
-      
-      if (!isChatOpen) windowEl.classList.remove('show');
-    } else if (type === 'window') {
-      // ปิดเมนู เปิดหน้าต่างแชท
-      menu.classList.remove('show');
-      fab.classList.remove('active');
-      iconChat.style.display = 'block';
-      iconClose.style.display = 'none';
-      isChatOpen = false;
-      
-      windowEl.classList.add('show');
-      fetchUserMessages();
-      if (userChatPoll) clearInterval(userChatPoll);
-      userChatPoll = setInterval(fetchUserMessages, 3000);
-    }
-  }
-
-  function closeChatWindow() {
-    const windowEl = document.getElementById('chatWindow');
-    if(windowEl) windowEl.classList.remove('show');
-    if (userChatPoll) clearInterval(userChatPoll);
-  }
-
-  // ปุ่มปิดในหน้าต่างแชท
-  const closeBtn = document.querySelector('.chat-win-close');
-  if(closeBtn) closeBtn.addEventListener('click', closeChatWindow);
-
-  function openExternal(app) {
-    // ✅ ใส่ลิงก์ LINE และ Discord ของคุณที่นี่แล้ว
-    const lineUrl = "https://lin.ee/pXT7nEf"; 
-    const discordUrl = "https://discord.gg/tgYdqS8DAU";
-    
-    if (app === 'line') window.open(lineUrl, '_blank');
-    if (app === 'discord') window.open(discordUrl, '_blank');
-  }
-
-  async function fetchUserMessages() {
-    try {
-      const res = await fetch("{{ url_for('chat_messages') }}");
-      const data = await res.json();
-      if (data.ok) {
-        const box = document.getElementById('userChatBox');
-        if(!box) return;
-        box.innerHTML = '<div style="text-align:center; font-size:12px; color:var(--muted); margin-bottom:10px;">เริ่มการสนทนาได้เลย</div>';
-        data.messages.forEach(m => {
-          const div = document.createElement('div');
-          div.className = `chat-win-bubble ${m.is_from_admin ? 'admin' : 'user'}`;
-          div.innerHTML = `${m.message}<div style="font-size:10px; opacity:0.6; text-align:right; margin-top:2px;">${m.time}</div>`;
-          box.appendChild(div);
-        });
-        box.scrollTop = box.scrollHeight;
-      }
-    } catch (e) { }
-  }
-
-  async function sendUserMsg() {
-    const input = document.getElementById('userChatInput');
-    if(!input) return;
-    const txt = input.value.trim();
-    if (!txt) return;
-    
-    input.value = '';
-    try {
-      await fetch("{{ url_for('chat_send') }}", {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({message: txt})
-      });
-      fetchUserMessages();
-    } catch (e) { alert('ส่งไม่สำเร็จ กรุณาลองใหม่'); }
-  }
-
-  function handleUserEnter(e) {
-    if (e.key === 'Enter') sendUserMsg();
-  }
 </script>
 </body>
 </html>
