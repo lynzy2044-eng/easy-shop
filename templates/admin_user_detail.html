@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .u-banner { height: 180px; border-radius: 16px; background: linear-gradient(135deg,#dbeafe,#e0f2fe) center/cover no-repeat; }
+  .u-head { display: flex; align-items: flex-end; gap: 16px; margin-top: -48px; padding: 0 24px; flex-wrap: wrap; }
+  .u-avatar { width: 96px; height: 96px; border-radius: 50%; border: 4px solid #fff; background: #e2e8f0; overflow: hidden;
+              display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 800; color: #475569; }
+  .u-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .info-row { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .info-row span:first-child { color: var(--muted); }
+  .quick { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 16px; }
+  .quick button { border: 1px solid var(--line); background: #f8fafc; border-radius: 10px; padding: 8px 12px; cursor: pointer; font-family: inherit; font-weight: 600; }
+  .quick button:hover { border-color: var(--primary); color: var(--primary); }
+  .flash { padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; font-size: 14px; }
+  .flash.ok { background: #ecfdf5; color: #065f46; }
+  .flash.error { background: #fef2f2; color: #991b1b; }
+  .tbl td, .tbl th { padding: 10px 8px; text-align: left; font-size: 14px; }
+  .tbl tr { border-bottom: 1px solid var(--line); }
+</style>
+
+<div style="max-width: 1000px; margin: 40px auto; padding: 0 16px;">
+  <a href="{{ url_for('admin_users') }}" class="btn ghost" style="width:auto; margin-bottom:20px;">← กลับรายชื่อผู้ใช้</a>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="flash {{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="card" style="padding:0; overflow:hidden; margin-bottom:24px;">
+    <div class="u-banner" {% if info.banner %}style="background-image:url('{{ info.banner }}');"{% endif %}></div>
+    <div class="u-head">
+      <div class="u-avatar">
+        {% if info.avatar %}<img src="{{ info.avatar }}" alt="">{% else %}{{ u.username[:1]|upper }}{% endif %}
+      </div>
+      <div style="padding-bottom:8px;">
+        <h2 style="margin:0;">{{ u.username }}</h2>
+        <p class="muted" style="margin:2px 0 0;">ID: {{ u.id }}</p>
+      </div>
+    </div>
+    <div style="padding:16px 24px 24px;">
+      <div class="info-row"><span>Gmail</span><span>{{ info.email or '-' }}</span></div>
+      <div class="info-row"><span>วันที่สมัคร</span><span>{{ info.created.strftime('%d/%m/%Y %H:%M') if info.created else '-' }}</span></div>
+      <div class="info-row"><span>ยอดคงเหลือ</span><span style="font-weight:800; color:var(--ok); font-size:18px;">{{ "%.2f"|format(u.balance or 0) }} ฿</span></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:24px;">
+    <h3 style="margin-top:0;">💰 ปรับยอดเงิน</h3>
+    <form method="post" action="{{ url_for('admin_adjust_balance', user_id=u.id) }}" onsubmit="return confirm('ยืนยันการปรับยอดเงิน?')">
+      <input type="number" name="amount" id="adjAmount" min="0.01" step="0.01" placeholder="จำนวนเงิน (บาท)" required>
+      <div class="quick">
+        <button type="button" onclick="setAmt(50)">50</button>
+        <button type="button" onclick="setAmt(100)">100</button>
+        <button type="button" onclick="setAmt(500)">500</button>
+        <button type="button" onclick="setAmt(1000)">1,000</button>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <button class="btn" type="submit" name="op" value="add" style="background:var(--ok);">+ เพิ่มเงิน</button>
+        <button class="btn" type="submit" name="op" value="subtract" style="background:#dc2626;">− หักเงิน</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">📜 ประวัติการเติม/ปรับยอดล่าสุด</h3>
+    <div style="overflow-x:auto;">
+      <table class="tbl" style="width:100%; border-collapse:collapse;">
+        <thead><tr><th>วันที่</th><th>ช่องทาง</th><th>ยอด</th></tr></thead>
+        <tbody>
+          {% for h in histories %}
+          <tr>
+            <td>{{ h.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td>
+              {% if h.method == 'truemoney' %}<span style="color:#d97706;">TrueMoney</span>
+              {% elif h.method == 'admin' %}<span style="color:#7c3aed;">แอดมินปรับยอด</span>
+              {% else %}<span style="color:#2563eb;">PromptPay</span>{% endif %}
+            </td>
+            <td style="font-weight:700; color:{{ 'var(--ok)' if h.amount >= 0 else '#dc2626' }};">{{ "%+.2f"|format(h.amount) }} ฿</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3" class="muted" style="text-align:center; padding:20px 0;">ยังไม่มีประวัติ</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  function setAmt(v) { document.getElementById('adjAmount').value = v; }
+</script>
+{% endblock %}
