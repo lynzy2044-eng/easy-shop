@@ -439,11 +439,11 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
 
 /* ปุ่มหลัก */
 .chat-fab { 
-  width: 60px; height: 60px; border-radius: 50%; background: #22c55e; color: #fff; 
+  width: 60px; height: 60px; border-radius: 50%; background: #60a5fa; color: #fff; 
   display: flex; align-items: center; justify-content: center; cursor: pointer; 
-  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.4); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: none;
+  box-shadow: 0 4px 14px rgba(96, 165, 250, 0.4); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: none;
 }
-.chat-fab:hover { transform: scale(1.05); background: #16a34a; }
+.chat-fab:hover { transform: scale(1.05); background: #3b82f6; }
 .chat-fab.active { transform: rotate(90deg); background: #ef4444; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4); }
 
 /* เมนูตัวเลือก */
@@ -612,8 +612,10 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
     </div>
   </div>
 </div>
+{% endif %}
 
 <!-- ================= CHAT WIDGET ================= -->
+<!-- เอา {% if user %} ออกเพื่อให้แสดงตลอดเวลา -->
 <div class="chat-fab-container">
   <!-- หน้าต่างแชท -->
   <div class="chat-window" id="chatWindow">
@@ -652,13 +654,16 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
     </div>
   </div>
 
-  <!-- ปุ่มหลัก -->
+  <!-- ปุ่มหลัก (เปลี่ยนไอคอนเป็นแบบที่แนบมา) -->
   <button class="chat-fab" id="chatFab" onclick="toggleChat('menu')">
-    <svg id="iconChat" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-    <svg id="iconClose" style="display:none;" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+    <!-- ไอคอนแชทสีฟ้า 3 จุด -->
+    <svg id="iconChat" width="32" height="32" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12 2C6.486 2 2 6.262 2 11.5c0 2.89 1.42 5.488 3.672 7.148L4.5 22l3.6-1.385C9.225 21.195 10.567 21.5 12 21.5c5.514 0 10-4.262 10-9.5S17.514 2 12 2zm-3 9.5c-.828 0-1.5-.672-1.5-1.5s.672-1.5 1.5-1.5 1.5.672 1.5 1.5-.672 1.5-1.5 1.5zm3 0c-.828 0-1.5-.672-1.5-1.5s.672-1.5 1.5-1.5 1.5.672 1.5 1.5-.672 1.5-1.5 1.5zm3 0c-.828 0-1.5-.672-1.5-1.5s.672-1.5 1.5-1.5 1.5.672 1.5 1.5-.672 1.5-1.5 1.5z"/>
+    </svg>
+    <!-- ไอคอนกากบาทตอนเปิด -->
+    <svg id="iconClose" style="display:none;" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
   </button>
 </div>
-{% endif %}
 <!-- ================= END CHAT WIDGET ================= -->
 
 <script>
@@ -939,9 +944,9 @@ input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(
   if(closeBtn) closeBtn.addEventListener('click', closeChatWindow);
 
   function openExternal(app) {
-    // ใส่ลิงก์ LINE และ Discord ของคุณที่นี่
-    const lineUrl = "https://line.me/ti/p/~YOUR_LINE_ID"; 
-    const discordUrl = "https://discord.gg/YOUR_INVITE_CODE";
+    // ✅ ใส่ลิงก์ LINE และ Discord ของคุณที่นี่แล้ว
+    const lineUrl = "https://lin.ee/pXT7nEf"; 
+    const discordUrl = "https://discord.gg/tgYdqS8DAU";
     
     if (app === 'line') window.open(lineUrl, '_blank');
     if (app === 'discord') window.open(discordUrl, '_blank');
