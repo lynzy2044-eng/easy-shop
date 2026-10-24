@@ -2,48 +2,37 @@
 {% block content %}
 <style>
   .chat-container { max-width: 800px; margin: 30px auto; background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); overflow: hidden; display: flex; flex-direction: column; height: 75vh; border: 1px solid var(--line); }
-  .chat-header { background: var(--primary); color: #fff; padding: 16px 20px; display: flex; align-items: center; gap: 12px; z-index: 10; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+  .chat-header { background: var(--primary); color: #fff; padding: 16px 20px; display: flex; align-items: center; gap: 12px; z-index: 10; }
   .chat-header h2 { margin: 0; font-size: 18px; font-weight: 700; }
-  .chat-header p { margin: 0; font-size: 13px; opacity: 0.8; }
   .chat-box { flex: 1; padding: 20px; overflow-y: auto; background: #f8fafc; display: flex; flex-direction: column; gap: 16px; }
-  
-  /* ข้อความ */
-  .msg-row { display: flex; width: 100%; }
-  .msg-row.user { justify-content: flex-end; }
-  .msg-row.admin { justify-content: flex-start; }
-  
+  .msg-row { display: flex; width: 100%; } .msg-row.user { justify-content: flex-end; } .msg-row.admin { justify-content: flex-start; }
   .msg-bubble { max-width: 70%; padding: 10px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; position: relative; word-wrap: break-word; display: flex; flex-direction: column; }
   .msg-row.user .msg-bubble { background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
   .msg-row.admin .msg-bubble { background: #fff; color: #333; border: 1px solid var(--line); border-bottom-left-radius: 4px; }
-  
   .msg-time { font-size: 11px; opacity: 0.6; margin-top: 4px; text-align: right; }
   .msg-row.admin .msg-time { text-align: left; }
-
-  /* รูปภาพที่แนบมา */
   .msg-bubble img { max-width: 100%; border-radius: 8px; margin-top: 6px; cursor: pointer; }
-
-  /* กล่องพิมพ์ข้อความแบบ Messenger */
-  .chat-input-area { padding: 12px 16px; background: #fff; border-top: 1px solid var(--line); display: flex; align-items: flex-end; gap: 10px; z-index: 10; position: relative; }
-  .input-wrapper { flex: 1; background: #f1f5f9; border-radius: 20px; padding: 8px 16px; display: flex; align-items: center; min-height: 44px; transition: background 0.2s; }
-  .input-wrapper:focus-within { background: #e2e8f0; }
-  .input-wrapper input { border: none; background: transparent; width: 100%; outline: none; font-size: 15px; padding: 0; margin: 0; color: var(--text); box-shadow: none !important; }
   
-  /* ปุ่มรอบๆ กล่องพิมพ์ */
-  .icon-btn { background: transparent; border: none; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; color: var(--primary); transition: transform 0.2s; border-radius: 50%; }
-  .icon-btn:hover { transform: scale(1.1); background: rgba(37,99,235,0.1); }
+  .chat-input-area { padding: 12px 16px; background: #fff; border-top: 1px solid var(--line); display: flex; align-items: flex-end; gap: 10px; position: relative; }
+  .input-wrapper { flex: 1; background: #f1f5f9; border-radius: 20px; padding: 8px 16px; display: flex; align-items: center; min-height: 44px; }
+  .input-wrapper input { border: none; background: transparent; width: 100%; outline: none; font-size: 15px; padding: 0; margin: 0; }
+  .icon-btn { background: transparent; border: none; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; color: var(--primary); border-radius: 50%; }
   .icon-btn svg { width: 24px; height: 24px; fill: currentColor; }
-  
-  .send-btn { background: var(--primary); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s; flex-shrink: 0; }
-  .send-btn:hover { transform: scale(1.05); }
+  .send-btn { background: var(--primary); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
   .send-btn svg { width: 20px; height: 20px; fill: currentColor; margin-left: 2px; }
 
+  /* Typing Indicator */
+  .typing-indicator { display: none; padding: 12px 16px; background: #fff; border-radius: 18px; border-bottom-left-radius: 4px; width: fit-content; border: 1px solid var(--line); margin-top: 5px; }
+  .typing-indicator span { display: inline-block; width: 6px; height: 6px; background: #94a3b8; border-radius: 50%; margin: 0 2px; animation: bounce 1.4s infinite ease-in-out both; }
+  .typing-indicator span:nth-child(1) { animation-delay: -0.32s; } .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+  @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+  
   /* Popup แนบไฟล์ */
   .attachment-popup { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; display: flex; align-items: flex-end; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.3s; padding: 20px; }
   .attachment-popup.active { opacity: 1; visibility: visible; }
   .attachment-menu { background: #fff; width: 100%; max-width: 400px; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px; transform: translateY(20px); transition: transform 0.3s; }
   .attachment-popup.active .attachment-menu { transform: translateY(0); }
-  
-  .attachment-item { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: 12px; cursor: pointer; transition: background 0.2s; font-weight: 600; color: var(--text); }
+  .attachment-item { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: 12px; cursor: pointer; font-weight: 600; }
   .attachment-item:hover { background: #f1f5f9; }
   .att-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; }
   .att-icon.photo { background: #8b5cf6; }
@@ -52,63 +41,48 @@
   /* Emoji Picker */
   .emoji-picker { position: absolute; bottom: 80px; left: 20px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); display: none; grid-template-columns: repeat(6, 1fr); gap: 8px; z-index: 50; }
   .emoji-picker.active { display: grid; }
-  .emoji-picker span { font-size: 24px; cursor: pointer; padding: 4px; border-radius: 8px; transition: background 0.2s; }
+  .emoji-picker span { font-size: 24px; cursor: pointer; padding: 4px; border-radius: 8px; }
   .emoji-picker span:hover { background: #f1f5f9; }
 
-  /* Typing Indicator (แอดมินกำลังพิมพ์) */
-  .typing-indicator { display: none; padding: 12px 16px; background: #fff; border-radius: 18px; border-bottom-left-radius: 4px; width: fit-content; border: 1px solid var(--line); margin-top: 5px; }
-  .typing-indicator span { display: inline-block; width: 6px; height: 6px; background: #94a3b8; border-radius: 50%; margin: 0 2px; animation: bounce 1.4s infinite ease-in-out both; }
-  .typing-indicator span:nth-child(1) { animation-delay: -0.32s; } 
-  .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
-  @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+  /* แจ้งเตือนข้อความใหม่ */
+  .toast-notification { position: fixed; top: 20px; right: 20px; background: #fff; padding: 16px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-left: 4px solid var(--primary); z-index: 9999; transform: translateX(120%); transition: transform 0.3s ease; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+  .toast-notification.show { transform: translateX(0); }
 </style>
 
-<div class="chat-container" style="position: relative;">
-  <!-- Header -->
+<!-- แจ้งเตือน (ซ่อนไว้) -->
+<div class="toast-notification" id="chatToast" onclick="window.location.href='{{ url_for('contact') }}'">
+  <div style="background: var(--primary-soft); padding: 10px; border-radius: 50%; color: var(--primary);">
+    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+  </div>
+  <div>
+    <div style="font-weight: 700; font-size: 14px;">แอดมินตอบกลับ</div>
+    <div style="font-size: 13px; color: var(--muted);" id="toastMsg">คลิกเพื่อดูข้อความ</div>
+  </div>
+</div>
+
+<div class="chat-container">
   <div class="chat-header">
-    <div style="background: rgba(255,255,255,0.2); padding: 8px; border-radius: 50%; display: flex;">
-      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-    </div>
-    <div>
-      <h2>แชตกับแอดมิน</h2>
-      <p>สอบถามหรือแจ้งปัญหาการใช้งานได้เลย</p>
-    </div>
+    <h2>แชตกับแอดมิน</h2>
   </div>
 
-  <!-- Chat Box -->
   <div class="chat-box" id="chatBox">
     <div style="text-align:center; color:#94a3b8; margin-top:20px; font-size:14px;">👋 สวัสดีครับ มีอะไรให้แอดมินช่วยไหม?</div>
   </div>
 
-  <!-- Typing Indicator (ซ่อนไว้ก่อน) -->
   <div style="padding: 0 20px; background: #f8fafc;">
-    <div class="typing-indicator" id="adminTyping">
-      <span></span><span></span><span></span>
-    </div>
+    <div class="typing-indicator" id="adminTyping"><span></span><span></span><span></span></div>
   </div>
 
-  <!-- Input Area -->
   <form class="chat-input-area" id="chatForm">
     <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFileSelect(this)">
-    
-    <button type="button" class="icon-btn" id="attachBtn" title="แนบรูปภาพ">
-      <svg viewBox="0 0 24 24"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>
-    </button>
-
-    <button type="button" class="icon-btn" id="emojiBtn" title="อิโมจิ">
-      <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
-    </button>
-
+    <button type="button" class="icon-btn" id="attachBtn"><svg viewBox="0 0 24 24"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg></button>
+    <button type="button" class="icon-btn" id="emojiBtn"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg></button>
     <div class="input-wrapper">
       <input type="text" id="msgInput" placeholder="พิมพ์ข้อความ..." autocomplete="off">
     </div>
-
-    <button type="submit" class="send-btn" title="ส่ง">
-      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-    </button>
+    <button type="submit" class="send-btn"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
   </form>
 
-  <!-- Popup แนบไฟล์ -->
   <div class="attachment-popup" id="attachmentPopup">
     <div class="attachment-menu">
       <h3 style="margin: 0 0 10px; text-align: center; font-size: 16px;">แนบไฟล์</h3>
@@ -116,23 +90,16 @@
         <div class="att-icon photo"><svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div>
         <span>รูปภาพ</span>
       </div>
-      <div class="attachment-item" onclick="alert('ระบบแนบไฟล์เอกสารกำลังพัฒนา (เร็วๆ นี้)'); closeAttachmentPopup();">
-        <div class="att-icon file"><svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></div>
-        <span>ไฟล์เอกสาร</span>
-      </div>
       <button class="btn ghost" onclick="closeAttachmentPopup()" style="margin-top: 10px;">ยกเลิก</button>
     </div>
   </div>
 
-  <!-- Emoji Picker -->
   <div class="emoji-picker" id="emojiPicker">
     <span>😀</span><span>😂</span><span>🥰</span><span>😎</span><span>😭</span><span>😡</span>
     <span>👍</span><span>👎</span><span>🙏</span><span>👏</span><span>🔥</span><span>💯</span>
-    <span>❤️</span><span>💔</span><span>✨</span><span>🎉</span><span>💰</span><span>🛒</span>
   </div>
 </div>
 
-<!-- โหลด Socket.IO Client -->
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
   const socket = io();
@@ -142,68 +109,63 @@
   const adminTyping = document.getElementById('adminTyping');
   const emojiPicker = document.getElementById('emojiPicker');
   const attachmentPopup = document.getElementById('attachmentPopup');
+  const toast = document.getElementById('chatToast');
+  const toastMsg = document.getElementById('toastMsg');
   
   const currentUserId = {{ user.id }};
   let typingTimer;
   let isHistoryLoaded = false;
+  let isPageActive = true; // ตรวจสอบว่าอยู่หน้าแชตหรือไม่
 
-  // --- 1. เข้าห้องแชตของตัวเอง ---
+  // เข้าห้อง
   socket.emit('join_chat', { target_id: currentUserId });
 
-  // --- 2. โหลดประวัติข้อความเก่า ---
+  // โหลดประวัติ
   async function loadHistory() {
-    try {
-      const res = await fetch("{{ url_for('api_chat_messages') }}");
-      const data = await res.json();
-      if (data.ok) {
-        const welcome = chatBox.querySelector('div[style*="text-align:center"]');
-        chatBox.innerHTML = '';
-        
-        if (data.messages.length === 0) {
-          chatBox.appendChild(welcome);
-        } else {
-          data.messages.forEach(m => appendMessage(m.message, m.sender, m.time));
-          chatBox.scrollTop = chatBox.scrollHeight;
-        }
-        isHistoryLoaded = true;
+    const res = await fetch("{{ url_for('api_chat_messages') }}");
+    const data = await res.json();
+    if (data.ok) {
+      const welcome = chatBox.querySelector('div[style*="text-align:center"]');
+      chatBox.innerHTML = '';
+      if (data.messages.length === 0) { chatBox.appendChild(welcome); }
+      else {
+        data.messages.forEach(m => appendMessage(m.message, m.sender, m.time));
+        chatBox.scrollTop = chatBox.scrollHeight;
       }
-    } catch (e) { console.error("Load history error:", e); }
+      isHistoryLoaded = true;
+    }
   }
 
-  // --- 3. ฟังก์ชันแสดงข้อความ ---
   function appendMessage(text, sender, time) {
     const row = document.createElement('div');
     row.className = `msg-row ${sender}`;
-    
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
-    
-    // ถ้าเป็น Base64 รูปภาพ
-    if (text.startsWith('data:image/')) {
-      bubble.innerHTML = `<img src="${text}" onclick="window.open(this.src)">`;
-    } else {
-      bubble.innerHTML = text;
-    }
-    
+    if (text.startsWith('data:image/')) bubble.innerHTML = `<img src="${text}" onclick="window.open(this.src)">`;
+    else bubble.innerHTML = text;
     bubble.innerHTML += `<span class="msg-time">${time || 'เมื่อสักครู่'}</span>`;
     row.appendChild(bubble);
     chatBox.appendChild(row);
-    
-    // เลื่อนลงล่างสุดอัตโนมัติ
     chatBox.scrollTop = chatBox.scrollHeight;
   }
 
-  // --- 4. รับข้อความใหม่แบบ Real-time ---
+  // รับข้อความใหม่
   socket.on('new_message', (data) => {
-    // ถ้าโหลดประวัติเสร็จแล้ว ค่อยรับข้อความใหม่ (กันข้อความซ้ำ)
-    if (isHistoryLoaded) {
-      appendMessage(data.message, data.sender, data.time);
+    if (isHistoryLoaded) appendMessage(data.message, data.sender, data.time);
+    if (data.sender === 'admin') {
+      adminTyping.style.display = 'none';
+      
+      // ถ้าไม่ได้อยู่หน้าแชต ให้แจ้งเตือน
+      if (!isPageActive) {
+        toastMsg.textContent = data.message.startsWith('data:image/') ? '📷 ส่งรูปภาพมา' : data.message;
+        toast.classList.add('show');
+        // เล่นเสียงแจ้งเตือน (ถ้ามีไฟล์เสียง)
+        // new Audio('/static/notify.mp3').play();
+        setTimeout(() => toast.classList.remove('show'), 5000);
+      }
     }
-    // ซ่อน Typing เมื่อมีข้อความใหม่ส่งมา
-    if (data.sender === 'admin') adminTyping.style.display = 'none';
   });
 
-  // --- 5. รับสถานะ "กำลังพิมพ์" จากแอดมิน ---
   socket.on('typing_status', (data) => {
     if (data.sender === 'admin') {
       adminTyping.style.display = data.is_typing ? 'block' : 'none';
@@ -211,77 +173,46 @@
     }
   });
 
-  // --- 6. ส่งข้อความ (พิมพ์) ---
   chatForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const text = msgInput.value.trim();
     if (!text) return;
-
     msgInput.value = '';
-    // ส่งผ่าน Socket
     socket.emit('send_message', { message: text, target_id: currentUserId });
-    // แจ้งว่าหยุดพิมพ์
     socket.emit('typing', { target_id: currentUserId, is_typing: false });
     clearTimeout(typingTimer);
   });
 
-  // --- 7. ตรวจจับการพิมพ์ ---
   msgInput.addEventListener('input', () => {
     socket.emit('typing', { target_id: currentUserId, is_typing: true });
     clearTimeout(typingTimer);
-    typingTimer = setTimeout(() => {
-      socket.emit('typing', { target_id: currentUserId, is_typing: false });
-    }, 1500);
+    typingTimer = setTimeout(() => socket.emit('typing', { target_id: currentUserId, is_typing: false }), 1500);
   });
 
-  // --- 8. ส่งรูปภาพ ---
   function handleFileSelect(input) {
     const file = input.files[0];
     if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      alert('ไฟล์ใหญ่เกิน 5MB กรุณาเลือกไฟล์ใหม่');
-      input.value = '';
-      return;
-    }
-
+    if (file.size > 5 * 1024 * 1024) { alert('ไฟล์ใหญ่เกิน 5MB'); input.value = ''; return; }
     const reader = new FileReader();
-    reader.onload = function(e) {
-      const base64Image = e.target.result;
-      socket.emit('send_message', { message: base64Image, target_id: currentUserId });
-    };
+    reader.onload = (e) => socket.emit('send_message', { message: e.target.result, target_id: currentUserId });
     reader.readAsDataURL(file);
     input.value = ''; 
   }
 
-  // --- 9. เปิด/ปิด Popup และ Emoji ---
-  document.getElementById('attachBtn').addEventListener('click', () => {
-    attachmentPopup.classList.add('active');
-  });
-  function closeAttachmentPopup() {
-    attachmentPopup.classList.remove('active');
-  }
-  attachmentPopup.addEventListener('click', (e) => {
-    if (e.target === attachmentPopup) closeAttachmentPopup();
-  });
+  document.getElementById('attachBtn').addEventListener('click', () => attachmentPopup.classList.add('active'));
+  function closeAttachmentPopup() { attachmentPopup.classList.remove('active'); }
+  attachmentPopup.addEventListener('click', (e) => { if (e.target === attachmentPopup) closeAttachmentPopup(); });
 
-  document.getElementById('emojiBtn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    emojiPicker.classList.toggle('active');
-  });
-  document.addEventListener('click', (e) => {
-    if (!emojiPicker.contains(e.target) && e.target.id !== 'emojiBtn') {
-      emojiPicker.classList.remove('active');
-    }
-  });
+  document.getElementById('emojiBtn').addEventListener('click', (e) => { e.stopPropagation(); emojiPicker.classList.toggle('active'); });
+  document.addEventListener('click', (e) => { if (!emojiPicker.contains(e.target) && e.target.id !== 'emojiBtn') emojiPicker.classList.remove('active'); });
   emojiPicker.querySelectorAll('span').forEach(span => {
-    span.addEventListener('click', () => {
-      msgInput.value += span.textContent;
-      msgInput.focus();
-    });
+    span.addEventListener('click', () => { msgInput.value += span.textContent; msgInput.focus(); });
   });
 
-  // --- เริ่มต้นโหลดประวัติ ---
+  // ตรวจสอบว่าอยู่หน้าแชตหรือไม่
+  window.addEventListener('focus', () => { isPageActive = true; toast.classList.remove('show'); });
+  window.addEventListener('blur', () => { isPageActive = false; });
+
   loadHistory();
 </script>
 {% endblock %}
