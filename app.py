@@ -209,15 +209,8 @@ def admin_required(view):
 
 
 def new_order_amount(price_baht):
-    """สุ่มสตางค์ 0.01-0.99 ที่ไม่ซ้ำกับออเดอร์ที่กำลังรอจ่าย"""
-    cutoff = utcnow() - ORDER_TTL
-    active = Order.query.filter(Order.status == "pending", Order.created_at > cutoff).all()
-    used = {o.amount_satang for o in active}
-    base = price_baht * 100
-    options = [base + c for c in range(1, 100) if base + c not in used]
-    if not options:
-        abort(503)
-    return random.choice(options)
+    """แก้ไข: ให้ใช้ราคาเต็มเป็นจำนวนเต็ม ไม่ต้องสุ่มสตางค์แล้ว"""
+    return int(price_baht * 100)
 
 
 def qr_data_uri(text):
