@@ -143,18 +143,6 @@ class UserProfile(db.Model):
     accent = db.Column(db.String(7), default="#2563eb")  # สีไฮไลท์ เช่น #2563eb
 
 
-class ChatMessage(db.Model):
-    """ตารางสำหรับเก็บข้อความแชท"""
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    is_from_admin = db.Column(db.Boolean, default=False)
-    message = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=utcnow)
-    is_read = db.Column(db.Boolean, default=False)
-
-    user = db.relationship("User", backref="chat_messages")
-
-
 # ---------------------------------------------------------------- Helpers
 def get_setting(key, default=""):
     setting = db.session.get(SiteSetting, key)
@@ -458,110 +446,6 @@ def admin_adjust_balance(user_id):
     )
     flash(f"ปรับยอดเรียบร้อย ({signed:+,.2f} ฿) คงเหลือ {new_balance:,.2f} ฿", "ok")
     return redirect(back)
-
-
-# ---------------------------------------------------------------- Admin: จัดการแชท
-@app.route("/admin/chats")
-@admin_required
-def admin_chats():
-    # ดึงรายชื่อคนที่เคยแชท พร้อมข้อความล่าสุด
-    users_chatted = db.session.query(User).join(ChatMessage).distinct().all()
-    
-    chat_list = []
-    for u in users_chatted:
-        last_msg = ChatMessage.query.filter_by(user_id=u.id).order_by(ChatMessage.created_at.desc()).first()
-        unread_count = ChatMessage.query.filter_by(user_id=u.id, is_from_admin=False, is_read=False).count()
-        chat_list.append({
-            "user": u,
-            "last_msg": last_msg,
-            "unread": unread_count
-        })
-        
-    chat_list.sort(key=lambda x: x["last_msg"].created_at, reverse=True)
-    return render_template("admin_chats.html", chat_list=chat_list)
-
-
-@app.route("/api/admin/chat/<int:user_id>", methods=["GET", "POST"])
-@admin_required
-def admin_chat_detail(user_id):
-    user = db.get_or_404(User, user_id)
-    
-    if request.method == "POST":
-        data = request.get_json(silent=True) or {}
-        msg_text = data.get("message", "").strip()
-        if msg_text:
-            msg = ChatMessage(user_id=user.id, message=msg_text, is_from_admin=True)
-            db.session.add(msg)
-            db.session.commit()
-        return jsonify(ok=True)
-        
-    # GET method
-    msgs = (ChatMessage.query.filter_by(user_id=user.id)
-            .order_by(ChatMessage.created_at.asc()).limit(100).all())
-            
-    # มาร์คว่าอ่านแล้ว
-    ChatMessage.query.filter_by(user_id=user.id, is_from_admin=False, is_read=False).update({"is_read": True})
-    db.session.commit()
-    
-    result = []
-    for m in msgs:
-        result.append({
-            "id": m.id,
-            "message": m.message,
-            "is_from_admin": m.is_from_admin,
-            "time": m.created_at.strftime('%d/%m %H:%M'),
-        })
-    return jsonify(ok=True, messages=result, username=user.username)
-
-
-# ---------------------------------------------------------------- Chat System
-@app.route("/api/chat/send", methods=["POST"])
-@login_required
-def chat_send():
-    user = current_user()
-    data = request.get_json(silent=True) or {}
-    msg_text = data.get("message", "").strip()
-    
-    if not msg_text:
-        return jsonify(ok=False, error="ข้อความว่างเปล่า"), 400
-        
-    msg = ChatMessage(user_id=user.id, message=msg_text, is_from_admin=False)
-    db.session.add(msg)
-    db.session.commit()
-    
-    # แจ้งเตือน Discord เมื่อมีคนทักแชท
-    discord_notify(
-        "💬 มีข้อความแชทใหม่",
-        color=0x00FF66,
-        fields={
-            "จาก": user.username,
-            "ข้อความ": msg_text[:100] + ("..." if len(msg_text) > 100 else ""),
-        }
-    )
-    
-    return jsonify(ok=True)
-
-@app.route("/api/chat/messages")
-@login_required
-def chat_messages():
-    user = current_user()
-    # ดึงข้อความ 50 รายการล่าสุด
-    msgs = (ChatMessage.query.filter_by(user_id=user.id)
-            .order_by(ChatMessage.created_at.asc()).limit(50).all())
-            
-    # อัปเดตสถานะว่าอ่านแล้ว
-    ChatMessage.query.filter_by(user_id=user.id, is_from_admin=True, is_read=False).update({"is_read": True})
-    db.session.commit()
-
-    result = []
-    for m in msgs:
-        result.append({
-            "id": m.id,
-            "message": m.message,
-            "is_from_admin": m.is_from_admin,
-            "time": m.created_at.strftime('%H:%M'),
-        })
-    return jsonify(ok=True, messages=result)
 
 
 # ---------------------------------------------------------------- Pages
