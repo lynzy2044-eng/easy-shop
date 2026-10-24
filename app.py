@@ -27,19 +27,17 @@ app = Flask(__name__)
 app.config.update(
     SECRET_KEY=os.getenv("SECRET_KEY") or secrets.token_hex(32),
     SQLALCHEMY_DATABASE_URI=os.getenv("DATABASE_URL", "sqlite:///shop.db"),
-    MAX_CONTENT_LENGTH=10 * 1024 * 1024, # 10MB สำหรับอัปโหลดแบนเนอร์
+    MAX_CONTENT_LENGTH=10 * 1024 * 1024,
     GOOGLE_CLIENT_ID=os.getenv("GOOGLE_CLIENT_ID", ""),
     GOOGLE_CLIENT_SECRET=os.getenv("GOOGLE_CLIENT_SECRET", ""),
     PROMPTPAY_PHONE=os.getenv("PROMPTPAY_PHONE", ""),
     ADMIN_EMAIL=os.getenv("ADMIN_EMAIL", ""),
-    # ตั้งค่าคุกกี้เซสชัน
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=bool(os.getenv("VERCEL")),  # บน Vercel เป็น https เสมอ
-    PERMANENT_SESSION_LIFETIME=timedelta(days=30),   # ให้ล็อกอินค้างไว้ 30 วัน
+    SESSION_COOKIE_SECURE=bool(os.getenv("VERCEL")),
+    PERMANENT_SESSION_LIFETIME=timedelta(days=30),
 )
 
-# แก้ไข URL ของ PostgreSQL ให้ Flask-SQLAlchemy รู้จัก (บางที Vercel ให้มาเป็น postgres://)
 if app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgres://"):
     app.config["SQLALCHEMY_DATABASE_URI"] = app.config["SQLALCHEMY_DATABASE_URI"].replace("postgres://", "postgresql://", 1)
 
@@ -49,30 +47,18 @@ SHOP_NAME = os.getenv("SHOP_NAME", "CapCut PC Course")
 PROMPTPAY_PHONE = os.getenv("PROMPTPAY_PHONE", "")
 ORDER_TTL = timedelta(minutes=30)
 
-# รายชื่อแอดมิน: ค่าจาก ADMIN_EMAIL (เช่น lynzy2044) รวมกับบัญชี dev จาก DEV_USERNAME
 ADMIN_USERNAMES = {
     name.strip().lower()
     for name in (os.getenv("ADMIN_EMAIL", "") + "," + os.getenv("DEV_USERNAME", "")).split(",")
     if name.strip()
 }
 
-# ราคาเป็นตัวอย่าง แก้ได้ตามต้องการ
 PACKAGES = {
-    "basic": {
-        "name": "Basic", "price": 10, "tracks": ["basic"],
-        "description": "ตัดต่อพื้นฐาน ตัดคลิปจนส่งออกได้เองทุกขั้นตอน",
-    },
-    "advanced": {
-        "name": "Advanced", "price": 890, "tracks": ["advanced"],
-        "description": "จังหวะ คีย์เฟรม สี และเสียง ทำให้งานดูโปร",
-    },
-    "bundle": {
-        "name": "Bundle", "price": 1090, "tracks": ["basic", "advanced"],
-        "description": "ครบทั้ง Basic และ Advanced ประหยัดกว่าซื้อแยก",
-    },
+    "basic": {"name": "Basic", "price": 10, "tracks": ["basic"], "description": "ตัดต่อพื้นฐาน ตัดคลิปจนส่งออกได้เองทุกขั้นตอน"},
+    "advanced": {"name": "Advanced", "price": 890, "tracks": ["advanced"], "description": "จังหวะ คีย์เฟรม สี และเสียง ทำให้งานดูโปร"},
+    "bundle": {"name": "Bundle", "price": 1090, "tracks": ["basic", "advanced"], "description": "ครบทั้ง Basic และ Advanced ประหยัดกว่าซื้อแยก"},
 }
 
-# ---------------------------------------------------------------- Models
 def utcnow():
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
@@ -130,13 +116,12 @@ class UserProfile(db.Model):
 class ChatMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    sender = db.Column(db.String(10), nullable=False) # 'user' หรือ 'admin'
+    sender = db.Column(db.String(10), nullable=False)
     message = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=utcnow)
     is_read = db.Column(db.Boolean, default=False)
     user = db.relationship("User", backref="chat_messages")
 
-# ---------------------------------------------------------------- Helpers
 def get_setting(key, default=""):
     setting = db.session.get(SiteSetting, key)
     return setting.value if setting else default
@@ -228,7 +213,6 @@ def file_too_large(_e):
     flash("ไฟล์รูปใหญ่เกิน 10 MB กรุณาลดขนาดรูปภาพ", "err")
     return redirect(request.referrer or url_for("index"))
 
-# ---------------------------------------------------------------- Admin Routes
 @app.route("/admin")
 @admin_required
 def admin_dashboard():
@@ -249,7 +233,7 @@ def admin_dashboard():
 
     histories = TopupHistory.query.order_by(TopupHistory.created_at.desc()).limit(50).all()
     btn = {"pad_y": get_setting("btn_pad_y", "14"), "pad_x": get_setting("btn_pad_x", "32"), "font_size": get_setting("btn_font_size", "16"), "radius": get_setting("btn_radius", "12")}
-
+    
     chat_users = db.session.query(User).join(ChatMessage).group_by(User.id).order_by(db.func.max(ChatMessage.created_at).desc()).all()
 
     return render_template("admin.html", total=topup_sum(), tm=topup_sum("truemoney"), pp=topup_sum("promptpay"),
@@ -312,7 +296,7 @@ def admin_adjust_balance(user_id):
     db.session.commit()
     return redirect(back)
 
-# ---------------------------------------------------------------- Chat API (แบบ AJAX)
+# ---------------------------------------------------------------- Chat API
 @app.route("/api/chat/send", methods=["POST"])
 @login_required
 def api_chat_send():
@@ -321,7 +305,6 @@ def api_chat_send():
     msg = data.get("message", "").strip()
     if not msg: return jsonify(ok=False, error="empty_message"), 400
     
-    # ถ้าแอดมินส่ง ให้ระบุ user_id ปลายทาง
     target_id = data.get("target_id")
     sender = "admin" if is_admin_user(user) else "user"
     actual_user_id = int(target_id) if sender == "admin" and target_id else user.id
@@ -329,24 +312,17 @@ def api_chat_send():
     new_msg = ChatMessage(user_id=actual_user_id, sender=sender, message=msg)
     db.session.add(new_msg)
     db.session.commit()
-    
     return jsonify(ok=True)
 
 @app.route("/api/chat/messages")
 @login_required
 def api_chat_messages():
     user = current_user()
-    
-    # 1. ถ้าเป็นแอดมิน และส่ง user_id มา ให้ดึงข้อความของ user คนนั้น
     target_id = request.args.get("user_id")
-    if is_admin_user(user) and target_id:
-        actual_id = int(target_id)
-    else:
-        actual_id = user.id
+    if is_admin_user(user) and target_id: actual_id = int(target_id)
+    else: actual_id = user.id
     
     msgs = ChatMessage.query.filter_by(user_id=actual_id).order_by(ChatMessage.created_at.asc()).all()
-    
-    # มาร์คว่าอ่านแล้ว
     if is_admin_user(user):
         ChatMessage.query.filter_by(user_id=actual_id, sender="user", is_read=False).update({"is_read": True})
         db.session.commit()
@@ -356,7 +332,6 @@ def api_chat_messages():
 @app.route("/api/chat/users")
 @admin_required
 def api_chat_users():
-    # ดึงรายชื่อคนที่เคยทักมา (เรียงจากล่าสุด)
     users_with_chats = db.session.query(User).join(ChatMessage).group_by(User.id).order_by(db.func.max(ChatMessage.created_at).desc()).all()
     return jsonify(ok=True, users=[{"id": u.id, "username": u.username.split('@')[0], "full": u.username} for u in users_with_chats])
 
@@ -365,6 +340,46 @@ def api_chat_users():
 def admin_chats():
     users_with_chats = db.session.query(User).join(ChatMessage).group_by(User.id).order_by(db.func.max(ChatMessage.created_at).desc()).all()
     return render_template("admin_chats.html", chat_users=users_with_chats)
+
+# ---------------------------------------------------------------- Profile API
+@app.route("/profile/accent", methods=["POST"])
+@login_required
+def profile_accent():
+    data = request.get_json(silent=True) or {}
+    accent = str(data.get("accent", "")).strip()
+    if HEX_RE.match(accent):
+        p = db.session.get(UserProfile, current_user().id) or UserProfile(user_id=current_user().id)
+        p.accent = accent.lower(); db.session.add(p); db.session.commit()
+        return jsonify(ok=True)
+    return jsonify(ok=False), 400
+
+@app.route("/profile/banner", methods=["POST"])
+@login_required
+def profile_banner():
+    user = current_user()
+    p = db.session.get(UserProfile, user.id) or UserProfile(user_id=user.id)
+    data = request.get_json(silent=True) or {}
+    if data.get("remove"): p.banner = ""
+    elif data.get("image"):
+        if not data["image"].startswith("data:image/"): return jsonify(ok=False, error="invalid_image"), 400
+        p.banner = data["image"]
+    else: return jsonify(ok=False, error="no_file"), 400
+    db.session.add(p); db.session.commit()
+    return jsonify(ok=True)
+
+@app.route("/profile/avatar", methods=["POST"])
+@login_required
+def profile_avatar():
+    user = current_user()
+    p = db.session.get(UserProfile, user.id) or UserProfile(user_id=user.id)
+    data = request.get_json(silent=True) or {}
+    if data.get("remove"): p.avatar_url = ""
+    elif data.get("image"):
+        if not data["image"].startswith("data:image/"): return jsonify(ok=False, error="invalid_image"), 400
+        p.avatar_url = data["image"]
+    else: return jsonify(ok=False, error="no_file"), 400
+    db.session.add(p); db.session.commit()
+    return jsonify(ok=True)
 
 # ---------------------------------------------------------------- Pages
 @app.route("/")
@@ -515,24 +530,7 @@ def account():
                 "created_at": e.created_at
             })
 
-    return render_template(
-        "account.html",
-        orders=orders,
-        packages=PACKAGES,
-        owned=sorted(owned_tracks(user)),
-        enrollments=enrollment_data,  # ส่งข้อมูลที่จัดรูปแบบแล้วไปให้หน้าเว็บ
-    )
-
-@app.route("/profile/accent", methods=["POST"])
-@login_required
-def profile_accent():
-    data = request.get_json(silent=True) or {}
-    accent = str(data.get("accent", "")).strip()
-    if HEX_RE.match(accent):
-        p = db.session.get(UserProfile, current_user().id) or UserProfile(user_id=current_user().id)
-        p.accent = accent.lower(); db.session.add(p); db.session.commit()
-        return jsonify(ok=True)
-    return jsonify(ok=False), 400
+    return render_template("account.html", orders=orders, packages=PACKAGES, owned=sorted(owned_tracks(user)), enrollments=enrollment_data)
 
 def ensure_dev_account():
     dev_user = os.getenv("DEV_USERNAME", "").strip().lower()
