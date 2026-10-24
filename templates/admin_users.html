@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .u-thumb { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: #e2e8f0;
+             display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: #475569; vertical-align: middle; overflow: hidden; }
+  .u-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .eye-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px;
+             border-radius: 10px; background: #eff6ff; color: #2563eb; border: 0; cursor: pointer; text-decoration: none; transition: .2s; }
+  .eye-btn:hover { background: #2563eb; color: #fff; }
+  .tbl td, .tbl th { padding: 12px 8px; text-align: left; }
+  .tbl tr { border-bottom: 1px solid var(--line); }
+  .tbl th { border-bottom: 2px solid var(--line); font-size: 14px; }
+</style>
+
+<div style="max-width: 1000px; margin: 40px auto; padding: 0 16px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:24px;">
+    <div>
+      <h1 style="margin:0;">👥 จัดการผู้ใช้</h1>
+      <p class="muted" style="margin:4px 0 0;">ทั้งหมด {{ users|length }} คน</p>
+    </div>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn ghost" style="width:auto;">← กลับหลังบ้าน</a>
+  </div>
+
+  <form method="get" style="display:flex; gap:8px; margin-bottom:20px;">
+    <input type="text" name="q" value="{{ q }}" placeholder="ค้นหาด้วย Username" style="margin:0; flex:1;">
+    <button class="btn" type="submit" style="width:auto;">ค้นหา</button>
+  </form>
+
+  <div class="card" style="overflow-x:auto;">
+    <table class="tbl" style="width:100%; border-collapse:collapse; font-size:14px;">
+      <thead>
+        <tr><th></th><th>Username</th><th>Gmail</th><th>วันที่สมัคร</th><th>ยอดคงเหลือ</th><th style="text-align:center;">รายละเอียด</th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>
+            <span class="u-thumb">
+              {% if u.avatar %}<img src="{{ u.avatar }}" alt="">{% else %}{{ u.username[:1]|upper }}{% endif %}
+            </span>
+          </td>
+          <td style="font-weight:600;">{{ u.username }}</td>
+          <td>{{ u.email or '-' }}</td>
+          <td>{{ u.created.strftime('%d/%m/%Y') if u.created else '-' }}</td>
+          <td style="font-weight:700; color:var(--ok);">{{ "%.2f"|format(u.balance) }} ฿</td>
+          <td style="text-align:center;">
+            <a class="eye-btn" href="{{ url_for('admin_user_detail', user_id=u.id) }}" title="ดูรายละเอียด" aria-label="ดูรายละเอียด">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="muted" style="text-align:center; padding:24px 0;">ไม่พบผู้ใช้</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
