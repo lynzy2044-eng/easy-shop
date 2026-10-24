@@ -196,13 +196,13 @@
         {% if enrollments %}
           <ul style="padding-left: 20px; margin: 0; color: #475569;">
             {% for e in enrollments %}
-              <li style="margin-bottom: 8px;">{{ e.lesson.title }} <span class="muted" style="font-size:12px;">({{ e.created_at.strftime('%d/%m/%Y') }})</span></li>
+              <!-- เปลี่ยนจาก e.lesson.title เป็น e.title และ e.created_at ตรงๆ -->
+              <li style="margin-bottom: 8px;">{{ e.title }} <span class="muted" style="font-size:12px;">({{ e.created_at.strftime('%d/%m/%Y') }})</span></li>
             {% endfor %}
           </ul>
         {% else %}
           <p class="muted" style="font-size:14px;">ยังไม่มีประวัติการเรียนฟรี</p>
         {% endif %}
-      </div>
 
       <div class="card">
         <h3>ประวัติการสั่งซื้อ</h3>
