@@ -1,43 +1,69 @@
 <!-- templates/chat_widget.html -->
 <style>
-  /* สไตล์สำหรับปุ่มแชตลอย */
+  /* สไตล์หลักของ Widget */
   .chat-widget-container {
     position: fixed;
     bottom: 24px;
     right: 24px;
-    z-index: 1000;
+    z-index: 9999;
     font-family: 'Anuphan', sans-serif;
   }
 
+  /* ปุ่มหลัก (สีฟ้าตามธีมเว็บ) */
   .chat-fab {
-    width: 60px;
-    height: 60px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
-    background: #4CAF50; /* สีเขียวคล้ายในรูป */
+    background: var(--primary, #2563eb); /* ใช้สีฟ้าตามธีมเว็บ */
     color: white;
     border: none;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4); /* เงาสีฟ้า */
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.3s ease, background 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    outline: none;
   }
 
   .chat-fab:hover {
-    transform: scale(1.05);
-    background: #43a047;
+    transform: scale(1.05) translateY(-2px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.5);
   }
 
+  .chat-fab:active {
+    transform: scale(0.95);
+  }
+
+  /* ไอคอนในปุ่มหลัก (สลับระหว่างแชตและกากบาท) */
   .chat-fab svg {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     fill: currentColor;
+    position: absolute;
+    transition: all 0.3s ease;
   }
 
+  .chat-fab .icon-close {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.5);
+  }
+
+  /* เมื่อเมนูเปิด ให้เปลี่ยนไอคอน */
+  .chat-fab.active .icon-chat {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.5);
+  }
+  .chat-fab.active .icon-close {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+
+  /* กล่องเมนูแชต */
   .chat-menu {
     position: absolute;
-    bottom: 75px;
+    bottom: 70px;
     right: 0;
     display: flex;
     flex-direction: column;
@@ -46,14 +72,17 @@
     visibility: hidden;
     transform: translateY(20px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
   }
 
   .chat-menu.active {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
+    pointer-events: auto;
   }
 
+  /* ปุ่มแต่ละอันในเมนู */
   .chat-item {
     display: flex;
     align-items: center;
@@ -61,82 +90,112 @@
     text-decoration: none;
     color: #333;
     background: white;
-    padding: 8px 16px 8px 8px;
+    padding: 6px 16px 6px 6px;
     border-radius: 30px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    border: 1px solid var(--line, #e2e8f0);
+    transition: all 0.2s ease;
     font-size: 14px;
     font-weight: 600;
+    white-space: nowrap;
   }
 
   .chat-item:hover {
     transform: translateX(-5px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    border-color: var(--primary, #2563eb);
+    color: var(--primary, #2563eb);
   }
 
+  /* รูปภาพไอคอน */
   .chat-icon {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    background: #fff;
+    border: 1px solid #f1f5f9;
   }
 
   .chat-icon img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    border-radius: 50%;
   }
 
-  /* สีพื้นหลังสำหรับไอคอนแชตในเว็บ */
-  .chat-icon.web {
-    background: #60a5fa; 
-  }
-  .chat-icon.web svg {
-    width: 20px;
-    height: 20px;
-    fill: white;
+  /* ปรับแต่งสำหรับมือถือ */
+  @media (max-width: 768px) {
+    .chat-widget-container {
+      bottom: 16px;
+      right: 16px;
+    }
+    .chat-fab {
+      width: 50px;
+      height: 50px;
+    }
+    .chat-fab svg {
+      width: 24px;
+      height: 24px;
+    }
+    .chat-menu {
+      bottom: 64px;
+      gap: 10px;
+    }
+    .chat-item {
+      font-size: 13px;
+      padding: 5px 14px 5px 5px;
+    }
+    .chat-icon {
+      width: 32px;
+      height: 32px;
+    }
   }
 </style>
 
 <div class="chat-widget-container">
+  <!-- เมนูรายการแชต -->
   <div class="chat-menu" id="chatMenu">
-    <!-- ลิงก์ LINE -->
+    <!-- LINE -->
     <a href="https://lin.ee/pXT7nEf" target="_blank" class="chat-item">
       <div class="chat-icon">
-        <img src="{{ url_for('static', filename='icons/line.png') }}" alt="LINE" style="background:#00B900; padding: 4px;">
+        <!-- ใช้ลิงก์รูป LINE ที่คุณให้มา -->
+        <img src="https://media.discordapp.net/attachments/1554254223837757482/1563568355909308426/Pngtreeline_logo_icon_vector_21750904.png?ex=6ade1a01&is=6adcc881&hm=5b0937a0d7d75eee41d42b0a084e707e751d3a1042e969ed718d0664263e49f5&=&format=webp&quality=lossless&width=1024&height=1024" alt="LINE">
       </div>
       <span>แชตผ่าน LINE</span>
     </a>
 
-    <!-- ลิงก์ Discord -->
+    <!-- Discord -->
     <a href="https://discord.gg/tgYdqS8DAU" target="_blank" class="chat-item">
       <div class="chat-icon">
-        <img src="{{ url_for('static', filename='icons/discord.png') }}" alt="Discord">
+        <!-- ใช้ลิงก์รูป Discord ที่คุณให้มา -->
+        <img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/discord-round-color-icon.png" alt="Discord">
       </div>
       <span>แชตผ่าน Discord</span>
     </a>
 
-    <!-- ลิงก์แชตในเว็บ (ชี้ไปที่หน้าติดต่อแอดมินเดิม) -->
+    <!-- แชตในเว็บ -->
     <a href="{{ url_for('contact') }}" class="chat-item">
-      <div class="chat-icon web">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
-          <circle cx="8" cy="10" r="1.5" fill="#60a5fa"/>
-          <circle cx="12" cy="10" r="1.5" fill="#60a5fa"/>
-          <circle cx="16" cy="10" r="1.5" fill="#60a5fa"/>
-        </svg>
+      <div class="chat-icon">
+        <!-- ใช้ลิงก์รูป GIF แชตที่คุณให้มา -->
+        <img src="https://media.discordapp.net/attachments/1554254223837757482/1563535515108638801/121.gif?ex=6addfb6b&is=6adca9eb&hm=0b147071012e92d6c05cb3691f2a9995573903f4dee73ad3ea11f4b00980b721&=&width=1024&height=1024" alt="Web Chat">
       </div>
       <span>แชตในเว็บ</span>
     </a>
   </div>
 
-  <!-- ปุ่มหลัก -->
+  <!-- ปุ่มหลักสำหรับเปิด/ปิด -->
   <button class="chat-fab" id="chatFab" aria-label="เปิดเมนูแชต">
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <!-- ไอคอนแชต (แสดงตอนปิด) -->
+    <svg class="icon-chat" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+    </svg>
+    <!-- ไอคอนกากบาท (แสดงตอนเปิด) -->
+    <svg class="icon-close" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
     </svg>
   </button>
 </div>
@@ -146,14 +205,17 @@
     const fab = document.getElementById('chatFab');
     const menu = document.getElementById('chatMenu');
 
+    // กดปุ่มเพื่อเปิด/ปิดเมนู
     fab.addEventListener('click', function(e) {
       e.preventDefault();
+      fab.classList.toggle('active');
       menu.classList.toggle('active');
     });
 
-    // ปิดเมนูเมื่อคลิกที่อื่น
+    // ปิดเมนูเมื่อคลิกพื้นที่ว่าง
     document.addEventListener('click', function(e) {
       if (!fab.contains(e.target) && !menu.contains(e.target)) {
+        fab.classList.remove('active');
         menu.classList.remove('active');
       }
     });
