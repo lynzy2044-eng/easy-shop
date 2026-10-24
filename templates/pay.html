@@ -134,14 +134,20 @@
     <!-- ==================================================== -->
     <!-- กรณีเงินในกระเป๋าพอ: หน้ายืนยันซื้อทันที -->
     <!-- ==================================================== -->
-    <div class="enough">
-      <p>ยอดเงินในกระเป๋าของคุณเพียงพอแล้ว</p>
-      <small>ระบบจะหักจากกระเป๋า {{ "%.2f"|format(price) }} ฿ ทันทีเมื่อยืนยัน</small>
-    </div>
-
-    <form method="post" onsubmit="showLoading(this)">
+    <form method="post" onsubmit="showLoading(this)" style="margin-bottom: 20px;">
       <input type="hidden" name="method" value="pay_with_balance">
 
+      <!-- กล่องสีเขียว -->
+      <div class="enough" style="margin-bottom: 20px; padding: 24px;">
+        <p style="margin-bottom: 16px;">ยอดเงินในกระเป๋าของคุณเพียงพอแล้ว</p>
+        <button class="submit" type="submit" id="buyBtn" disabled style="background: var(--ok);">
+          <img class="spinner" src="{{ url_for('static', filename='icons/spinner-blue.gif') }}" alt="">
+          <span>ยืนยันซื้อคอร์สด้วยเงินในกระเป๋า</span>
+        </button>
+        <small style="margin-top: 12px; display: block;">ระบบจะหักจากกระเป๋า {{ price|int }} ฿ ทันทีเมื่อยืนยัน</small>
+      </div>
+
+      <!-- ข้อตกลง -->
       <div class="terms-box" id="termsBox">
         <h4>ข้อตกลงระหว่างเรียน</h4>
         <p>1. คอร์สนี้มีไว้สำหรับการเรียนส่วนบุคคลของผู้ซื้อเท่านั้น ห้ามแชร์ บันทึก หรือเผยแพร่ไฟล์วิดีโอ ลิงก์บทเรียน หรือเนื้อหาในคอร์สให้ผู้อื่น</p>
@@ -161,11 +167,6 @@
         <input type="checkbox" name="agree" value="1" id="agreeChk" disabled>
         <span>ฉันได้อ่านและยินยอมข้อตกลงระหว่างเรียนแล้ว</span>
       </label>
-
-      <button class="submit" type="submit" id="buyBtn" disabled>
-        <img class="spinner" src="{{ url_for('static', filename='icons/spinner-blue.gif') }}" alt="">
-        <span>ยืนยันซื้อคอร์สนี้</span>
-      </button>
     </form>
 
     {% else %}
@@ -190,12 +191,12 @@
       <div class="qr-box">
         <div class="qr-head">
           <span>สแกน QR พร้อมเพย์</span>
-          <span class="amt">฿{{ "%.2f"|format(amount_to_pay) }}</span>
+          <span class="amt">฿{{ amount_to_pay|int }}</span>
         </div>
         <div class="qr-img">
           <img src="{{ qr }}" alt="PromptPay QR">
         </div>
-        <div class="qr-note">สแกนแล้วโอน {{ "%.2f"|format(amount_to_pay) }} บาท ระบบจะตรวจสอบทันที</div>
+        <div class="qr-note">สแกนแล้วโอน {{ amount_to_pay|int }} บาท ระบบจะตรวจสอบทันที</div>
       </div>
 
       <p class="hint">โอนเงินตามยอดด้านบน แล้วแนบสลิปเพื่อให้ระบบตรวจสอบอัตโนมัติ</p>
@@ -240,9 +241,9 @@
 
     <!-- รายละเอียดคำสั่งซื้อ -->
     <div class="pay-summary">
-      <div class="row"><span>ราคาคอร์ส</span><span>{{ "%.2f"|format(price) }} ฿</span></div>
-      <div class="row discount"><span>หักจากกระเป๋า</span><span>-{{ "%.2f"|format(pay_from_balance) }} ฿</span></div>
-      <div class="row total"><span>ยอดที่ต้องชำระ</span><span>{{ "%.2f"|format(amount_to_pay) }} ฿</span></div>
+      <div class="row"><span>ราคาคอร์ส</span><span>{{ price|int }} ฿</span></div>
+      <div class="row discount"><span>หักจากกระเป๋า</span><span>-{{ pay_from_balance|int }} ฿</span></div>
+      <div class="row total"><span>ยอดที่ต้องชำระ</span><span>{{ amount_to_pay|int }} ฿</span></div>
     </div>
 
   </div>
