@@ -4,7 +4,6 @@ import os
 import random
 import secrets
 import re
-import traceback
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 
@@ -17,7 +16,6 @@ from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from google_auth_oauthlib.flow import Flow
 from sqlalchemy.exc import IntegrityError
-from werkzeug.exceptions import HTTPException
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from notify import discord_notify
@@ -280,17 +278,6 @@ def file_too_large(_e):
     return redirect(request.referrer or url_for("index"))
 
 
-@app.errorhandler(Exception)
-def handle_unexpected_error(e):
-    """ส่ง HTTP error ปกติกลับไปตามเดิม และบันทึก traceback ของข้อผิดพลาดอื่นลง log"""
-    if isinstance(e, HTTPException):
-        return e
-    db.session.rollback()
-    print("=== UNHANDLED ERROR ===")
-    traceback.print_exc()
-    return "เกิดข้อผิดพลาดภายในระบบ กรุณาลองใหม่อีกครั้ง", 500
-
-
 # ---------------------------------------------------------------- Admin Routes
 @app.route("/admin")
 @admin_required
@@ -532,17 +519,16 @@ def register():
             session["uid"] = user.id
             flash("สมัครสมาชิกสำเร็จ ยินดีต้อนรับ!", "ok")
             return redirect(url_for("index"))
-
+            
     return render_template("auth.html", mode="register")
-
 
 @app.route("/check_username", methods=["POST"])
 def check_username():
-    data = request.get_json(silent=True) or {}
-    username = str(data.get("username", "")).strip().lower()
+    data = request.get_json()
+    username = data.get("username", "").strip().lower()
     if not username:
         return jsonify(available=False, message="กรุณากรอก Username")
-
+        
     user = User.query.filter_by(username=username).first()
     if user:
         return jsonify(available=False, message="❌ Username นี้มีคนใช้แล้ว")
@@ -593,7 +579,7 @@ def forgot_password():
             db.session.commit()
             flash("✅ เปลี่ยนรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบ", "ok")
             return redirect(url_for("login"))
-
+            
     return render_template("forgot.html")
 
 
@@ -661,6 +647,7 @@ def auth_google():
         return jsonify(ok=True, redirect=url_for("index"))
 
     except Exception as e:
+        import traceback
         traceback.print_exc()
         return jsonify(ok=False, error=str(e)), 401
 
@@ -718,10 +705,7 @@ def topup():
         # 3. PromptPay: ตรวจสอบสลิป
         elif method == "verify_slip":
             file = request.files.get("slip")
-            try:
-                expected = float(request.form.get("expected_amount", 0))
-            except ValueError:
-                expected = 0.0
+            expected = float(request.form.get("expected_amount", 0))
             if not file or not file.filename:
                 flash("กรุณาแนบรูปสลิป", "err")
             else:
@@ -740,7 +724,6 @@ def topup():
                 except SlipError as e:
                     flash(f"❌ สลิปไม่ถูกต้อง: {e.user_message}", "err")
                 except Exception as e:
-                    db.session.rollback()
                     flash(f"⚠️ เกิดข้อผิดพลาด: {str(e)}", "err")
 
     history = TopupHistory.query.filter_by(user_id=user.id).order_by(TopupHistory.created_at.desc()).all()
@@ -887,7 +870,6 @@ def pay(order_id):
         enough=enough,
     )
 
-
 @app.route("/account")
 @login_required
 def account():
@@ -923,10 +905,10 @@ def profile_accent():
 def profile_banner():
     user = current_user()
     p = db.session.get(UserProfile, user.id) or UserProfile(user_id=user.id)
-
+    
     # รับข้อมูลแบบ JSON (Base64) ที่ผ่านการครอปจากหน้าเว็บแล้ว
     data = request.get_json(silent=True) or {}
-
+    
     if data.get("remove"):
         p.banner = ""
     elif data.get("image"):
@@ -936,7 +918,7 @@ def profile_banner():
         p.banner = data["image"]
     else:
         return jsonify(ok=False, error="no_file"), 400
-
+        
     db.session.add(p)
     db.session.commit()
     return jsonify(ok=True)
@@ -947,10 +929,10 @@ def profile_banner():
 def profile_avatar():
     user = current_user()
     p = db.session.get(UserProfile, user.id) or UserProfile(user_id=user.id)
-
+    
     # รับข้อมูลแบบ JSON (Base64) ที่ผ่านการครอปจากหน้าเว็บแล้ว
     data = request.get_json(silent=True) or {}
-
+    
     if data.get("remove"):
         p.avatar_url = ""
     elif data.get("image"):
@@ -959,7 +941,7 @@ def profile_avatar():
         p.avatar_url = data["image"]
     else:
         return jsonify(ok=False, error="no_file"), 400
-
+        
     db.session.add(p)
     db.session.commit()
     return jsonify(ok=True)
