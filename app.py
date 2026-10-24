@@ -1,7 +1,3 @@
-# ต้องอยู่บรรทัดแรกสุดก่อน import อื่นทั้งหมด (สำหรับ Socket.IO + eventlet)
-import eventlet
-eventlet.monkey_patch()
-
 import base64
 import io
 import os
@@ -13,13 +9,13 @@ from functools import wraps
 
 import qrcode
 from dotenv import load_dotenv
-from flask import (Flask, abort, flash, jsonify, redirect, render_template,
+from flask import (Flask, Response, abort, flash, jsonify, redirect, render_template,
                    request, session, url_for)
 from flask_sqlalchemy import SQLAlchemy
-from flask_socketio import SocketIO, join_room, emit
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from google_auth_oauthlib.flow import Flow
+from pusher import Pusher
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -50,9 +46,16 @@ if app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgres://"):
 
 db = SQLAlchemy(app)
 
-# Socket.IO สำหรับแชตเรียลไทม์ (max_http_buffer_size รองรับรูปที่แปลงเป็น base64)
-MAX_CHAT_CHARS = 3_000_000
-socketio = SocketIO(app, async_mode="eventlet", max_http_buffer_size=MAX_CHAT_CHARS)
+# Pusher สำหรับแชตเรียลไทม์ (ใช้ได้บน Vercel)
+PUSHER_APP_ID = os.getenv("PUSHER_APP_ID", "")
+PUSHER_KEY = os.getenv("PUSHER_KEY", "")
+PUSHER_SECRET = os.getenv("PUSHER_SECRET", "")
+PUSHER_CLUSTER = os.getenv("PUSHER_CLUSTER", "ap1")
+pusher_client = Pusher(app_id=PUSHER_APP_ID, key=PUSHER_KEY, secret=PUSHER_SECRET,
+                       cluster=PUSHER_CLUSTER, ssl=True)
+
+MAX_TEXT_CHARS = 2000        # ข้อความตัวอักษร (Pusher จำกัดขนาด payload ที่ 10KB)
+MAX_IMAGE_CHARS = 3_000_000  # รูปที่แปลงเป็น base64 (เก็บลง DB ไม่ส่งผ่าน Pusher)
 
 SHOP_NAME = os.getenv("SHOP_NAME", "CapCut PC Course")
 PROMPTPAY_PHONE = os.getenv("PROMPTPAY_PHONE", "")
@@ -296,6 +299,8 @@ def inject_globals():
         "btn_radius": f"{get_setting('btn_radius', '12')}px",
         "profile": profile_for(user),
         "google_client_id": app.config["GOOGLE_CLIENT_ID"],
+        "pusher_key": PUSHER_KEY,
+        "pusher_cluster": PUSHER_CLUSTER,
     }
 
 
@@ -478,60 +483,7 @@ def admin_adjust_balance(user_id):
     return redirect(back)
 
 
-# ---------------------------------------------------------------- Chat API (แบบ AJAX Polling)
-# เก็บไว้เพื่อให้หน้าเดิมยังใช้งานได้ หน้าใหม่ใช้ Socket.IO ด้านล่างแทน
-@app.route("/api/chat/send", methods=["POST"])
-@login_required
-def api_chat_send():
-    user = current_user()
-    data = request.get_json(silent=True) or {}
-    msg = data.get("message", "").strip()
-    if not msg: 
-        return jsonify(ok=False, error="empty_message"), 400
-    
-    target_id = data.get("target_id")
-    sender = "admin" if is_admin_user(user) else "user"
-    actual_user_id = int(target_id) if sender == "admin" and target_id else user.id
-    
-    new_msg = ChatMessage(user_id=actual_user_id, sender=sender, message=msg)
-    db.session.add(new_msg)
-    db.session.commit()
-    broadcast_chat(new_msg)  # แจ้งเตือนแบบเรียลไทม์ให้ทุกฝั่งที่เปิดแชตอยู่
-    
-    return jsonify(ok=True)
-
-@app.route("/api/chat/messages")
-@login_required
-def api_chat_messages():
-    user = current_user()
-    target_id = request.args.get("user_id")
-    if is_admin_user(user) and target_id: 
-        actual_id = int(target_id)
-    else: 
-        actual_id = user.id
-    
-    msgs = ChatMessage.query.filter_by(user_id=actual_id).order_by(ChatMessage.created_at.asc()).all()
-    
-    if is_admin_user(user):
-        ChatMessage.query.filter_by(user_id=actual_id, sender="user", is_read=False).update({"is_read": True})
-        db.session.commit()
-        
-    return jsonify(ok=True, messages=[{"sender": m.sender, "message": m.message, "time": m.created_at.strftime("%H:%M")} for m in msgs])
-
-@app.route("/api/chat/users")
-@admin_required
-def api_chat_users():
-    users_with_chats = db.session.query(User).join(ChatMessage).group_by(User.id).order_by(db.func.max(ChatMessage.created_at).desc()).all()
-    return jsonify(ok=True, users=[{"id": u.id, "username": u.username.split('@')[0], "full": u.username} for u in users_with_chats])
-
-@app.route("/admin/chats")
-@admin_required
-def admin_chats():
-    users_with_chats = db.session.query(User).join(ChatMessage).group_by(User.id).order_by(db.func.max(ChatMessage.created_at).desc()).all()
-    return render_template("admin_chats.html", chat_users=users_with_chats)
-
-
-# ---------------------------------------------------------------- Realtime Chat (Socket.IO)
+# ---------------------------------------------------------------- Chat (Pusher)
 def _int_or_zero(value):
     try:
         return int(value or 0)
@@ -540,121 +492,147 @@ def _int_or_zero(value):
 
 
 def chat_payload(msg, username):
+    body = msg.message
+    if body.startswith("data:image/"):
+        body = f"/api/chat/image/{msg.id}"   # ส่งแค่ลิงก์รูป ไม่ส่ง base64 ผ่าน Pusher
     return {
         "id": msg.id,
         "user_id": msg.user_id,
         "username": username,
         "sender": msg.sender,
-        "body": msg.message,
+        "body": body,
         "time": msg.created_at.strftime("%H:%M"),
     }
 
 
 def broadcast_chat(msg):
-    """ส่งข้อความใหม่ให้เจ้าของแชต (ห้อง user_<id>) และแอดมินทุกคน (ห้อง admins)"""
-    owner = db.session.get(User, msg.user_id)
-    payload = chat_payload(msg, owner.username if owner else "")
-    socketio.emit("new_message", payload, to=f"user_{msg.user_id}")
-    socketio.emit("new_message", payload, to="admins")
+    """ส่งข้อความให้เจ้าของแชต (private-user-<id>) และแอดมิน (private-admins)"""
+    try:
+        owner = db.session.get(User, msg.user_id)
+        payload = chat_payload(msg, owner.username if owner else "")
+        pusher_client.trigger([f"private-user-{msg.user_id}", "private-admins"], "new_message", payload)
+    except Exception as e:
+        print(f"[pusher] ส่งข้อความไม่สำเร็จ: {e}")   # ข้อความยังถูกบันทึกใน DB แล้ว
 
 
-@socketio.on("connect")
-def on_connect(auth=None):
+@app.route("/pusher/auth", methods=["POST"])
+def pusher_auth():
+    """ตรวจสิทธิ์ก่อนให้ browser subscribe ช่องแชต"""
     user = current_user()
     if not user:
-        return False                       # ไม่ได้ login ปฏิเสธการเชื่อมต่อ
-    if is_admin_user(user):
-        join_room("admins")
-    join_room(f"user_{user.id}")           # แต่ละ user อยู่ห้องของตัวเองเสมอ
+        return jsonify(error="unauthorized"), 403
 
+    channel = request.form.get("channel_name", "")
+    socket_id = request.form.get("socket_id", "")
 
-@socketio.on("load_history")
-def on_load_history(data=None):
-    user = current_user()
-    if not user:
-        return []
-    data = data or {}
-    if is_admin_user(user):
-        target_id = _int_or_zero(data.get("user_id"))
-        if not target_id:
-            return []
+    if channel == "private-admins":
+        allowed = is_admin_user(user)
+    elif channel.startswith("private-user-"):
+        uid = _int_or_zero(channel[len("private-user-"):])
+        allowed = bool(uid) and (uid == user.id or is_admin_user(user))
     else:
-        target_id = user.id                # user ดูได้เฉพาะของตัวเอง
+        allowed = False
 
-    msgs = (ChatMessage.query.filter_by(user_id=target_id)
-            .order_by(ChatMessage.created_at.desc()).limit(100).all())
-    return [chat_payload(m, m.user.username) for m in reversed(msgs)]
+    if not allowed:
+        return jsonify(error="forbidden"), 403
+    return jsonify(pusher_client.authenticate(channel=channel, socket_id=socket_id))
 
 
-@socketio.on("send_message")
-def on_send_message(data=None):
+@app.route("/api/chat/send", methods=["POST"])
+@login_required
+def api_chat_send():
     user = current_user()
-    data = data or {}
-    text = str(data.get("body") or "").strip()
-    if not user or not text or len(text) > MAX_CHAT_CHARS:
-        return
+    data = request.get_json(silent=True) or {}
+    body = str(data.get("message") or "").strip()
+    if not body:
+        return jsonify(ok=False, error="empty_message"), 400
+
+    is_image = body.startswith("data:image/")
+    if is_image and len(body) > MAX_IMAGE_CHARS:
+        return jsonify(ok=False, error="image_too_large"), 400
+    if not is_image and len(body) > MAX_TEXT_CHARS:
+        return jsonify(ok=False, error="text_too_long"), 400
 
     if is_admin_user(user):
         target = db.session.get(User, _int_or_zero(data.get("target_id")))
         if not target:
-            return
+            return jsonify(ok=False, error="no_target"), 400
         sender = "admin"
     else:
-        target = user                      # user ส่งได้เฉพาะในแชตของตัวเอง
+        target = user                       # user ส่งได้เฉพาะในแชตของตัวเอง
         sender = "user"
 
-    msg = ChatMessage(user_id=target.id, sender=sender, message=text,
+    msg = ChatMessage(user_id=target.id, sender=sender, message=body,
                       is_read=(sender == "admin"))
     db.session.add(msg)
     db.session.commit()
     broadcast_chat(msg)
+    return jsonify(ok=True, id=msg.id)
 
 
-@socketio.on("typing")
-def on_typing(data=None):
+@app.route("/api/chat/messages")
+@login_required
+def api_chat_messages():
     user = current_user()
-    if not user:
-        return
-    data = data or {}
     if is_admin_user(user):
-        uid = _int_or_zero(data.get("user_id"))
-        if uid:
-            socketio.emit("typing", {"user_id": uid}, to=f"user_{uid}")
+        target_id = _int_or_zero(request.args.get("user_id"))
+        if not target_id:
+            return jsonify(ok=True, messages=[])
+        ChatMessage.query.filter_by(user_id=target_id, sender="user", is_read=False).update({"is_read": True})
+        db.session.commit()
     else:
-        socketio.emit("typing", {"user_id": user.id}, to="admins")
+        target_id = user.id
+
+    msgs = (ChatMessage.query.filter_by(user_id=target_id)
+            .order_by(ChatMessage.created_at.desc()).limit(100).all())
+    msgs.reverse()
+    return jsonify(ok=True, messages=[chat_payload(m, m.user.username) for m in msgs])
 
 
-@socketio.on("list_chats")
-def on_list_chats(data=None):
-    user = current_user()
-    if not user or not is_admin_user(user):
-        return []
+@app.route("/api/chat/read", methods=["POST"])
+@admin_required
+def api_chat_read():
+    uid = _int_or_zero((request.get_json(silent=True) or {}).get("user_id"))
+    ChatMessage.query.filter_by(user_id=uid, sender="user", is_read=False).update({"is_read": True})
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.route("/api/chat/users")
+@admin_required
+def api_chat_users():
     rows = (db.session.query(User, db.func.max(ChatMessage.created_at))
             .join(ChatMessage, ChatMessage.user_id == User.id)
             .group_by(User.id).all())
     out = []
     for u, last in rows:
-        unread = ChatMessage.query.filter_by(
-            user_id=u.id, sender="user", is_read=False).count()
+        unread = ChatMessage.query.filter_by(user_id=u.id, sender="user", is_read=False).count()
         out.append({
             "id": u.id,
             "username": u.username,
             "unread": unread,
             "last": last.isoformat() if last else None,
         })
-    return out
+    return jsonify(ok=True, users=out)
 
 
-@socketio.on("mark_read")
-def on_mark_read(data=None):
+@app.route("/api/chat/image/<int:msg_id>")
+@login_required
+def chat_image(msg_id):
     user = current_user()
-    if not user or not is_admin_user(user):
-        return
-    uid = _int_or_zero((data or {}).get("user_id"))
-    if not uid:
-        return
-    ChatMessage.query.filter_by(user_id=uid, sender="user", is_read=False).update({"is_read": True})
-    db.session.commit()
+    msg = db.get_or_404(ChatMessage, msg_id)
+    if not (user.id == msg.user_id or is_admin_user(user)):
+        abort(403)
+    header, b64 = msg.message.split(",", 1)
+    mime = header[5:].split(";")[0]          # data:image/png;base64 -> image/png
+    return Response(base64.b64decode(b64), mimetype=mime)
+
+
+@app.route("/admin/chats")
+@admin_required
+def admin_chats():
+    users_with_chats = db.session.query(User).join(ChatMessage).group_by(User.id).order_by(db.func.max(ChatMessage.created_at).desc()).all()
+    return render_template("admin_chats.html", chat_users=users_with_chats)
 
 
 # ---------------------------------------------------------------- Profile API
@@ -678,10 +656,10 @@ def profile_accent():
 def profile_banner():
     user = current_user()
     p = db.session.get(UserProfile, user.id) or UserProfile(user_id=user.id)
-    
+
     # รับข้อมูลแบบ JSON (Base64) ที่ผ่านการครอปจากหน้าเว็บแล้ว
     data = request.get_json(silent=True) or {}
-    
+
     if data.get("remove"):
         p.banner = ""
     elif data.get("image"):
@@ -691,7 +669,7 @@ def profile_banner():
         p.banner = data["image"]
     else:
         return jsonify(ok=False, error="no_file"), 400
-        
+
     db.session.add(p)
     db.session.commit()
     return jsonify(ok=True)
@@ -702,10 +680,10 @@ def profile_banner():
 def profile_avatar():
     user = current_user()
     p = db.session.get(UserProfile, user.id) or UserProfile(user_id=user.id)
-    
+
     # รับข้อมูลแบบ JSON (Base64) ที่ผ่านการครอปจากหน้าเว็บแล้ว
     data = request.get_json(silent=True) or {}
-    
+
     if data.get("remove"):
         p.avatar_url = ""
     elif data.get("image"):
@@ -714,7 +692,7 @@ def profile_avatar():
         p.avatar_url = data["image"]
     else:
         return jsonify(ok=False, error="no_file"), 400
-        
+
     db.session.add(p)
     db.session.commit()
     return jsonify(ok=True)
@@ -791,7 +769,7 @@ def register():
             session["uid"] = user.id
             flash("สมัครสมาชิกสำเร็จ ยินดีต้อนรับ!", "ok")
             return redirect(url_for("index"))
-            
+
     return render_template("auth.html", mode="register")
 
 @app.route("/check_username", methods=["POST"])
@@ -800,7 +778,7 @@ def check_username():
     username = data.get("username", "").strip().lower()
     if not username:
         return jsonify(available=False, message="กรุณากรอก Username")
-        
+
     user = User.query.filter_by(username=username).first()
     if user:
         return jsonify(available=False, message="❌ Username นี้มีคนใช้แล้ว")
@@ -851,7 +829,7 @@ def forgot_password():
             db.session.commit()
             flash("✅ เปลี่ยนรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบ", "ok")
             return redirect(url_for("login"))
-            
+
     return render_template("forgot.html")
 
 
@@ -1149,7 +1127,7 @@ def account():
     user = current_user()
     orders = Order.query.filter_by(user_id=user.id).order_by(Order.created_at.desc()).all()
     enrollments = Enrollment.query.filter_by(user_id=user.id).order_by(Enrollment.created_at.desc()).all()
-    
+
     # ดึงข้อมูลบทเรียนมาแนบกับ Enrollment เพื่อให้หน้าเว็บเรียกใช้ e.lesson.title ได้
     enrollment_data = []
     for e in enrollments:
@@ -1190,4 +1168,4 @@ with app.app_context():
 
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=False)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=False)
