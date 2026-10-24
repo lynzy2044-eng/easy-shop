@@ -1,3 +1,7 @@
+# ต้องอยู่บรรทัดแรกสุดก่อน import อื่นทั้งหมด (สำหรับ Socket.IO + eventlet)
+import eventlet
+eventlet.monkey_patch()
+
 import base64
 import io
 import os
@@ -12,6 +16,7 @@ from dotenv import load_dotenv
 from flask import (Flask, abort, flash, jsonify, redirect, render_template,
                    request, session, url_for)
 from flask_sqlalchemy import SQLAlchemy
+from flask_socketio import SocketIO, join_room, emit
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from google_auth_oauthlib.flow import Flow
@@ -44,6 +49,10 @@ if app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgres://"):
     app.config["SQLALCHEMY_DATABASE_URI"] = app.config["SQLALCHEMY_DATABASE_URI"].replace("postgres://", "postgresql://", 1)
 
 db = SQLAlchemy(app)
+
+# Socket.IO สำหรับแชตเรียลไทม์ (max_http_buffer_size รองรับรูปที่แปลงเป็น base64)
+MAX_CHAT_CHARS = 3_000_000
+socketio = SocketIO(app, async_mode="eventlet", max_http_buffer_size=MAX_CHAT_CHARS)
 
 SHOP_NAME = os.getenv("SHOP_NAME", "CapCut PC Course")
 PROMPTPAY_PHONE = os.getenv("PROMPTPAY_PHONE", "")
@@ -470,6 +479,7 @@ def admin_adjust_balance(user_id):
 
 
 # ---------------------------------------------------------------- Chat API (แบบ AJAX Polling)
+# เก็บไว้เพื่อให้หน้าเดิมยังใช้งานได้ หน้าใหม่ใช้ Socket.IO ด้านล่างแทน
 @app.route("/api/chat/send", methods=["POST"])
 @login_required
 def api_chat_send():
@@ -486,6 +496,7 @@ def api_chat_send():
     new_msg = ChatMessage(user_id=actual_user_id, sender=sender, message=msg)
     db.session.add(new_msg)
     db.session.commit()
+    broadcast_chat(new_msg)  # แจ้งเตือนแบบเรียลไทม์ให้ทุกฝั่งที่เปิดแชตอยู่
     
     return jsonify(ok=True)
 
@@ -518,6 +529,132 @@ def api_chat_users():
 def admin_chats():
     users_with_chats = db.session.query(User).join(ChatMessage).group_by(User.id).order_by(db.func.max(ChatMessage.created_at).desc()).all()
     return render_template("admin_chats.html", chat_users=users_with_chats)
+
+
+# ---------------------------------------------------------------- Realtime Chat (Socket.IO)
+def _int_or_zero(value):
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def chat_payload(msg, username):
+    return {
+        "id": msg.id,
+        "user_id": msg.user_id,
+        "username": username,
+        "sender": msg.sender,
+        "body": msg.message,
+        "time": msg.created_at.strftime("%H:%M"),
+    }
+
+
+def broadcast_chat(msg):
+    """ส่งข้อความใหม่ให้เจ้าของแชต (ห้อง user_<id>) และแอดมินทุกคน (ห้อง admins)"""
+    owner = db.session.get(User, msg.user_id)
+    payload = chat_payload(msg, owner.username if owner else "")
+    socketio.emit("new_message", payload, to=f"user_{msg.user_id}")
+    socketio.emit("new_message", payload, to="admins")
+
+
+@socketio.on("connect")
+def on_connect(auth=None):
+    user = current_user()
+    if not user:
+        return False                       # ไม่ได้ login ปฏิเสธการเชื่อมต่อ
+    if is_admin_user(user):
+        join_room("admins")
+    join_room(f"user_{user.id}")           # แต่ละ user อยู่ห้องของตัวเองเสมอ
+
+
+@socketio.on("load_history")
+def on_load_history(data=None):
+    user = current_user()
+    if not user:
+        return []
+    data = data or {}
+    if is_admin_user(user):
+        target_id = _int_or_zero(data.get("user_id"))
+        if not target_id:
+            return []
+    else:
+        target_id = user.id                # user ดูได้เฉพาะของตัวเอง
+
+    msgs = (ChatMessage.query.filter_by(user_id=target_id)
+            .order_by(ChatMessage.created_at.desc()).limit(100).all())
+    return [chat_payload(m, m.user.username) for m in reversed(msgs)]
+
+
+@socketio.on("send_message")
+def on_send_message(data=None):
+    user = current_user()
+    data = data or {}
+    text = str(data.get("body") or "").strip()
+    if not user or not text or len(text) > MAX_CHAT_CHARS:
+        return
+
+    if is_admin_user(user):
+        target = db.session.get(User, _int_or_zero(data.get("target_id")))
+        if not target:
+            return
+        sender = "admin"
+    else:
+        target = user                      # user ส่งได้เฉพาะในแชตของตัวเอง
+        sender = "user"
+
+    msg = ChatMessage(user_id=target.id, sender=sender, message=text,
+                      is_read=(sender == "admin"))
+    db.session.add(msg)
+    db.session.commit()
+    broadcast_chat(msg)
+
+
+@socketio.on("typing")
+def on_typing(data=None):
+    user = current_user()
+    if not user:
+        return
+    data = data or {}
+    if is_admin_user(user):
+        uid = _int_or_zero(data.get("user_id"))
+        if uid:
+            socketio.emit("typing", {"user_id": uid}, to=f"user_{uid}")
+    else:
+        socketio.emit("typing", {"user_id": user.id}, to="admins")
+
+
+@socketio.on("list_chats")
+def on_list_chats(data=None):
+    user = current_user()
+    if not user or not is_admin_user(user):
+        return []
+    rows = (db.session.query(User, db.func.max(ChatMessage.created_at))
+            .join(ChatMessage, ChatMessage.user_id == User.id)
+            .group_by(User.id).all())
+    out = []
+    for u, last in rows:
+        unread = ChatMessage.query.filter_by(
+            user_id=u.id, sender="user", is_read=False).count()
+        out.append({
+            "id": u.id,
+            "username": u.username,
+            "unread": unread,
+            "last": last.isoformat() if last else None,
+        })
+    return out
+
+
+@socketio.on("mark_read")
+def on_mark_read(data=None):
+    user = current_user()
+    if not user or not is_admin_user(user):
+        return
+    uid = _int_or_zero((data or {}).get("user_id"))
+    if not uid:
+        return
+    ChatMessage.query.filter_by(user_id=uid, sender="user", is_read=False).update({"is_read": True})
+    db.session.commit()
 
 
 # ---------------------------------------------------------------- Profile API
@@ -1053,4 +1190,4 @@ with app.app_context():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=False)
+    socketio.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=False)
