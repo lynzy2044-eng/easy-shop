@@ -1,111 +1,136 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-  .lbl { display: block; margin-bottom: 8px; font-weight: 600; }
-  .size-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
-  .size-grid label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
-  .size-grid input { margin-bottom: 0; }
-  .tbl td, .tbl th { padding: 12px 8px; text-align: left; }
-  .tbl tr { border-bottom: 1px solid var(--line); }
-  .tbl th { border-bottom: 2px solid var(--line); font-size: 14px; }
+  .admin-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 16px; margin-bottom: 32px; }
+  .stat-card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+  .stat-card .label { font-size: 14px; color: var(--muted); font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .stat-card .value { font-size: 24px; font-weight: 800; color: var(--text); }
+  .stat-card .sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  
+  .admin-section { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow); }
+  .admin-section h2 { margin-top: 0; margin-bottom: 20px; font-size: 18px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+  
+  .tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .tbl th, .tbl td { padding: 12px 8px; text-align: left; border-bottom: 1px solid var(--line); }
+  .tbl th { font-weight: 700; color: var(--muted); }
+  .tbl tr:last-child td { border-bottom: 0; }
+  
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+  
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+  .form-group input[type="text"], .form-group input[type="number"] { margin-bottom: 0; }
+  
+  .img-preview { max-width: 200px; border-radius: 8px; border: 1px solid var(--line); margin-top: 10px; display: block; }
+  
+  .flex-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .btn-sm { padding: 8px 16px; font-size: 14px; width: auto; border-radius: 8px; }
 </style>
 
 <div style="max-width: 1000px; margin: 40px auto; padding: 0 16px;">
-
-  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:32px;">
+  
+  <div class="admin-header">
     <div>
-      <h1 style="margin:0;">⚙️ ระบบหลังบ้าน (Admin)</h1>
-      <p class="muted" style="margin:4px 0 0;">เข้าสู่ระบบในชื่อ: {{ user.username }}</p>
+      <h1 style="margin:0;">⚙️ หลังบ้าน (Admin)</h1>
+      <p class="muted" style="margin:4px 0 0;">จัดการระบบ ข้อมูล และตั้งค่าหน้าเว็บ</p>
     </div>
-    <div style="display:flex; gap:8px;">
-      <a href="{{ url_for('admin_users') }}" class="btn" style="width:auto;">👥 จัดการผู้ใช้</a>
-      <a href="{{ url_for('index') }}" class="btn ghost" style="width:auto;">กลับหน้าเว็บ</a>
-    </div>
-  </div>
-
-  <!-- สรุปยอด -->
-  <div class="grid" style="margin-bottom:32px;">
-    <div class="card" style="text-align:center; background:#ecfdf5; border-color:#a7f3d0;">
-      <h3 style="margin:0 0 8px; color:#065f46;">ยอดขายคอร์ส</h3>
-      <p style="font-size:32px; font-weight:800; color:#059669; margin:0;">{{ "%.2f"|format(order_total) }} ฿</p>
-      <p class="muted" style="margin:6px 0 0; font-size:13px;">{{ order_count }} ออเดอร์ที่ชำระแล้ว</p>
-    </div>
-    <div class="card" style="text-align:center; background:#eff6ff; border-color:#bfdbfe;">
-      <h3 style="margin:0 0 8px; color:#1e40af;">เติมผ่านพร้อมเพย์</h3>
-      <p style="font-size:32px; font-weight:800; color:#2563eb; margin:0;">{{ "%.2f"|format(pp) }} ฿</p>
-      <p class="muted" style="margin:6px 0 0; font-size:13px;">{{ pp_count }} รายการ</p>
-    </div>
-    <div class="card" style="text-align:center; background:#fffbeb; border-color:#fde68a;">
-      <h3 style="margin:0 0 8px; color:#92400e;">เติมผ่าน TrueMoney</h3>
-      <p style="font-size:32px; font-weight:800; color:#d97706; margin:0;">{{ "%.2f"|format(tm) }} ฿</p>
-      <p class="muted" style="margin:6px 0 0; font-size:13px;">{{ tm_count }} รายการ</p>
-    </div>
-    <div class="card" style="text-align:center;">
-      <h3 style="margin:0 0 8px;">สมาชิกทั้งหมด</h3>
-      <p style="font-size:32px; font-weight:800; margin:0;">{{ user_count }}</p>
+    <div class="flex-row">
+      <a href="{{ url_for('admin_chats') }}" class="btn btn-sm" style="background: #10b981 !important; color: white !important;">
+        💬 แชทลูกค้า
+      </a>
+      <a href="{{ url_for('admin_users') }}" class="btn btn-sm">
+        👥 จัดการผู้ใช้
+      </a>
+      <a href="{{ url_for('index') }}" class="btn ghost btn-sm">← กลับหน้าเว็บ</a>
     </div>
   </div>
 
-  <!-- ฟอร์มแก้ไขหน้าเว็บ (CMS) -->
-  <div class="card" style="margin-bottom:32px;">
-    <h3 style="margin-top:0; margin-bottom:16px; border-bottom:1px solid var(--line); padding-bottom:12px;">🎨 แก้ไขหน้าตาเว็บ (หน้าแรก)</h3>
+  <!-- สถิติภาพรวม -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="label">💰 ยอดขายคอร์สทั้งหมด</div>
+      <div class="value">{{ "{:,.2f}".format(order_total) }} ฿</div>
+      <div class="sub">จาก {{ order_count }} ออเดอร์ที่ชำระแล้ว</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">🏦 เติมเงินผ่านพร้อมเพย์</div>
+      <div class="value">{{ "{:,.2f}".format(pp) }} ฿</div>
+      <div class="sub">จำนวน {{ pp_count }} ครั้ง</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">🧧 เติมเงินผ่าน TrueMoney</div>
+      <div class="value">{{ "{:,.2f}".format(tm) }} ฿</div>
+      <div class="sub">จำนวน {{ tm_count }} ครั้ง</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">👥 ผู้ใช้งานทั้งหมด</div>
+      <div class="value">{{ user_count }} คน</div>
+      <div class="sub">สมาชิกในระบบ</div>
+    </div>
+  </div>
+
+  <!-- ตั้งค่าหน้าเว็บ (CMS) -->
+  <div class="admin-section">
+    <h2>🖼️ ตั้งค่าหน้าแรก (Hero Section)</h2>
     <form method="post" action="{{ url_for('admin_settings') }}" enctype="multipart/form-data">
+      <div class="form-group">
+        <label>หัวข้อหลัก (Hero Title)</label>
+        <input type="text" name="hero_title" value="{{ hero_title }}" placeholder="เช่น เรียนตัดต่อ CapCut PC ตั้งแต่ศูนย์">
+      </div>
+      <div class="form-group">
+        <label>คำอธิบายย่อย (Hero Subtitle)</label>
+        <input type="text" name="hero_subtitle" value="{{ hero_subtitle }}" placeholder="เช่น จนทำงานได้สไตล์ของตัวเอง ทดลองเรียนฟรีได้ทุกบทแรก">
+      </div>
+      
+      <div class="form-group">
+        <label>รูปภาพพื้นหลัง (ถ้ามี)</label>
+        {% if hero_img %}
+          <img src="{{ hero_img }}" class="img-preview" alt="Hero Image">
+          <label style="display:flex; align-items:center; gap:8px; margin-top:10px; font-weight:normal; cursor:pointer;">
+            <input type="checkbox" name="remove_hero_img" value="1" style="width:auto; margin:0;"> ลบรูปภาพนี้
+          </label>
+        {% endif %}
+        <input type="file" name="hero_img" accept="image/*" style="margin-top: 10px;">
+        <small class="muted">ขนาดไม่เกิน 10MB แนะนำเป็นแนวนอน</small>
+      </div>
 
-      <label class="lbl">หัวข้อหลัก (Hero Title)</label>
-      <input type="text" name="hero_title" value="{{ hero_title }}">
-
-      <label class="lbl">คำอธิบาย (Hero Subtitle)</label>
-      <textarea name="hero_subtitle" rows="3" style="width:100%; padding:14px; border-radius:10px; border:1px solid var(--line); margin-bottom:16px; font-family:inherit;">{{ hero_subtitle }}</textarea>
-
-      <label class="lbl">ข้อความบนปุ่ม</label>
-      <input type="text" name="btn_text" value="{{ btn_text }}" oninput="updatePreview()">
-
-      <label class="lbl">ขนาดปุ่ม</label>
-      <div class="size-grid">
-        <div>
-          <label>ระยะบน-ล่าง (px)</label>
-          <input type="number" name="btn_pad_y" min="0" max="60" value="{{ btn.pad_y }}" oninput="updatePreview()">
+      <h3 style="margin-top: 32px; margin-bottom: 16px; font-size: 16px;">🎨 ตั้งค่าปุ่มหลัก (Hero Button)</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ข้อความบนปุ่ม</label>
+          <input type="text" name="btn_text" value="{{ btn_text }}">
         </div>
-        <div>
-          <label>ระยะซ้าย-ขวา (px)</label>
-          <input type="number" name="btn_pad_x" min="0" max="120" value="{{ btn.pad_x }}" oninput="updatePreview()">
-        </div>
-        <div>
+        <div class="form-group">
           <label>ขนาดตัวอักษร (px)</label>
-          <input type="number" name="btn_font_size" min="10" max="40" value="{{ btn.font_size }}" oninput="updatePreview()">
+          <input type="number" name="btn_font_size" value="{{ btn_font_size|replace('px','') }}" min="10" max="40">
         </div>
-        <div>
-          <label>ความโค้งมุม (px)</label>
-          <input type="number" name="btn_radius" min="0" max="60" value="{{ btn.radius }}" oninput="updatePreview()">
+        <div class="form-group">
+          <label>ระยะห่างแนวตั้ง (Padding Y - px)</label>
+          <input type="number" name="btn_pad_y" value="{{ btn_pad_y|default('14') }}" min="0" max="60">
+        </div>
+        <div class="form-group">
+          <label>ระยะห่างแนวนอน (Padding X - px)</label>
+          <input type="number" name="btn_pad_x" value="{{ btn_pad_x|default('32') }}" min="0" max="120">
+        </div>
+        <div class="form-group">
+          <label>ความโค้งของมุม (Radius - px)</label>
+          <input type="number" name="btn_radius" value="{{ btn_radius|default('12') }}" min="0" max="60">
         </div>
       </div>
-      <p class="muted" style="font-size:13px; margin:-8px 0 12px;">ตัวอย่างปุ่ม:</p>
-      <div style="background:#f8fafc; border:1px dashed var(--line); border-radius:12px; padding:24px; text-align:center; margin-bottom:24px;">
-        <a id="previewBtn" class="btn" style="width:auto; display:inline-flex;">{{ btn_text }}</a>
-      </div>
 
-      <label class="lbl">รูปภาพแบนเนอร์</label>
-      <img id="heroPreview" src="{{ hero_img }}" style="{% if not hero_img %}display:none;{% endif %} max-height:120px; border-radius:8px; margin-bottom:8px; display:{{ 'block' if hero_img else 'none' }};">
-      <input type="file" name="hero_img" accept="image/*" onchange="previewHero(event)" style="margin-bottom:8px; background:none; border:none; padding:0;">
-      <p class="muted" style="font-size:12px; margin:0 0 12px;">ขนาดไม่เกิน 10 MB รองรับ JPG, PNG, WEBP</p>
-      {% if hero_img %}
-      <label style="display:flex; align-items:center; gap:8px; margin-bottom:24px; font-size:14px; cursor:pointer;">
-        <input type="checkbox" name="remove_hero_img" value="1" style="width:auto; margin:0;">
-        ลบรูปแบนเนอร์ (กลับไปใช้พื้นหลังไล่สีเริ่มต้น)
-      </label>
-      {% endif %}
-
-      <button type="submit" class="btn" style="width:100%;">บันทึกการเปลี่ยนแปลง</button>
+      <button type="submit" class="btn" style="width: auto; margin-top: 12px;">บันทึกการตั้งค่า</button>
     </form>
   </div>
 
-  <!-- ออเดอร์ที่ชำระแล้ว -->
-  <div class="card" style="margin-bottom:32px;">
-    <h3 style="margin-top:0; margin-bottom:16px;">🧾 ออเดอร์ที่ชำระแล้วล่าสุด (50 รายการ)</h3>
-    <div style="overflow-x:auto;">
-      <table class="tbl" style="width:100%; border-collapse:collapse; font-size:14px;">
+  <!-- ประวัติการสั่งซื้อ -->
+  <div class="admin-section">
+    <h2>🛒 ประวัติการสั่งซื้อล่าสุด</h2>
+    <div style="overflow-x: auto;">
+      <table class="tbl">
         <thead>
-          <tr><th>วันที่</th><th>ผู้ซื้อ</th><th>แพ็กเกจ</th><th>ยอด</th></tr>
+          <tr><th>วันที่</th><th>ผู้ซื้อ</th><th>แพ็กเกจ</th><th>ยอดชำระ</th></tr>
         </thead>
         <tbody>
           {% for o in paid_orders %}
@@ -113,10 +138,10 @@
             <td>{{ o.paid_at.strftime('%d/%m/%Y %H:%M') if o.paid_at else '-' }}</td>
             <td>{{ o.username }}</td>
             <td>{{ o.package }}</td>
-            <td style="font-weight:bold; color:var(--ok);">{{ "%.2f"|format(o.amount) }} ฿</td>
+            <td style="font-weight: 700; color: var(--primary);">{{ "{:,.2f}".format(o.amount) }} ฿</td>
           </tr>
           {% else %}
-          <tr><td colspan="4" class="muted" style="text-align:center; padding:24px 0;">ยังไม่มีออเดอร์ที่ชำระแล้ว</td></tr>
+          <tr><td colspan="4" class="muted" style="text-align: center; padding: 24px;">ยังไม่มีข้อมูลการสั่งซื้อ</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -124,27 +149,26 @@
   </div>
 
   <!-- ประวัติการเติมเงิน -->
-  <div class="card">
-    <h3 style="margin-top:0; margin-bottom:16px;">📜 ประวัติการเติมเงินล่าสุด (50 รายการ)</h3>
-    <div style="overflow-x:auto;">
-      <table class="tbl" style="width:100%; border-collapse:collapse; font-size:14px;">
+  <div class="admin-section">
+    <h2>🧾 ประวัติการเติมเงินล่าสุด</h2>
+    <div style="overflow-x: auto;">
+      <table class="tbl">
         <thead>
-          <tr><th>วันที่</th><th>ผู้ใช้ ID</th><th>ช่องทาง</th><th>ยอดเงิน</th></tr>
+          <tr><th>วันที่</th><th>ช่องทาง</th><th>ยอดเงิน</th></tr>
         </thead>
         <tbody>
           {% for h in histories %}
           <tr>
             <td>{{ h.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
-            <td>ID: {{ h.user_id }}</td>
             <td>
               {% if h.method == 'truemoney' %}<span style="color:#d97706;">TrueMoney</span>
               {% elif h.method == 'admin' %}<span style="color:#7c3aed;">แอดมินปรับยอด</span>
-              {% else %}<span style="color:#2563eb;">PromptPay</span>{% endif %}
+              {% else %}<span style="color:#2563eb;">พร้อมเพย์</span>{% endif %}
             </td>
-            <td style="font-weight:bold; color:{{ 'var(--ok)' if h.amount >= 0 else '#dc2626' }};">{{ "%+.2f"|format(h.amount) }} ฿</td>
+            <td style="font-weight:700; color:{{ 'var(--ok)' if h.amount >= 0 else '#dc2626' }};">{{ "%+.2f"|format(h.amount) }} ฿</td>
           </tr>
           {% else %}
-          <tr><td colspan="4" class="muted" style="text-align:center; padding:24px 0;">ยังไม่มีประวัติการเติมเงิน</td></tr>
+          <tr><td colspan="3" class="muted" style="text-align: center; padding: 24px;">ยังไม่มีข้อมูลการเติมเงิน</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -152,26 +176,4 @@
   </div>
 
 </div>
-
-<script>
-  function updatePreview() {
-    const btn = document.getElementById('previewBtn');
-    const v = name => document.querySelector('[name="' + name + '"]').value;
-    btn.textContent = v('btn_text') || 'ดูแพ็กเกจเลย';
-    btn.style.padding = v('btn_pad_y') + 'px ' + v('btn_pad_x') + 'px';
-    btn.style.fontSize = v('btn_font_size') + 'px';
-    btn.style.borderRadius = v('btn_radius') + 'px';
-  }
-
-  function previewHero(event) {
-    const file = event.target.files[0];
-    const img = document.getElementById('heroPreview');
-    if (!file) { img.style.display = 'none'; return; }
-    const reader = new FileReader();
-    reader.onload = e => { img.src = e.target.result; img.style.display = 'block'; };
-    reader.readAsDataURL(file);
-  }
-
-  updatePreview();
-</script>
 {% endblock %}
