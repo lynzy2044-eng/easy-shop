@@ -75,12 +75,11 @@
   const msgInput = document.getElementById('msgInputAdmin');
   const userListContainer = document.getElementById('userListContainer');
 
-  // ฟังก์ชันโหลดรายชื่อ (ใช้แทนการรีเฟรชหน้า)
+  // ฟังก์ชันโหลดรายชื่อ
   async function forceReloadList() {
     try {
       const res = await fetch("{{ url_for('api_chat_users') }}");
       const data = await res.json();
-      console.log("รายชื่อที่ดึงมาได้:", data); // ดูใน Console
 
       if (data.ok) {
         if (data.users.length === 0) {
@@ -97,7 +96,7 @@
           });
         }
       }
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { console.error(e); }
   }
 
   function openChat(userId, username) {
@@ -105,7 +104,6 @@
     lastMsgCount = 0;
     chatBox.innerHTML = '';
     
-    // ลบ active เก่า
     document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active'));
     const currentItem = document.querySelector(`.user-item[data-id="${userId}"]`);
     if (currentItem) currentItem.classList.add('active');
