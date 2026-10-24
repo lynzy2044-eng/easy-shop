@@ -504,7 +504,24 @@ def account():
     user = current_user()
     orders = Order.query.filter_by(user_id=user.id).order_by(Order.created_at.desc()).all()
     enrollments = Enrollment.query.filter_by(user_id=user.id).order_by(Enrollment.created_at.desc()).all()
-    return render_template("account.html", orders=orders, packages=PACKAGES, owned=sorted(owned_tracks(user)), enrollments=enrollments)
+    
+    # ดึงข้อมูลบทเรียนมาแนบกับ Enrollment เพื่อให้หน้าเว็บเรียกใช้ e.lesson.title ได้
+    enrollment_data = []
+    for e in enrollments:
+        lesson = db.session.get(Lesson, e.lesson_id)
+        if lesson:
+            enrollment_data.append({
+                "title": lesson.title,
+                "created_at": e.created_at
+            })
+
+    return render_template(
+        "account.html",
+        orders=orders,
+        packages=PACKAGES,
+        owned=sorted(owned_tracks(user)),
+        enrollments=enrollment_data,  # ส่งข้อมูลที่จัดรูปแบบแล้วไปให้หน้าเว็บ
+    )
 
 @app.route("/profile/accent", methods=["POST"])
 @login_required
