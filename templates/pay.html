@@ -52,8 +52,41 @@
     display: flex; align-items: center; justify-content: center; gap: 8px;
   }
   .submit:hover { background: var(--primary-dark); }
+  .submit:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; background: var(--primary); }
   .submit .spinner { width: 20px; height: 20px; display: none; }
   .submit.loading .spinner { display: block; }
+
+  /* ---- ยืนยันซื้อด้วยเงินในกระเป๋า ---- */
+  .enough {
+    text-align: center; padding: 20px 16px; background: #ecfdf5;
+    border-radius: 12px; border: 1px solid #a7f3d0; margin-bottom: 18px;
+  }
+  .enough p { color: var(--ok); font-weight: 700; font-size: 17px; margin: 0; }
+  .enough small { display: block; color: #047857; font-size: 13px; margin-top: 6px; }
+
+  .terms-box {
+    height: 180px; overflow-y: auto; background: #f8fafc;
+    border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 16px; font-size: 13px; line-height: 1.75; color: #334155;
+    margin-bottom: 10px;
+  }
+  .terms-box h4 { margin: 0 0 8px; font-size: 14px; color: var(--text); }
+  .terms-box p { margin: 0 0 10px; }
+
+  .scroll-btn {
+    width: 100%; background: #fff; border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px; font-family: inherit; font-size: 14px; font-weight: 700;
+    color: var(--primary); cursor: pointer; margin-bottom: 14px;
+  }
+  .scroll-btn:hover { border-color: var(--primary); }
+
+  .agree {
+    display: flex; gap: 8px; align-items: flex-start;
+    font-size: 14px; margin-bottom: 16px; cursor: pointer;
+  }
+  .agree input { width: auto; margin: 3px 0 0; }
+  .agree input:disabled { cursor: not-allowed; }
+  .agree input:disabled + span { color: #94a3b8; }
 
   .pay-summary {
     background: #f8fafc; border: 1px solid var(--line); border-radius: 12px;
@@ -65,12 +98,6 @@
     font-weight: 700; color: var(--primary); font-size: 16px;
     border-top: 1px solid var(--line); padding-top: 10px; margin: 8px 0 0;
   }
-
-  .enough {
-    text-align: center; padding: 28px 16px; background: #ecfdf5;
-    border-radius: 12px; border: 1px solid #a7f3d0;
-  }
-  .enough p { color: var(--ok); font-weight: 700; font-size: 17px; margin: 0 0 16px; }
 
   /* ---- แถบเลื่อนแบบมือถือ: ซ่อนไว้ และโชว์เฉพาะตอนเลื่อน ---- */
   .modal-content {
@@ -103,6 +130,49 @@
       <a href="{{ url_for('index') }}" class="btn-close" aria-label="ปิด">✕</a>
     </div>
 
+    {% if enough %}
+    <!-- ==================================================== -->
+    <!-- กรณีเงินในกระเป๋าพอ: หน้ายืนยันซื้อทันที -->
+    <!-- ==================================================== -->
+    <div class="enough">
+      <p>ยอดเงินในกระเป๋าของคุณเพียงพอแล้ว</p>
+      <small>ระบบจะหักจากกระเป๋า {{ "%.2f"|format(price) }} ฿ ทันทีเมื่อยืนยัน</small>
+    </div>
+
+    <form method="post" onsubmit="showLoading(this)">
+      <input type="hidden" name="method" value="pay_with_balance">
+
+      <div class="terms-box" id="termsBox">
+        <h4>ข้อตกลงระหว่างเรียน</h4>
+        <p>1. คอร์สนี้มีไว้สำหรับการเรียนส่วนบุคคลของผู้ซื้อเท่านั้น ห้ามแชร์ บันทึก หรือเผยแพร่ไฟล์วิดีโอ ลิงก์บทเรียน หรือเนื้อหาในคอร์สให้ผู้อื่น</p>
+        <p>2. ห้ามนำเนื้อหาไปจำหน่ายต่อ ไม่ว่าทั้งหมดหรือบางส่วน และห้ามนำไปใช้เพื่อการค้าโดยไม่ได้รับอนุญาตเป็นลายลักษณ์อักษร</p>
+        <p>3. บัญชีผู้ใช้หนึ่งบัญชีใช้เรียนได้เพียงผู้เดียว หากพบการใช้งานร่วมกันหรือการทำซ้ำเนื้อหา ทางร้านมีสิทธิ์ระงับการเข้าถึงโดยไม่ต้องคืนเงิน</p>
+        <p>4. สิทธิ์การเข้าเรียนมีผลตลอดไปสำหรับแพ็กเกจที่ซื้อ ทางร้านอาจปรับปรุงหรือเพิ่มเนื้อหาได้โดยไม่แจ้งล่วงหน้า</p>
+        <p>5. เนื่องจากเป็นสินค้าดิจิทัลที่เข้าถึงเนื้อหาได้ทันที เมื่อชำระเงินสำเร็จแล้วจะไม่สามารถยกเลิกหรือขอคืนเงินได้ เว้นแต่กรณีที่ระบบขัดข้องและทางร้านเป็นฝ่ายผิด</p>
+        <p>6. ผู้เรียนต้องรับผิดชอบการใช้งานซอฟต์แวร์ CapCut และเนื้อหาเพลงหรือไฟล์ประกอบที่นำมาใช้ในงานของตนเอง ให้เป็นไปตามลิขสิทธิ์ของเจ้าของผลงาน</p>
+        <p>7. ทางร้านไม่รับผิดชอบต่อผลลัพธ์ของงานที่ผู้เรียนนำไปใช้ในเชิงพาณิชย์ ผู้เรียนควรศึกษาและปฏิบัติตามข้อกำหนดของแพลตฟอร์มที่นำงานไปเผยแพร่</p>
+        <p>8. ข้อมูลส่วนบุคคลของผู้ซื้อจะถูกใช้เพื่อการยืนยันตัวตน การส่งมอบคอร์ส และการติดต่อเกี่ยวกับการเรียนเท่านั้น</p>
+        <p>การกดยืนยันการซื้อถือว่าผู้เรียนได้อ่านและยอมรับข้อตกลงทั้งหมดข้างต้นแล้ว</p>
+      </div>
+
+      <button type="button" class="scroll-btn" id="scrollBtn">เลื่อนไปข้างล่างสุด ↓</button>
+
+      <label class="agree">
+        <input type="checkbox" name="agree" value="1" id="agreeChk" disabled>
+        <span>ฉันได้อ่านและยินยอมข้อตกลงระหว่างเรียนแล้ว</span>
+      </label>
+
+      <button class="submit" type="submit" id="buyBtn" disabled>
+        <img class="spinner" src="{{ url_for('static', filename='icons/spinner-blue.gif') }}" alt="">
+        <span>ยืนยันซื้อคอร์สนี้</span>
+      </button>
+    </form>
+
+    {% else %}
+    <!-- ==================================================== -->
+    <!-- กรณีเงินในกระเป๋าไม่พอ: เลือกช่องทางโอน -->
+    <!-- ==================================================== -->
+
     <!-- สลับช่องทาง -->
     <div class="pay-tabs">
       <button type="button" class="pay-tab active" data-tab="p" onclick="switchTab('p')">
@@ -115,11 +185,8 @@
       </button>
     </div>
 
-    <!-- ==================================================== -->
     <!-- แท็บที่ 1: พร้อมเพย์ -->
-    <!-- ==================================================== -->
     <div id="sec-p">
-      {% if amount_to_pay > 0 %}
       <div class="qr-box">
         <div class="qr-head">
           <span>สแกน QR พร้อมเพย์</span>
@@ -152,25 +219,9 @@
           <span>ยืนยัน</span>
         </button>
       </form>
-
-      {% else %}
-      <!-- กรณีที่เงินในกระเป๋าเพียงพอแล้ว -->
-      <div class="enough">
-        <p>ยอดเงินในกระเป๋าของคุณเพียงพอแล้ว</p>
-        <form method="post" onsubmit="showLoading(this)">
-          <input type="hidden" name="method" value="pay_with_balance">
-          <button class="submit" type="submit" style="background: var(--ok); box-shadow: 0 4px 14px rgba(5,150,105,.35);">
-            <img class="spinner" src="{{ url_for('static', filename='icons/spinner-blue.gif') }}" alt="">
-            <span>ยืนยันเพื่อซื้อคอร์สด้วยเงินในกระเป๋า</span>
-          </button>
-        </form>
-      </div>
-      {% endif %}
     </div>
 
-    <!-- ==================================================== -->
     <!-- แท็บที่ 2: TrueMoney -->
-    <!-- ==================================================== -->
     <div id="sec-t" class="hidden">
       <p class="hint">วางลิงก์ซองอั่งเปา TrueMoney ที่ต้องการใช้ชำระเงิน</p>
       <form method="post" onsubmit="showLoading(this)">
@@ -183,12 +234,13 @@
         </button>
       </form>
     </div>
+    {% endif %}
 
     <p class="hint" style="text-align:center; margin: 16px 0 0; font-size:12px;">หากระบบไม่ตอบสนอง โปรดรอสักครู่แล้วลองใหม่</p>
 
-    <!-- รายละเอียดคำสั่งซื้อ (อยู่ด้านล่าง) -->
+    <!-- รายละเอียดคำสั่งซื้อ -->
     <div class="pay-summary">
-      <div class="row"><span class="muted">ราคาคอร์ส</span><span>{{ "%.2f"|format(amount) }} ฿</span></div>
+      <div class="row"><span>ราคาคอร์ส</span><span>{{ "%.2f"|format(price) }} ฿</span></div>
       <div class="row discount"><span>หักจากกระเป๋า</span><span>-{{ "%.2f"|format(pay_from_balance) }} ฿</span></div>
       <div class="row total"><span>ยอดที่ต้องชำระ</span><span>{{ "%.2f"|format(amount_to_pay) }} ฿</span></div>
     </div>
@@ -201,8 +253,10 @@
     document.querySelectorAll('.pay-tab').forEach(function (btn) {
       btn.classList.toggle('active', btn.dataset.tab === tab);
     });
-    document.getElementById('sec-p').classList.toggle('hidden', tab !== 'p');
-    document.getElementById('sec-t').classList.toggle('hidden', tab !== 't');
+    const p = document.getElementById('sec-p');
+    const t = document.getElementById('sec-t');
+    if (p) p.classList.toggle('hidden', tab !== 'p');
+    if (t) t.classList.toggle('hidden', tab !== 't');
   }
 
   function showLoading(form) {
@@ -229,6 +283,40 @@
       placeholder.style.display = 'flex';
     }
   }
+
+  // ---- ข้อตกลงระหว่างเรียน: เลื่อนถึงล่างสุดก่อนจึงปลดล็อกช่องยินยอม ----
+  (function () {
+    const termsBox = document.getElementById('termsBox');
+    if (!termsBox) return;
+
+    const scrollBtn = document.getElementById('scrollBtn');
+    const agreeChk = document.getElementById('agreeChk');
+    const buyBtn = document.getElementById('buyBtn');
+
+    function atBottom() {
+      return termsBox.scrollTop + termsBox.clientHeight >= termsBox.scrollHeight - 4;
+    }
+
+    function unlock() {
+      agreeChk.disabled = false;
+      scrollBtn.style.display = 'none';
+    }
+
+    termsBox.addEventListener('scroll', function () {
+      if (atBottom()) unlock();
+    }, { passive: true });
+
+    scrollBtn.addEventListener('click', function () {
+      termsBox.scrollTo({ top: termsBox.scrollHeight, behavior: 'smooth' });
+    });
+
+    // ถ้าเนื้อหาสั้นกว่ากล่องอยู่แล้ว ให้ปลดล็อกทันที
+    if (atBottom()) unlock();
+
+    agreeChk.addEventListener('change', function () {
+      buyBtn.disabled = !agreeChk.checked;
+    });
+  })();
 
   // แสดงแถบเลื่อนตอนกำลังเลื่อน แล้วซ่อนหลังหยุดเลื่อนประมาณ 0.6 วินาที
   (function () {
