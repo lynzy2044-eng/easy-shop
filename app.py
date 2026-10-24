@@ -123,7 +123,7 @@ class TopupHistory(db.Model):
     """ประวัติการเติมเงินผ่านช่องทางต่างๆ"""
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    method = db.Column(db.String(20), nullable=False)  # truemoney / promptpay
+    method = db.Column(db.String(20), nullable=False)  # truemoney / promptpay / admin
     amount = db.Column(db.Float, nullable=False)
     ref = db.Column(db.String(100), unique=True)  # voucher_hash หรือ trans_ref
     created_at = db.Column(db.DateTime, default=utcnow)
@@ -248,6 +248,17 @@ def profile_for(user):
     }
 
 
+def user_extras(user):
+    """ข้อมูลเสริมของผู้ใช้ที่แอดมินเห็น: Gmail (ถ้าล็อกอินด้วย Google), รูปโปรไฟล์, แบนเนอร์, วันที่สมัคร"""
+    p = db.session.get(UserProfile, user.id)
+    return {
+        "email": user.username if "@" in user.username else "",
+        "avatar": p.avatar_url if p and p.avatar_url else "",
+        "banner": p.banner if p and p.banner else "",
+        "created": user.created_at,
+    }
+
+
 @app.context_processor
 def inject_globals():
     user = current_user()
@@ -360,6 +371,88 @@ def admin_settings():
 
     flash("✅ อัปเดตหน้าเว็บเรียบร้อยแล้ว", "ok")
     return redirect(url_for("admin_dashboard"))
+
+
+# ---------------------------------------------------------------- Admin: จัดการผู้ใช้
+@app.route("/admin/users")
+@admin_required
+def admin_users():
+    q = (request.args.get("q") or "").strip()
+    query = User.query
+    if q:
+        query = query.filter(User.username.ilike(f"%{q}%"))
+    users = query.order_by(User.id.desc()).all()
+
+    rows = []
+    for u in users:
+        extra = user_extras(u)
+        rows.append({
+            "id": u.id,
+            "username": u.username,
+            "balance": float(u.balance or 0),
+            "email": extra["email"],
+            "avatar": extra["avatar"],
+            "created": extra["created"],
+        })
+    return render_template("admin_users.html", user=current_user(), users=rows, q=q)
+
+
+@app.route("/admin/users/<int:user_id>")
+@admin_required
+def admin_user_detail(user_id):
+    target = db.get_or_404(User, user_id)
+    histories = (TopupHistory.query.filter_by(user_id=target.id)
+                 .order_by(TopupHistory.created_at.desc()).limit(50).all())
+    return render_template(
+        "admin_user_detail.html",
+        user=current_user(), u=target, info=user_extras(target), histories=histories,
+    )
+
+
+@app.route("/admin/users/<int:user_id>/balance", methods=["POST"])
+@admin_required
+def admin_adjust_balance(user_id):
+    target = db.get_or_404(User, user_id)
+    back = url_for("admin_user_detail", user_id=user_id)
+
+    try:
+        amount = round(float(request.form.get("amount", "0")), 2)
+    except ValueError:
+        amount = 0
+    op = request.form.get("op")
+
+    # ตรวจว่าเป็นตัวเลขจริงและอยู่ในช่วงที่สมเหตุสมผล (กัน nan / inf)
+    if not (0 < amount < 1_000_000_000) or op not in ("add", "subtract"):
+        flash("กรุณาระบุจำนวนเงินที่มากกว่า 0", "err")
+        return redirect(back)
+
+    current = float(target.balance or 0)
+    if op == "subtract":
+        if amount > current:
+            flash(f"ยอดในกระเป๋าไม่พอให้หัก (คงเหลือ {current:,.2f} ฿)", "err")
+            return redirect(back)
+        signed = -amount
+    else:
+        signed = amount
+
+    new_balance = round(current + signed, 2)
+    target.balance = new_balance
+    db.session.add(TopupHistory(user_id=target.id, method="admin", amount=signed))
+    db.session.commit()
+
+    admin = current_user()
+    discord_notify(
+        "แอดมินปรับยอดเงิน",
+        color=0xF59E0B,
+        fields={
+            "User": target.username,
+            "จำนวน": f"{signed:+,.2f} ฿",
+            "คงเหลือ": f"{new_balance:,.2f} ฿",
+            "แอดมิน": admin.username,
+        },
+    )
+    flash(f"ปรับยอดเรียบร้อย ({signed:+,.2f} ฿) คงเหลือ {new_balance:,.2f} ฿", "ok")
+    return redirect(back)
 
 
 # ---------------------------------------------------------------- Pages
