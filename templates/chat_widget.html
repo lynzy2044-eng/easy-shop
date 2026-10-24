@@ -11,7 +11,7 @@
     align-items: flex-end;
   }
 
-  /* ปุ่มหลัก สีฟ้าธีมเว็บ */
+  /* ปุ่มหลัก */
   .chat-fab {
     width: 56px;
     height: 56px;
@@ -27,6 +27,7 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     outline: none;
+    overflow: hidden;
   }
 
   .chat-fab:hover {
@@ -34,25 +35,33 @@
     box-shadow: 0 6px 16px rgba(37, 99, 235, 0.5);
   }
 
-  /* ไอคอนแชตและกากบาท */
-  .chat-fab svg {
+  /* ไอคอนแชต (รูปใหม่) */
+  .chat-fab img.icon-chat {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    transition: all 0.3s ease;
+    border-radius: 50%;
+  }
+
+  /* ไอคอนกากบาท */
+  .chat-fab svg.icon-close {
     width: 28px;
     height: 28px;
     fill: currentColor;
     position: absolute;
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.5);
     transition: all 0.3s ease;
   }
 
-  .chat-fab .icon-close {
-    opacity: 0;
-    transform: rotate(-90deg) scale(0.5);
-  }
-
-  .chat-widget-container.active .chat-fab .icon-chat {
+  /* เมื่อเปิดเมนู */
+  .chat-widget-container.active .chat-fab img.icon-chat {
     opacity: 0;
     transform: rotate(90deg) scale(0.5);
   }
-  .chat-widget-container.active .chat-fab .icon-close {
+  .chat-widget-container.active .chat-fab svg.icon-close {
     opacity: 1;
     transform: rotate(0deg) scale(1);
   }
@@ -61,25 +70,25 @@
   .chat-menu {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    gap: 12px;
-    margin-bottom: 14px;
+    align-items: flex-end; /* ชิดขวาให้ตรงกับปุ่มหลัก */
+    gap: 12px; /* ระยะห่างระหว่างปุ่มเท่ากันเป๊ะ */
+    margin-bottom: 16px; /* ระยะห่างระหว่างเมนูกับปุ่มหลัก */
     
     opacity: 0;
     visibility: hidden;
     transform: translateY(20px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    pointer-events: none; /* ปิดการคลิกตอนซ่อนอยู่ */
+    pointer-events: none;
   }
 
   .chat-widget-container.active .chat-menu {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
-    pointer-events: auto; /* เปิดให้คลิกได้ */
+    pointer-events: auto;
   }
 
-  /* ท่าไม้ตาย: พื้นที่เชื่อมโยงระหว่างเมนูกับปุ่ม เพื่อไม่ให้เมาส์หลุด */
+  /* พื้นที่เชื่อมต่อระหว่างเมนูกับปุ่ม */
   .chat-menu::after {
     content: '';
     position: absolute;
@@ -88,18 +97,19 @@
     right: 0;
     height: 30px;
     background: transparent;
-    pointer-events: auto; /* ให้พื้นที่นี้รับเมาส์ด้วย */
+    pointer-events: auto;
   }
 
   /* ปุ่มแต่ละอันในเมนู */
   .chat-item {
     display: flex;
     align-items: center;
+    justify-content: flex-start; /* จัดเนื้อหาภายในชิดซ้าย */
     gap: 12px;
     text-decoration: none;
     color: #333;
     background: white;
-    padding: 6px 16px 6px 6px;
+    padding: 6px 20px 6px 6px; /* ปรับระยะขวาให้กว้างขึ้นเล็กน้อยให้สมดุล */
     border-radius: 30px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     border: 1px solid var(--line, #e2e8f0);
@@ -107,7 +117,9 @@
     font-size: 14px;
     font-weight: 600;
     white-space: nowrap;
-    cursor: pointer; /* บังคับให้เป็นรูปมือ */
+    cursor: pointer;
+    height: 48px; /* ล็อกความสูงให้เท่ากันทุกปุ่ม */
+    box-sizing: border-box;
   }
 
   .chat-item:hover {
@@ -118,8 +130,8 @@
   }
 
   .chat-icon {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -127,7 +139,8 @@
     overflow: hidden;
     background: #fff;
     border: 1px solid #f1f5f9;
-    pointer-events: none; /* ป้องกันการคลิกติดที่รูป */
+    flex-shrink: 0; /* ป้องกันไอคอนโดนบีบ */
+    pointer-events: none;
   }
 
   .chat-icon img {
@@ -142,9 +155,9 @@
   @media (max-width: 768px) {
     .chat-widget-container { bottom: 16px; right: 16px; }
     .chat-fab { width: 50px; height: 50px; }
-    .chat-fab svg { width: 24px; height: 24px; }
-    .chat-menu { margin-bottom: 10px; gap: 10px; }
-    .chat-item { font-size: 13px; padding: 5px 14px 5px 5px; }
+    .chat-fab svg.icon-close { width: 24px; height: 24px; }
+    .chat-menu { margin-bottom: 12px; gap: 10px; }
+    .chat-item { font-size: 13px; padding: 5px 16px 5px 5px; height: 44px; }
     .chat-icon { width: 32px; height: 32px; }
   }
 </style>
@@ -174,10 +187,10 @@
     </a>
   </div>
 
+  <!-- ปุ่มหลัก (ใช้รูปใหม่ที่คุณส่งมา) -->
   <button class="chat-fab" id="chatFab" aria-label="เปิดเมนูแชต">
-    <svg class="icon-chat" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
-    </svg>
+    <img class="icon-chat" src="https://media.discordapp.net/attachments/1554254223837757482/1563574766269505586/201.png?ex=6ade1ffa&is=6adcce7a&hm=e24bfc23c33cb6b72f390c1c0b46c57c3ad5d325e796962173b82cd76ea3e193&=&format=webp&quality=lossless&width=384&height=384" alt="Chat">
+    
     <svg class="icon-close" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
     </svg>
@@ -188,37 +201,30 @@
   document.addEventListener('DOMContentLoaded', function() {
     const widget = document.getElementById('chatWidget');
     const fab = document.getElementById('chatFab');
-    const menu = document.getElementById('chatMenu');
     
     const isDesktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
     if (isDesktop) {
-      // === สำหรับคอมพิวเตอร์: ใช้ Hover เพื่อเปิด และคลิกเพื่อปิด/เปิด ===
-      
-      // 1. เอาเมาส์มาชี้ที่ปุ่มหลัก หรือเมนู -> เปิดค้างไว้
+      // === สำหรับคอมพิวเตอร์: ใช้ Hover ===
       widget.addEventListener('mouseenter', function() {
         widget.classList.add('active');
       });
-
-      // 2. เอาเมาส์ออกจากพื้นที่ทั้งหมด (ปุ่ม + เมนู) -> หุบลง
+      
       widget.addEventListener('mouseleave', function() {
         widget.classList.remove('active');
       });
-
-      // 3. ถ้าผู้ใช้กดปุ่มหลัก (คลิก) -> ให้สลับสถานะ (เผื่อใครอยากกดล็อก)
+      
       fab.addEventListener('click', function(e) {
-        e.preventDefault();
-        widget.classList.toggle('active');
+        e.preventDefault(); 
       });
 
     } else {
-      // === สำหรับมือถือ/แท็บเล็ต: ใช้การคลิก (ทัชสกรีน) ===
+      // === สำหรับมือถือ/แท็บเล็ต: ใช้การคลิก ===
       fab.addEventListener('click', function(e) {
         e.preventDefault();
         widget.classList.toggle('active');
       });
 
-      // ปิดเมนูเมื่อคลิกพื้นที่ว่าง
       document.addEventListener('click', function(e) {
         if (!widget.contains(e.target)) {
           widget.classList.remove('active');
