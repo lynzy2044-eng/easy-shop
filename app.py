@@ -775,19 +775,47 @@ def pay(order_id):
         flash("ออเดอร์นี้หมดอายุแล้ว กรุณาสั่งใหม่", "err")
         return redirect(url_for("index") + "#packages")
 
-    expected = order.amount_satang / 100
-    pay_from_balance = min(user.balance, expected)
-    amount_to_pay = round(expected - pay_from_balance, 2)
+    price = PACKAGES[order.package]["price"]        # ราคาคอร์สจริง (ไม่มีสตางค์)
+    expected = order.amount_satang / 100            # ยอดที่มีสตางค์ ใช้จับคู่สลิป
+    balance = float(user.balance or 0)
+    enough = balance >= price                       # เงินในกระเป๋าพอซื้อได้เลย
 
-    # สร้าง QR สำหรับยอดที่ต้องจ่ายจริง (หลังหักเงินในกระเป๋าแล้ว)
-    payload = promptpay_payload(PROMPTPAY_PHONE, amount_to_pay if amount_to_pay > 0 else 0.01)
-    qr_code = qr_data_uri(payload)
+    if enough:
+        pay_from_balance = price
+        amount_to_pay = 0.0
+    else:
+        pay_from_balance = balance
+        amount_to_pay = round(expected - balance, 2)
+
+    qr_code = None
+    if not enough:
+        qr_code = qr_data_uri(promptpay_payload(PROMPTPAY_PHONE, amount_to_pay))
 
     if request.method == "POST":
         method = request.form.get("method")
 
+        # 0. ซื้อด้วยเงินในกระเป๋า (เฉพาะกรณีเงินพอ)
+        if method == "pay_with_balance":
+            if not enough:
+                flash("ยอดเงินในกระเป๋าไม่พอ กรุณาเลือกช่องทางโอนเงิน", "err")
+            elif not request.form.get("agree"):
+                flash("กรุณายอมรับข้อตกลงระหว่างเรียนก่อน", "err")
+            else:
+                user.balance = round(balance - price, 2)
+                order.amount_satang = price * 100
+                order.status = "paid"
+                order.paid_at = utcnow()
+                db.session.commit()
+                discord_notify("💰 มีออเดอร์ใหม่ชำระแล้ว (กระเป๋า)", fields={"แพ็กเกจ": PACKAGES[order.package]["name"], "ยอด": f"{price:,.2f} บาท", "ผู้ซื้อ": user.username, "ออเดอร์": f"#{order.id}"})
+                flash("ชำระเงินสำเร็จ เริ่มเรียนได้เลย!", "ok")
+                return redirect(url_for("account"))
+
+        # ถ้าเงินพอแล้ว ไม่ให้ใช้วิธีโอนซ้ำ
+        elif enough:
+            flash("ยอดในกระเป๋าเพียงพอแล้ว กรุณากดยืนยันซื้อด้วยเงินในกระเป๋า", "err")
+
         # 1. ชำระด้วยการแนบสลิป
-        if method == "verify_slip":
+        elif method == "verify_slip":
             file = request.files.get("slip")
             if not file or not file.filename:
                 flash("กรุณาแนบรูปสลิป", "err")
@@ -837,8 +865,17 @@ def pay(order_id):
                     flash(f"✅ ชำระเงินสำเร็จ (ทอนเงินคืนกระเป๋า {change:.2f} บาท)", "ok")
                     return redirect(url_for("account"))
 
-    return render_template("pay.html", order=order, package=PACKAGES[order.package], amount=expected, amount_to_pay=amount_to_pay, pay_from_balance=pay_from_balance, qr=qr_code)
-
+    return render_template(
+        "pay.html",
+        order=order,
+        package=PACKAGES[order.package],
+        price=price,
+        amount=expected,
+        amount_to_pay=amount_to_pay,
+        pay_from_balance=pay_from_balance,
+        qr=qr_code,
+        enough=enough,
+    )
 
 @app.route("/account")
 @login_required
