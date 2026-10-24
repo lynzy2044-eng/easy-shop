@@ -50,7 +50,7 @@ PROMPTPAY_PHONE = os.getenv("PROMPTPAY_PHONE", "")
 ORDER_TTL = timedelta(minutes=30)
 
 # รายชื่อแอดมิน: ค่าจาก ADMIN_EMAIL (เช่น lynzy2044) รวมกับบัญชี dev จาก DEV_USERNAME
-# ใส่หลายคนได้โดยคั่นด้วยคอมมา เช่น ADMIN_EMAIL=lynzy2044,someone
+# ใส่หลายคนได้โดยคั่นด้วยคอมมาร์ เช่น ADMIN_EMAIL=lynzy2044,someone
 ADMIN_USERNAMES = {
     name.strip().lower()
     for name in (os.getenv("ADMIN_EMAIL", "") + "," + os.getenv("DEV_USERNAME", "")).split(",")
@@ -141,6 +141,7 @@ class UserProfile(db.Model):
     avatar_url = db.Column(db.Text, default="")          # รูปจาก Gmail
     banner = db.Column(db.Text, default="")              # แบนเนอร์ (data URI)
     accent = db.Column(db.String(7), default="#2563eb")  # สีไฮไลท์ เช่น #2563eb
+
 
 class ChatMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -457,6 +458,7 @@ def admin_adjust_balance(user_id):
     flash(f"ปรับยอดเรียบร้อย ({signed:+,.2f} ฿) คงเหลือ {new_balance:,.2f} ฿", "ok")
     return redirect(back)
 
+
 # ---------------------------------------------------------------- Chat Routes
 @app.route("/api/chat/send", methods=["POST"])
 @login_required
@@ -475,6 +477,7 @@ def api_chat_send():
     discord_notify("💬 มีข้อความแชตใหม่จากลูกค้า", color=0x3B82F6, fields={"ผู้ใช้": user.username, "ข้อความ": msg[:100]})
     
     return jsonify(ok=True)
+
 
 @app.route("/api/chat/messages")
 @login_required
@@ -499,12 +502,14 @@ def api_chat_messages():
         "time": m.created_at.strftime("%H:%M")
     } for m in msgs])
 
+
 @app.route("/admin/chats")
 @admin_required
 def admin_chats():
     # ดึงรายชื่อคนที่เคยทักมาทั้งหมด (เรียงจากคนที่ทักล่าสุด)
     users_with_chats = db.session.query(User).join(ChatMessage).group_by(User.id).order_by(db.func.max(ChatMessage.created_at).desc()).all()
     return render_template("admin_chats.html", chat_users=users_with_chats)
+
 
 @app.route("/api/admin/chat/<int:user_id>", methods=["POST"])
 @admin_required
@@ -518,7 +523,8 @@ def api_admin_send_chat(user_id):
     db.session.add(new_msg)
     db.session.commit()
     return jsonify(ok=True)
-  
+
+
 # ---------------------------------------------------------------- Pages
 @app.route("/")
 def index():
@@ -592,6 +598,7 @@ def register():
             return redirect(url_for("index"))
             
     return render_template("auth.html", mode="register")
+
 
 @app.route("/check_username", methods=["POST"])
 def check_username():
