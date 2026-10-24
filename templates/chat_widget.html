@@ -6,6 +6,9 @@
     right: 24px;
     z-index: 9999;
     font-family: 'Anuphan', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end; /* ชิดขวา */
   }
 
   /* ปุ่มหลัก สีฟ้าธีมเว็บ */
@@ -49,7 +52,6 @@
     transform: rotate(-90deg) scale(0.5);
   }
 
-  /* เมื่อเปิดเมนู (Hover หรือ Click) ให้เปลี่ยนไอคอน */
   .chat-widget-container.active .chat-fab .icon-chat {
     opacity: 0;
     transform: rotate(90deg) scale(0.5);
@@ -61,12 +63,12 @@
 
   /* กล่องเมนู */
   .chat-menu {
-    position: absolute;
-    bottom: 70px;
-    right: 0;
     display: flex;
     flex-direction: column;
+    align-items: flex-end;
     gap: 12px;
+    margin-bottom: 14px; /* ระยะห่างระหว่างเมนูกับปุ่ม */
+    
     opacity: 0;
     visibility: hidden;
     transform: translateY(20px);
@@ -74,12 +76,23 @@
     pointer-events: none;
   }
 
-  /* แสดงเมนูเมื่อ Container มีคลาส active */
   .chat-widget-container.active .chat-menu {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
     pointer-events: auto;
+  }
+
+  /* ท่าไม้ตาย: สร้างพื้นที่โปร่งใสเชื่อมระหว่างเมนูกับปุ่ม 
+     เพื่อไม่ให้เมาส์หลุดโซนเวลาเลื่อนลงมา */
+  .chat-menu::after {
+    content: '';
+    position: absolute;
+    bottom: -20px; /* ขยายพื้นที่ลงไปหาปุ่ม */
+    left: 0;
+    right: 0;
+    height: 30px;
+    background: transparent;
   }
 
   /* ปุ่มแต่ละอันในเมนู */
@@ -131,7 +144,7 @@
     .chat-widget-container { bottom: 16px; right: 16px; }
     .chat-fab { width: 50px; height: 50px; }
     .chat-fab svg { width: 24px; height: 24px; }
-    .chat-menu { bottom: 64px; gap: 10px; }
+    .chat-menu { margin-bottom: 10px; gap: 10px; }
     .chat-item { font-size: 13px; padding: 5px 14px 5px 5px; }
     .chat-icon { width: 32px; height: 32px; }
   }
@@ -177,7 +190,6 @@
     const widget = document.getElementById('chatWidget');
     const fab = document.getElementById('chatFab');
     
-    // ตรวจสอบว่าเป็นอุปกรณ์ที่มีเมาส์ (คอมพิวเตอร์) หรือไม่
     const isDesktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
     if (isDesktop) {
@@ -185,27 +197,24 @@
 
       // เอาเมาส์เข้าที่ตัว Widget ให้เปิดเมนู
       widget.addEventListener('mouseenter', function() {
-        clearTimeout(hoverTimeout); // ยกเลิกการตั้งเวลาปิด (ถ้ามีค้างอยู่)
+        clearTimeout(hoverTimeout);
         widget.classList.add('active');
       });
       
       // เอาเมาส์ออกจาก Widget
       widget.addEventListener('mouseleave', function() {
-        // หน่วงเวลา 0.3 วินาทีก่อนจะปิด 
-        // เพื่อให้ผู้ใช้มีเวลาเลื่อนเมาส์ลงมาที่กล่องข้อความ
         hoverTimeout = setTimeout(function() {
           widget.classList.remove('active');
         }, 300); 
       });
       
     } else {
-      // === สำหรับมือถือ/แท็บเล็ต: ใช้การคลิก (ทัชสกรีน) ===
+      // === สำหรับมือถือ/แท็บเล็ต ===
       fab.addEventListener('click', function(e) {
         e.preventDefault();
         widget.classList.toggle('active');
       });
 
-      // ปิดเมนูเมื่อคลิกพื้นที่ว่าง
       document.addEventListener('click', function(e) {
         if (!widget.contains(e.target)) {
           widget.classList.remove('active');
