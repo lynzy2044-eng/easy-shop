@@ -1,30 +1,52 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-  /* สไตล์หน้าแอดมิน */
-  .admin-chat-wrap { display: flex; height: 75vh; max-width: 1000px; margin: 30px auto; background: #fff; border-radius: 16px; border: 1px solid var(--line); overflow: hidden; box-shadow: var(--shadow); }
+  .admin-chat-wrap { display: flex; height: 75vh; max-width: 1000px; margin: 30px auto; background: #fff; border-radius: 16px; border: 1px solid var(--line); overflow: hidden; box-shadow: var(--shadow); position: relative; }
   .user-list { width: 300px; border-right: 1px solid var(--line); overflow-y: auto; background: #f8fafc; flex-shrink: 0; }
   .user-list h3 { padding: 16px; margin: 0; font-size: 16px; border-bottom: 1px solid var(--line); background: #fff; }
-  .user-item { display: block; padding: 14px 16px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--text); cursor: pointer; }
+  .user-item { display: block; padding: 14px 16px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--text); cursor: pointer; transition: background 0.2s; position: relative; }
   .user-item:hover, .user-item.active { background: var(--primary-soft); border-left: 4px solid var(--primary); }
+  .user-item .name { font-weight: 700; font-size: 15px; display: block; }
+  .user-item .preview { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; margin-top: 4px; }
+  
   .chat-area { flex: 1; display: flex; flex-direction: column; background: #fff; position: relative; }
-  .chat-header-admin { padding: 16px 20px; border-bottom: 1px solid var(--line); font-weight: 700; background: #fff; }
+  .chat-header-admin { padding: 16px 20px; border-bottom: 1px solid var(--line); font-weight: 700; background: #fff; display: flex; align-items: center; justify-content: space-between; }
   .chat-box-admin { flex: 1; padding: 20px; overflow-y: auto; background: #f8fafc; display: flex; flex-direction: column; gap: 12px; }
+  
   .msg-row { display: flex; width: 100%; } .msg-row.user { justify-content: flex-start; } .msg-row.admin { justify-content: flex-end; }
-  .msg-bubble { max-width: 70%; padding: 10px 16px; border-radius: 18px; font-size: 14px; line-height: 1.5; }
+  .msg-bubble { max-width: 70%; padding: 10px 16px; border-radius: 18px; font-size: 14px; line-height: 1.5; position: relative; word-wrap: break-word; }
   .msg-row.user .msg-bubble { background: #fff; border: 1px solid var(--line); color: #333; border-bottom-left-radius: 4px; }
   .msg-row.admin .msg-bubble { background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
   .msg-time { font-size: 11px; opacity: 0.6; margin-top: 4px; display: block; text-align: right; }
   .msg-bubble img { max-width: 100%; border-radius: 8px; margin-top: 6px; cursor: pointer; }
+  
   .chat-input-admin { padding: 16px; background: #fff; border-top: 1px solid var(--line); display: flex; gap: 10px; }
   .chat-input-admin input { margin: 0; border-radius: 8px; padding: 12px 16px; border: 1px solid var(--line); flex: 1; }
   
-  /* Typing Indicator */
-  .typing-indicator { display: none; padding: 10px 16px; background: #fff; border-radius: 18px; width: fit-content; border: 1px solid var(--line); margin-bottom: 10px; }
+  .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; color: var(--muted); }
+  
+  .typing-indicator { display: none; padding: 10px 16px; background: #fff; border-radius: 18px; border-bottom-left-radius: 4px; width: fit-content; border: 1px solid var(--line); margin-bottom: 10px; }
   .typing-indicator span { display: inline-block; width: 6px; height: 6px; background: #94a3b8; border-radius: 50%; margin: 0 2px; animation: bounce 1.4s infinite ease-in-out both; }
   .typing-indicator span:nth-child(1) { animation-delay: -0.32s; } .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
   @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+  
+  /* Notification Badge */
+  .badge-unread { background: #ef4444; color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 10px; position: absolute; right: 12px; top: 16px; font-weight: 700; }
+
+  /* Toast Notification */
+  .toast-notification { position: fixed; top: 20px; right: 20px; background: #fff; padding: 16px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-left: 4px solid var(--primary); z-index: 9999; transform: translateX(120%); transition: transform 0.3s ease; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+  .toast-notification.show { transform: translateX(0); }
 </style>
+
+<div class="toast-notification" id="adminToast" onclick="this.classList.remove('show')">
+  <div style="background: var(--primary-soft); padding: 10px; border-radius: 50%; color: var(--primary);">
+    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+  </div>
+  <div>
+    <div style="font-weight: 700; font-size: 14px;" id="toastTitle">แจ้งเตือน</div>
+    <div style="font-size: 13px; color: var(--muted);" id="toastMsg">ข้อความใหม่</div>
+  </div>
+</div>
 
 <div style="max-width: 1000px; margin: 0 auto; padding: 20px 16px;">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -37,7 +59,7 @@
       <h3>รายชื่อผู้ติดต่อ</h3>
       {% for u in chat_users %}
         <div class="user-item" data-id="{{ u.id }}" onclick="openChat({{ u.id }}, '{{ u.username.split('@')[0] }}')">
-          <span class="name" style="font-weight:700;">👤 {{ u.username.split('@')[0] }}</span>
+          <span class="name">👤 {{ u.username.split('@')[0] }}</span>
         </div>
       {% else %}
         <div style="padding: 20px; text-align: center; color: var(--muted); font-size: 13px;" id="noUserMsg">ยังไม่มีใครทักมา</div>
@@ -45,7 +67,7 @@
     </div>
 
     <div class="chat-area" id="chatArea">
-      <div class="empty-state" id="emptyState" style="flex:1; display:flex; align-items:center; justify-content:center; flex-direction:column; color:var(--muted);">
+      <div class="empty-state" id="emptyState">
         <p>เลือกผู้ใช้เพื่อเริ่มตอบแชต</p>
       </div>
 
@@ -69,16 +91,22 @@
   const socket = io();
   let currentUserId = null;
   let typingTimer;
-  
+  let isHistoryLoaded = false;
+  const toast = document.getElementById('adminToast');
+  const toastTitle = document.getElementById('toastTitle');
+  const toastMsg = document.getElementById('toastMsg');
+
   const chatBox = document.getElementById('chatBoxAdmin');
   const chatForm = document.getElementById('chatFormAdmin');
   const msgInput = document.getElementById('msgInputAdmin');
   const userTyping = document.getElementById('userTyping');
 
+  // แอดมินเข้าห้อง admin_room เพื่อรับแจ้งเตือนทุกคน
   socket.emit('join_chat', {});
 
   function openChat(userId, username) {
     currentUserId = userId;
+    isHistoryLoaded = false;
     chatBox.innerHTML = '';
     document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active'));
     document.querySelector(`.user-item[data-id="${userId}"]`).classList.add('active');
@@ -98,6 +126,7 @@
       chatBox.innerHTML = '';
       data.messages.forEach(m => appendMessage(m.message, m.sender, m.time));
       chatBox.scrollTop = chatBox.scrollHeight;
+      isHistoryLoaded = true;
     }
   }
 
@@ -111,17 +140,18 @@
     bubble.innerHTML += `<span class="msg-time">${time || 'เมื่อสักครู่'}</span>`;
     row.appendChild(bubble);
     chatBox.appendChild(row);
+    chatBox.scrollTop = chatBox.scrollHeight;
   }
 
   // รับข้อความใหม่
   socket.on('new_message', (data) => {
-    if (data.user_id === currentUserId) {
+    if (data.user_id === currentUserId && isHistoryLoaded) {
       appendMessage(data.message, data.sender, data.time);
       chatBox.scrollTop = chatBox.scrollHeight;
     }
   });
 
-  // อัปเดตรายชื่อเมื่อมีคนทักมาใหม่
+  // อัปเดตรายชื่อเมื่อมีคนทักมา
   socket.on('update_admin_list', (data) => {
     const list = document.getElementById('userList');
     const noMsg = document.getElementById('noUserMsg');
@@ -133,8 +163,18 @@
       div.className = 'user-item';
       div.dataset.id = data.user_id;
       div.onclick = () => openChat(data.user_id, data.username.split('@')[0]);
-      div.innerHTML = `<span class="name" style="font-weight:700;">👤 ${data.username.split('@')[0]}</span>`;
+      div.innerHTML = `<span class="name">👤 ${data.username.split('@')[0]}</span><span class="badge-unread">New</span>`;
       list.insertBefore(div, list.children[1]);
+    }
+  });
+
+  // แจ้งเตือนเมื่อมีข้อความใหม่ (ถ้าไม่ได้เปิดแชตคนนั้นอยู่)
+  socket.on('new_message', (data) => {
+    if (data.sender === 'user' && data.user_id !== currentUserId) {
+      toastTitle.textContent = 'มีข้อความใหม่!';
+      toastMsg.textContent = data.message.startsWith('data:image/') ? '📷 ส่งรูปภาพมา' : data.message.substring(0, 30) + '...';
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 4000);
     }
   });
 
@@ -151,15 +191,14 @@
     msgInput.value = '';
     socket.emit('send_message', { message: text, target_id: currentUserId });
     socket.emit('typing', { target_id: currentUserId, is_typing: false });
+    clearTimeout(typingTimer);
   });
 
   msgInput.addEventListener('input', () => {
     if(!currentUserId) return;
     socket.emit('typing', { target_id: currentUserId, is_typing: true });
     clearTimeout(typingTimer);
-    typingTimer = setTimeout(() => {
-      socket.emit('typing', { target_id: currentUserId, is_typing: false });
-    }, 1500);
+    typingTimer = setTimeout(() => socket.emit('typing', { target_id: currentUserId, is_typing: false }), 1500);
   });
 </script>
 {% endblock %}
