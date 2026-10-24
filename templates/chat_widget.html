@@ -176,25 +176,28 @@
   document.addEventListener('DOMContentLoaded', function() {
     const widget = document.getElementById('chatWidget');
     const fab = document.getElementById('chatFab');
-
+    
     // ตรวจสอบว่าเป็นอุปกรณ์ที่มีเมาส์ (คอมพิวเตอร์) หรือไม่
     const isDesktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
     if (isDesktop) {
-      // === สำหรับคอมพิวเตอร์: ใช้ Hover ===
+      let hoverTimeout;
+
+      // เอาเมาส์เข้าที่ตัว Widget ให้เปิดเมนู
       widget.addEventListener('mouseenter', function() {
+        clearTimeout(hoverTimeout); // ยกเลิกการตั้งเวลาปิด (ถ้ามีค้างอยู่)
         widget.classList.add('active');
       });
       
+      // เอาเมาส์ออกจาก Widget
       widget.addEventListener('mouseleave', function() {
-        widget.classList.remove('active');
+        // หน่วงเวลา 0.3 วินาทีก่อนจะปิด 
+        // เพื่อให้ผู้ใช้มีเวลาเลื่อนเมาส์ลงมาที่กล่องข้อความ
+        hoverTimeout = setTimeout(function() {
+          widget.classList.remove('active');
+        }, 300); 
       });
       
-      // ป้องกันไม่ให้ต้องกดปุ่ม (แต่ถ้าผู้ใช้เผลอกดก็ไม่เป็นไร)
-      fab.addEventListener('click', function(e) {
-        e.preventDefault(); 
-      });
-
     } else {
       // === สำหรับมือถือ/แท็บเล็ต: ใช้การคลิก (ทัชสกรีน) ===
       fab.addEventListener('click', function(e) {
