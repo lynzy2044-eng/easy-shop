@@ -9,10 +9,10 @@
   .msg-bubble { max-width: 70%; padding: 10px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; position: relative; word-wrap: break-word; }
   .msg-row.user .msg-bubble { background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
   .msg-row.admin .msg-bubble { background: #fff; color: #333; border: 1px solid var(--line); border-bottom-left-radius: 4px; }
-  .msg-time { font-size: 11px; opacity: 0.6; margin-top: 4px; text-align: right; }
+  .msg-time { font-size: 11px; opacity: 0.6; margin-top: 4px; text-align: right; display: block; }
   .msg-row.admin .msg-time { text-align: left; }
   .msg-bubble img { max-width: 100%; border-radius: 8px; margin-top: 6px; cursor: pointer; }
-  
+
   .chat-input-area { padding: 12px 16px; background: #fff; border-top: 1px solid var(--line); display: flex; align-items: flex-end; gap: 10px; position: relative; }
   .input-wrapper { flex: 1; background: #f1f5f9; border-radius: 20px; padding: 8px 16px; display: flex; align-items: center; min-height: 44px; }
   .input-wrapper input { border: none; background: transparent; width: 100%; outline: none; font-size: 15px; padding: 0; margin: 0; }
@@ -25,7 +25,7 @@
   .typing-indicator span { display: inline-block; width: 6px; height: 6px; background: #94a3b8; border-radius: 50%; margin: 0 2px; animation: bounce 1.4s infinite ease-in-out both; }
   .typing-indicator span:nth-child(1) { animation-delay: -0.32s; } .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
   @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-  
+
   .attachment-popup { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; display: flex; align-items: flex-end; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.3s; padding: 20px; }
   .attachment-popup.active { opacity: 1; visibility: visible; }
   .attachment-menu { background: #fff; width: 100%; max-width: 400px; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px; transform: translateY(20px); transition: transform 0.3s; }
@@ -34,11 +34,12 @@
   .attachment-item:hover { background: #f1f5f9; }
   .att-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; }
   .att-icon.photo { background: #8b5cf6; }
-  
+
   .emoji-picker { position: absolute; bottom: 80px; left: 20px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); display: none; grid-template-columns: repeat(6, 1fr); gap: 8px; z-index: 50; }
   .emoji-picker.active { display: grid; }
   .emoji-picker span { font-size: 24px; cursor: pointer; padding: 4px; border-radius: 8px; }
   .emoji-picker span:hover { background: #f1f5f9; }
+  .guest-note { text-align: center; color: #94a3b8; margin-top: 20px; font-size: 14px; }
 </style>
 
 <div class="chat-container">
@@ -47,9 +48,14 @@
   </div>
 
   <div class="chat-box" id="chatBox">
-    <div style="text-align:center; color:#94a3b8; margin-top:20px; font-size:14px;">👋 สวัสดีครับ มีอะไรให้แอดมินช่วยไหม?</div>
+    {% if user %}
+    <div class="welcome" style="text-align:center; color:#94a3b8; margin-top:20px; font-size:14px;">👋 สวัสดีครับ มีอะไรให้แอดมินช่วยไหม?</div>
+    {% else %}
+    <div class="guest-note">กรุณา <a href="{{ url_for('login', next=request.path) }}">เข้าสู่ระบบ</a> เพื่อแชตกับแอดมิน</div>
+    {% endif %}
   </div>
 
+  {% if user %}
   <div style="padding: 0 20px; background: #f8fafc;">
     <div class="typing-indicator" id="adminTyping"><span></span><span></span><span></span></div>
   </div>
@@ -79,8 +85,11 @@
     <span>😀</span><span>😂</span><span>🥰</span><span>😎</span><span>😭</span><span>😡</span>
     <span>👍</span><span>👎</span><span>🙏</span><span>👏</span><span>🔥</span><span>💯</span>
   </div>
+  {% endif %}
 </div>
 
+{% if user %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
 <script>
   const chatBox = document.getElementById('chatBox');
   const chatForm = document.getElementById('chatForm');
@@ -88,95 +97,111 @@
   const adminTyping = document.getElementById('adminTyping');
   const emojiPicker = document.getElementById('emojiPicker');
   const attachmentPopup = document.getElementById('attachmentPopup');
-  
-  let lastMsgCount = 0;
 
-  // ฟังก์ชันโหลดข้อความ
-  async function loadMessages() {
-    try {
-      const res = await fetch("{{ url_for('api_chat_messages') }}");
-      const data = await res.json();
-      
-      if (data.ok && data.messages.length !== lastMsgCount) {
-        lastMsgCount = data.messages.length;
-        const welcome = chatBox.querySelector('div[style*="text-align:center"]');
-        chatBox.innerHTML = '';
-        
-        if (data.messages.length === 0) {
-          chatBox.appendChild(welcome);
-        } else {
-          data.messages.forEach(m => appendMessage(m.message, m.sender, m.time));
-          chatBox.scrollTop = chatBox.scrollHeight;
-        }
-      }
-    } catch (e) { console.error("Load error:", e); }
+  const socket = io({ transports: ['websocket'] });
+  let typingTimer = null, lastTypingSent = 0;
+
+  function makeWelcome() {
+    const d = document.createElement('div');
+    d.className = 'welcome';
+    d.style.cssText = 'text-align:center; color:#94a3b8; margin-top:20px; font-size:14px;';
+    d.textContent = '👋 สวัสดีครับ มีอะไรให้แอดมินช่วยไหม?';
+    return d;
   }
 
-  // แสดงข้อความ
-  function appendMessage(text, sender, time) {
+  function makeRow(m) {
     const row = document.createElement('div');
-    row.className = `msg-row ${sender}`;
+    row.className = `msg-row ${m.sender}`;
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
-    if (text.startsWith('data:image/')) bubble.innerHTML = `<img src="${text}" onclick="window.open(this.src)">`;
-    else bubble.innerHTML = text;
-    bubble.innerHTML += `<span class="msg-time">${time || 'เมื่อสักครู่'}</span>`;
+    if (m.body.startsWith('data:image/')) {
+      const img = document.createElement('img');
+      img.src = m.body;
+      img.onclick = () => window.open(img.src);
+      bubble.appendChild(img);
+    } else {
+      bubble.textContent = m.body;          // ไม่ใช้ innerHTML กัน XSS
+    }
+    const t = document.createElement('span');
+    t.className = 'msg-time';
+    t.textContent = m.time || '';
+    bubble.appendChild(t);
     row.appendChild(bubble);
-    chatBox.appendChild(row);
+    return row;
   }
 
-  // ส่งข้อความ
-  chatForm.addEventListener('submit', async (e) => {
+  function renderAll(list) {
+    chatBox.innerHTML = '';
+    if (!list.length) chatBox.appendChild(makeWelcome());
+    list.forEach(m => chatBox.appendChild(makeRow(m)));
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  function showAdminTyping(show) {
+    adminTyping.style.display = show ? 'block' : 'none';
+  }
+
+  // เชื่อมต่อใหม่ทุกครั้ง แล้วโหลดประวัติของตัวเอง
+  socket.on('connect', () => socket.emit('load_history', {}, renderAll));
+
+  // ข้อความใหม่ (ทั้งของเราและของแอดมิน) ขึ้นทันที
+  socket.on('new_message', m => {
+    const w = chatBox.querySelector('.welcome');
+    if (w) w.remove();
+    chatBox.appendChild(makeRow(m));
+    chatBox.scrollTop = chatBox.scrollHeight;
+    if (m.sender === 'admin') showAdminTyping(false);
+  });
+
+  // แอดมินกำลังพิมพ์
+  socket.on('typing', () => {
+    showAdminTyping(true);
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => showAdminTyping(false), 2500);
+  });
+
+  // ส่งสถานะกำลังพิมพ์ ไม่เกินทุก 1.5 วินาที
+  msgInput.addEventListener('input', () => {
+    const now = Date.now();
+    if (now - lastTypingSent > 1500) {
+      socket.emit('typing', {});
+      lastTypingSent = now;
+    }
+  });
+
+  chatForm.addEventListener('submit', e => {
     e.preventDefault();
     const text = msgInput.value.trim();
     if (!text) return;
-
+    if (!socket.connected) {
+      alert('ยังไม่ได้เชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
+      return;
+    }
+    socket.emit('send_message', { body: text });
     msgInput.value = '';
-    // แสดงข้อความตัวเองทันที
-    appendMessage(text, 'user', 'เมื่อสักครู่');
-    chatBox.scrollTop = chatBox.scrollHeight;
-
-    await fetch("{{ url_for('api_chat_send') }}", {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text })
-    });
-    loadMessages();
   });
 
-  // ส่งรูปภาพ
+  // ส่งรูป
   function handleFileSelect(input) {
     const file = input.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64Image = e.target.result;
-      appendMessage(base64Image, 'user', 'เมื่อสักครู่');
-      chatBox.scrollTop = chatBox.scrollHeight;
-      await fetch("{{ url_for('api_chat_send') }}", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: base64Image })
-      });
-      loadMessages();
-    };
-    reader.readAsDataURL(file);
     input.value = '';
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { alert('รูปต้องไม่เกิน 2MB'); return; }
+    const reader = new FileReader();
+    reader.onload = e => socket.emit('send_message', { body: e.target.result });
+    reader.readAsDataURL(file);
   }
 
-  // เปิด/ปิด Popup และ Emoji
+  // popup แนบไฟล์ และ emoji
   document.getElementById('attachBtn').addEventListener('click', () => attachmentPopup.classList.add('active'));
   function closeAttachmentPopup() { attachmentPopup.classList.remove('active'); }
-  attachmentPopup.addEventListener('click', (e) => { if (e.target === attachmentPopup) closeAttachmentPopup(); });
-  
-  document.getElementById('emojiBtn').addEventListener('click', (e) => { e.stopPropagation(); emojiPicker.classList.toggle('active'); });
-  document.addEventListener('click', (e) => { if (!emojiPicker.contains(e.target) && e.target.id !== 'emojiBtn') emojiPicker.classList.remove('active'); });
+  attachmentPopup.addEventListener('click', e => { if (e.target === attachmentPopup) closeAttachmentPopup(); });
+
+  document.getElementById('emojiBtn').addEventListener('click', e => { e.stopPropagation(); emojiPicker.classList.toggle('active'); });
+  document.addEventListener('click', e => { if (!emojiPicker.contains(e.target) && e.target.id !== 'emojiBtn') emojiPicker.classList.remove('active'); });
   emojiPicker.querySelectorAll('span').forEach(span => {
     span.addEventListener('click', () => { msgInput.value += span.textContent; msgInput.focus(); });
   });
-
-  // โหลดครั้งแรก และโหลดซ้ำทุก 3 วินาที
-  loadMessages();
-  setInterval(loadMessages, 3000);
 </script>
+{% endif %}
 {% endblock %}
