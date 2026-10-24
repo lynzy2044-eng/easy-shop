@@ -17,7 +17,10 @@
       <h1 style="margin:0;">⚙️ ระบบหลังบ้าน (Admin)</h1>
       <p class="muted" style="margin:4px 0 0;">เข้าสู่ระบบในชื่อ: {{ user.username }}</p>
     </div>
-    <a href="{{ url_for('index') }}" class="btn ghost" style="width:auto;">กลับหน้าเว็บ</a>
+    <div style="display:flex; gap:8px;">
+      <a href="{{ url_for('admin_users') }}" class="btn" style="width:auto;">👥 จัดการผู้ใช้</a>
+      <a href="{{ url_for('index') }}" class="btn ghost" style="width:auto;">กลับหน้าเว็บ</a>
+    </div>
   </div>
 
   <!-- สรุปยอด -->
@@ -135,9 +138,10 @@
             <td>ID: {{ h.user_id }}</td>
             <td>
               {% if h.method == 'truemoney' %}<span style="color:#d97706;">TrueMoney</span>
+              {% elif h.method == 'admin' %}<span style="color:#7c3aed;">แอดมินปรับยอด</span>
               {% else %}<span style="color:#2563eb;">PromptPay</span>{% endif %}
             </td>
-            <td style="font-weight:bold; color:var(--ok);">+{{ "%.2f"|format(h.amount) }} ฿</td>
+            <td style="font-weight:bold; color:{{ 'var(--ok)' if h.amount >= 0 else '#dc2626' }};">{{ "%+.2f"|format(h.amount) }} ฿</td>
           </tr>
           {% else %}
           <tr><td colspan="4" class="muted" style="text-align:center; padding:24px 0;">ยังไม่มีประวัติการเติมเงิน</td></tr>
