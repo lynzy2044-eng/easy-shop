@@ -1,0 +1,161 @@
+<!-- templates/chat_widget.html -->
+<style>
+  /* สไตล์สำหรับปุ่มแชตลอย */
+  .chat-widget-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+    font-family: 'Anuphan', sans-serif;
+  }
+
+  .chat-fab {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #4CAF50; /* สีเขียวคล้ายในรูป */
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease, background 0.3s ease;
+  }
+
+  .chat-fab:hover {
+    transform: scale(1.05);
+    background: #43a047;
+  }
+
+  .chat-fab svg {
+    width: 30px;
+    height: 30px;
+    fill: currentColor;
+  }
+
+  .chat-menu {
+    position: absolute;
+    bottom: 75px;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .chat-menu.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .chat-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: #333;
+    background: white;
+    padding: 8px 16px 8px 8px;
+    border-radius: 30px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .chat-item:hover {
+    transform: translateX(-5px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+  }
+
+  .chat-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .chat-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* สีพื้นหลังสำหรับไอคอนแชตในเว็บ */
+  .chat-icon.web {
+    background: #60a5fa; 
+  }
+  .chat-icon.web svg {
+    width: 20px;
+    height: 20px;
+    fill: white;
+  }
+</style>
+
+<div class="chat-widget-container">
+  <div class="chat-menu" id="chatMenu">
+    <!-- ลิงก์ LINE -->
+    <a href="https://lin.ee/pXT7nEf" target="_blank" class="chat-item">
+      <div class="chat-icon">
+        <img src="{{ url_for('static', filename='icons/line.png') }}" alt="LINE" style="background:#00B900; padding: 4px;">
+      </div>
+      <span>แชตผ่าน LINE</span>
+    </a>
+
+    <!-- ลิงก์ Discord -->
+    <a href="https://discord.gg/tgYdqS8DAU" target="_blank" class="chat-item">
+      <div class="chat-icon">
+        <img src="{{ url_for('static', filename='icons/discord.png') }}" alt="Discord">
+      </div>
+      <span>แชตผ่าน Discord</span>
+    </a>
+
+    <!-- ลิงก์แชตในเว็บ (ชี้ไปที่หน้าติดต่อแอดมินเดิม) -->
+    <a href="{{ url_for('contact') }}" class="chat-item">
+      <div class="chat-icon web">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+          <circle cx="8" cy="10" r="1.5" fill="#60a5fa"/>
+          <circle cx="12" cy="10" r="1.5" fill="#60a5fa"/>
+          <circle cx="16" cy="10" r="1.5" fill="#60a5fa"/>
+        </svg>
+      </div>
+      <span>แชตในเว็บ</span>
+    </a>
+  </div>
+
+  <!-- ปุ่มหลัก -->
+  <button class="chat-fab" id="chatFab" aria-label="เปิดเมนูแชต">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+    </svg>
+  </button>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const fab = document.getElementById('chatFab');
+    const menu = document.getElementById('chatMenu');
+
+    fab.addEventListener('click', function(e) {
+      e.preventDefault();
+      menu.classList.toggle('active');
+    });
+
+    // ปิดเมนูเมื่อคลิกที่อื่น
+    document.addEventListener('click', function(e) {
+      if (!fab.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.remove('active');
+      }
+    });
+  });
+</script>
