@@ -142,6 +142,16 @@ class UserProfile(db.Model):
     banner = db.Column(db.Text, default="")              # แบนเนอร์ (data URI)
     accent = db.Column(db.String(7), default="#2563eb")  # สีไฮไลท์ เช่น #2563eb
 
+class ChatMessage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    sender = db.Column(db.String(10), nullable=False) # 'user' หรือ 'admin'
+    message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow)
+    is_read = db.Column(db.Boolean, default=False)
+
+    user = db.relationship("User", backref="chat_messages")
+
 
 # ---------------------------------------------------------------- Helpers
 def get_setting(key, default=""):
@@ -447,7 +457,68 @@ def admin_adjust_balance(user_id):
     flash(f"ปรับยอดเรียบร้อย ({signed:+,.2f} ฿) คงเหลือ {new_balance:,.2f} ฿", "ok")
     return redirect(back)
 
+# ---------------------------------------------------------------- Chat Routes
+@app.route("/api/chat/send", methods=["POST"])
+@login_required
+def api_chat_send():
+    user = current_user()
+    data = request.get_json(silent=True) or {}
+    msg = data.get("message", "").strip()
+    
+    if not msg:
+        return jsonify(ok=False, error="empty_message"), 400
+        
+    new_msg = ChatMessage(user_id=user.id, sender="user", message=msg)
+    db.session.add(new_msg)
+    db.session.commit()
+    
+    discord_notify("💬 มีข้อความแชตใหม่จากลูกค้า", color=0x3B82F6, fields={"ผู้ใช้": user.username, "ข้อความ": msg[:100]})
+    
+    return jsonify(ok=True)
 
+@app.route("/api/chat/messages")
+@login_required
+def api_chat_messages():
+    user = current_user()
+    
+    # ถ้าเป็นแอดมิน และมีการส่ง user_id มา ให้ดึงของคนนั้น
+    target_id = request.args.get("user_id")
+    if is_admin_user(user) and target_id:
+        user_id = int(target_id)
+    else:
+        user_id = user.id
+    
+    msgs = ChatMessage.query.filter_by(user_id=user_id).order_by(ChatMessage.created_at.asc()).all()
+    
+    if is_admin_user(user):
+        ChatMessage.query.filter_by(user_id=user_id, sender="user", is_read=False).update({"is_read": True})
+        db.session.commit()
+
+    return jsonify(ok=True, messages=[{
+        "sender": m.sender, "message": m.message, 
+        "time": m.created_at.strftime("%H:%M")
+    } for m in msgs])
+
+@app.route("/admin/chats")
+@admin_required
+def admin_chats():
+    # ดึงรายชื่อคนที่เคยทักมาทั้งหมด (เรียงจากคนที่ทักล่าสุด)
+    users_with_chats = db.session.query(User).join(ChatMessage).group_by(User.id).order_by(db.func.max(ChatMessage.created_at).desc()).all()
+    return render_template("admin_chats.html", chat_users=users_with_chats)
+
+@app.route("/api/admin/chat/<int:user_id>", methods=["POST"])
+@admin_required
+def api_admin_send_chat(user_id):
+    data = request.get_json(silent=True) or {}
+    msg = data.get("message", "").strip()
+    if not msg:
+        return jsonify(ok=False, error="empty_message"), 400
+
+    new_msg = ChatMessage(user_id=user_id, sender="admin", message=msg)
+    db.session.add(new_msg)
+    db.session.commit()
+    return jsonify(ok=True)
+  
 # ---------------------------------------------------------------- Pages
 @app.route("/")
 def index():
