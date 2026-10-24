@@ -772,6 +772,7 @@ def register():
 
     return render_template("auth.html", mode="register")
 
+
 @app.route("/check_username", methods=["POST"])
 def check_username():
     data = request.get_json()
