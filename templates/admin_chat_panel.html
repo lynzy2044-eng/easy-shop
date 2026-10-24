@@ -39,5 +39,16 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
+<script>
+  window.CHAT_CONF = {
+    key: "{{ pusher_key }}",
+    cluster: "{{ pusher_cluster }}",
+    authEndpoint: "{{ url_for('pusher_auth') }}",
+    usersEndpoint: "{{ url_for('api_chat_users') }}",
+    messagesEndpoint: "{{ url_for('api_chat_messages') }}",
+    sendEndpoint: "{{ url_for('api_chat_send') }}",
+    readEndpoint: "{{ url_for('api_chat_read') }}"
+  };
+</script>
 <script src="{{ url_for('static', filename='js/chat_admin.js') }}"></script>
