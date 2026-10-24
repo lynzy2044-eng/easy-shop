@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .chat-container { max-width: 800px; margin: 40px auto; background: #fff; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); overflow: hidden; display: flex; flex-direction: column; height: 70vh; border: 1px solid var(--line); }
+  .chat-header { background: var(--primary); color: #fff; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+  .chat-header h2 { margin: 0; font-size: 18px; }
+  .chat-header p { margin: 0; font-size: 13px; opacity: 0.8; }
+  .chat-box { flex: 1; padding: 20px; overflow-y: auto; background: #f8fafc; display: flex; flex-direction: column; gap: 12px; }
+  
+  .msg { max-width: 75%; padding: 10px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; position: relative; word-wrap: break-word; }
+  .msg.user { align-self: flex-end; background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
+  .msg.admin { align-self: flex-start; background: #fff; color: #333; border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .msg-time { font-size: 11px; opacity: 0.6; margin-top: 4px; display: block; text-align: right; }
+  .msg.admin .msg-time { text-align: left; }
+  
+  .chat-input-area { padding: 16px; background: #fff; border-top: 1px solid var(--line); display: flex; gap: 10px; }
+  .chat-input-area input { margin: 0; border-radius: 24px; padding: 14px 20px; background: #f1f5f9; border: 1px solid transparent; }
+  .chat-input-area input:focus { background: #fff; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+  .chat-input-area button { width: auto; padding: 0 24px; border-radius: 24px; font-weight: 700; }
+</style>
+
+<div class="chat-container">
+  <div class="chat-header">
+    <div style="background: rgba(255,255,255,0.2); padding: 8px; border-radius: 50%; display: flex;">
+      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+    </div>
+    <div>
+      <h2>แชตกับแอดมิน</h2>
+      <p>สอบถามหรือแจ้งปัญหาการใช้งานได้เลย</p>
+    </div>
+  </div>
+
+  <div class="chat-box" id="chatBox">
+    <!-- ข้อความจะถูกโหลดมาที่นี่ -->
+  </div>
+
+  <form class="chat-input-area" id="chatForm">
+    <input type="text" id="msgInput" placeholder="พิมพ์ข้อความ..." autocomplete="off" required>
+    <button type="submit" class="btn">ส่ง</button>
+  </form>
+</div>
+
+<script>
+  const chatBox = document.getElementById('chatBox');
+  const chatForm = document.getElementById('chatForm');
+  const msgInput = document.getElementById('msgInput');
+  let lastMsgCount = 0;
+
+  // ฟังก์ชันโหลดข้อความ
+  async function loadMessages() {
+    try {
+      const res = await fetch("{{ url_for('api_chat_messages') }}");
+      const data = await res.json();
+      
+      if (data.ok) {
+        // ถ้าจำนวนข้อความเปลี่ยนไป ให้เรนเดอร์ใหม่
+        if (data.messages.length !== lastMsgCount) {
+          lastMsgCount = data.messages.length;
+          chatBox.innerHTML = '';
+          
+          if (data.messages.length === 0) {
+            chatBox.innerHTML = '<div style="text-align:center; color:#94a3b8; margin-top:20px; font-size:14px;">👋 สวัสดีครับ มีอะไรให้แอดมินช่วยไหม?</div>';
+          } else {
+            data.messages.forEach(m => {
+              const div = document.createElement('div');
+              div.className = `msg ${m.sender}`;
+              div.innerHTML = `${m.message} <span class="msg-time">${m.time}</span>`;
+              chatBox.appendChild(div);
+            });
+            chatBox.scrollTop = chatBox.scrollHeight;
+          }
+        }
+      }
+    } catch (e) { console.error(e); }
+  }
+
+  // ส่งข้อความ
+  chatForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = msgInput.value.trim();
+    if (!text) return;
+
+    msgInput.value = '';
+    
+    // แสดงข้อความตัวเองทันที (ไม่ต้องรอ API)
+    const div = document.createElement('div');
+    div.className = 'msg user';
+    div.innerHTML = `${text} <span class="msg-time">เมื่อสักครู่</span>`;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    // ส่งไปหลังบ้าน
+    await fetch("{{ url_for('api_chat_send') }}", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text })
+    });
+    
+    loadMessages(); // โหลดใหม่เพื่อให้เวลาในข้อความอัปเดต
+  });
+
+  // โหลดครั้งแรก และตั้งเวลาโหลดซ้ำทุก 3 วินาที
+  loadMessages();
+  setInterval(loadMessages, 3000);
+</script>
+{% endblock %}
