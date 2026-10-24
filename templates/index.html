@@ -34,6 +34,7 @@
      ✨ เอฟเฟกต์โฟกัส: อันที่ชี้ขยาย อันอื่นเบลอและหดเล็กลง
      ============================================================ */
   @media (hover: hover) and (pointer: fine) {
+    /* ตัวกริดหลัก ต้องใส่ position: relative เพื่อให้ z-index ของการ์ดทำงาน */
     .dashboard-grid {
       position: relative;
     }
@@ -44,9 +45,10 @@
       height: 104px;
       align-items: center;
       padding: 16px 20px;
-      z-index: 1;
-
-      transition:
+      z-index: 1; /* ให้อยู่เลเยอร์ปกติ */
+      
+      /* แอนิเมชันตอนเข้า/ออก */
+      transition: 
         transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1),
         filter 0.35s ease,
         opacity 0.35s ease,
@@ -71,6 +73,7 @@
       transform: translateY(0);
     }
 
+    /* ใช้ Grid ซ่อนคำอธิบาย */
     .dash-card .dash-desc {
       margin: 0;
       font-size: 14px;
@@ -86,46 +89,44 @@
       display: block;
     }
 
-    .dash-card .dash-icon {
-      transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
-    }
-
     /* =======================================================
-       การ์ดที่ "ไม่ได้ถูกชี้และไม่ได้โฟกัส" เมื่อมีการ์ดอื่นถูกชี้อยู่
-       → หดเล็กลง เบลอ และจางลง
+       เงื่อนไขที่ 1: "เมื่อเอาเมาส์ไปวางในกริด"
+       ให้การ์ดทุกใบ "หดเล็กลง + เบลอ + จางลง"
        ======================================================= */
-    .dashboard-grid:has(.dash-card:hover) .dash-card:not(:hover):not(:focus-visible) {
+    .dashboard-grid:has(.dash-card:hover) .dash-card {
       transform: scale(0.92);
       filter: blur(3px) grayscale(20%);
       opacity: 0.6;
     }
 
     /* =======================================================
-       การ์ดที่ถูกชี้หรือกำลังโฟกัส → ชัดเสมอ ไม่เบลอ
-       (!important กันไม่ให้กฎอื่นมาทับ)
+       เงื่อนไขที่ 2: "เมื่อชี้ที่การ์ดใบนั้นโดยเฉพาะ"
+       ให้กลับมาขยายใหญ่ + ไม่เบลอ + ไม่จาง + ลอยขึ้น
        ======================================================= */
-    .dashboard-grid .dash-card:hover,
-    .dashboard-grid .dash-card:focus-visible {
-      transform: scale(1.05) translateY(-5px) !important;
-      filter: none !important;
-      opacity: 1 !important;
-      z-index: 10;
-      box-shadow: 0 12px 24px -8px rgba(37, 99, 235, 0.25);
+    .dash-card:hover {
+      transform: scale(1.05) translateY(-5px); /* ขยาย 5% และลอยขึ้น */
+      filter: blur(0) grayscale(0%) !important; /* บังคับให้ไม่เบลอและไม่เป็นสีเทา */
+      opacity: 1 !important; /* บังคับให้ไม่จาง */
+      z-index: 10; /* ดันให้ลอยทับใบอื่น */
+      box-shadow: 0 12px 24px -8px rgba(37, 99, 235, 0.25); /* เงาฟุ้งๆ */
       border-color: var(--primary);
     }
 
-    .dashboard-grid .dash-card:hover .dash-title,
-    .dashboard-grid .dash-card:focus-visible .dash-title {
+    /* ให้หัวข้อขยับขึ้นนิดนึงเพื่อโชว์คำอธิบาย */
+    .dash-card:hover .dash-title {
       transform: translateY(-10px);
     }
 
-    .dashboard-grid .dash-card:hover .dash-desc,
-    .dashboard-grid .dash-card:focus-visible .dash-desc {
+    /* ให้คำอธิบายโผล่ */
+    .dash-card:hover .dash-desc {
       grid-template-rows: 1fr;
     }
 
-    .dashboard-grid .dash-card:hover .dash-icon,
-    .dashboard-grid .dash-card:focus-visible .dash-icon {
+    /* ไอคอนขยายเล็กน้อย */
+    .dash-card .dash-icon {
+      transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    .dash-card:hover .dash-icon {
       transform: scale(1.1);
     }
   }
@@ -147,7 +148,8 @@
 <!-- Dashboard Menus -->
 <section style="margin-bottom: 40px;">
   <h2>เมนูทั้งหมด</h2>
-
+  
+  <!-- 🔴 เพิ่ม class dashboard-grid เข้าไปเพื่อใช้เป็นตัวอ้างอิง -->
   <div class="grid dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));">
 
     <!-- ซื้อคอร์ส -->
