@@ -9,3 +9,5 @@ google-auth-oauthlib
 psycopg2-binary
 cloudscraper
 certifi
+flask-socketio
+eventlet
