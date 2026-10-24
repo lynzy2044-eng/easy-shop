@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .admin-chat-wrap { display: flex; height: 75vh; max-width: 1000px; margin: 30px auto; background: #fff; border-radius: 16px; border: 1px solid var(--line); overflow: hidden; box-shadow: var(--shadow); }
+  
+  /* แถบซ้าย: รายชื่อคน */
+  .user-list { width: 300px; border-right: 1px solid var(--line); overflow-y: auto; background: #f8fafc; flex-shrink: 0; }
+  .user-list h3 { padding: 16px; margin: 0; font-size: 16px; border-bottom: 1px solid var(--line); background: #fff; }
+  .user-item { display: block; padding: 14px 16px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--text); transition: background 0.2s; cursor: pointer; }
+  .user-item:hover, .user-item.active { background: var(--primary-soft); border-left: 4px solid var(--primary); }
+  .user-item .name { font-weight: 700; font-size: 15px; margin-bottom: 4px; display: block; }
+  .user-item .email { font-size: 12px; color: var(--muted); }
+
+  /* แถบขวา: หน้าต่างแชต */
+  .chat-area { flex: 1; display: flex; flex-direction: column; background: #fff; position: relative; }
+  .chat-header-admin { padding: 16px 20px; border-bottom: 1px solid var(--line); font-weight: 700; font-size: 16px; background: #fff; display: flex; align-items: center; justify-content: space-between; }
+  
+  .chat-box-admin { flex: 1; padding: 20px; overflow-y: auto; background: #f8fafc; display: flex; flex-direction: column; gap: 12px; }
+  
+  .msg { max-width: 70%; padding: 10px 16px; border-radius: 18px; font-size: 14px; line-height: 1.5; position: relative; word-wrap: break-word; }
+  .msg.user { align-self: flex-start; background: #fff; border: 1px solid var(--line); color: #333; border-bottom-left-radius: 4px; }
+  .msg.admin { align-self: flex-end; background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
+  .msg-time { font-size: 11px; opacity: 0.6; margin-top: 4px; display: block; text-align: right; }
+  .msg.user .msg-time { text-align: left; }
+  
+  .chat-input-admin { padding: 16px; background: #fff; border-top: 1px solid var(--line); display: flex; gap: 10px; }
+  .chat-input-admin input { margin: 0; border-radius: 8px; padding: 12px 16px; border: 1px solid var(--line); }
+  .chat-input-admin button { width: auto; padding: 0 20px; border-radius: 8px; }
+
+  /* หน้าจอว่างๆ */
+  .empty-state { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; color: var(--muted); }
+  .empty-state svg { width: 60px; height: 60px; margin-bottom: 16px; opacity: 0.5; }
+</style>
+
+<div style="max-width: 1000px; margin: 0 auto; padding: 20px 16px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h1 style="margin: 0;">💬 ศูนย์แชตลูกค้า</h1>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn ghost" style="width: auto;">← กลับหลังบ้าน</a>
+  </div>
+
+  <div class="admin-chat-wrap">
+    <!-- รายชื่อคน -->
+    <div class="user-list">
+      <h3>รายชื่อผู้ติดต่อ</h3>
+      {% for u in chat_users %}
+        <div class="user-item" data-id="{{ u.id }}" onclick="openChat({{ u.id }}, '{{ u.username }}')">
+          <span class="name">👤 {{ u.username.split('@')[0] }}</span>
+          <span class="email">{{ u.username }}</span>
+        </div>
+      {% else %}
+        <div style="padding: 20px; text-align: center; color: var(--muted); font-size: 13px;">ยังไม่มีใครทักมา</div>
+      {% endfor %}
+    </div>
+
+    <!-- พื้นที่แชต -->
+    <div class="chat-area" id="chatArea">
+      <div class="empty-state" id="emptyState">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+        <p>เลือกผู้ใช้เพื่อเริ่มตอบแชต</p>
+      </div>
+
+      <div id="activeChat" style="display: none; flex: 1; flex-direction: column; height: 100%;">
+        <div class="chat-header-admin">
+          <span id="chatWithName">ชื่อผู้ใช้</span>
+        </div>
+        <div class="chat-box-admin" id="chatBoxAdmin"></div>
+        <form class="chat-input-admin" id="chatFormAdmin">
+          <input type="text" id="msgInputAdmin" placeholder="พิมพ์ตอบกลับ..." autocomplete="off" required>
+          <button type="submit" class="btn">ส่ง</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentUserId = null;
+  let lastMsgCount = 0;
+  const chatBox = document.getElementById('chatBoxAdmin');
+  const chatForm = document.getElementById('chatFormAdmin');
+  const msgInput = document.getElementById('msgInputAdmin');
+  const emptyState = document.getElementById('emptyState');
+  const activeChat = document.getElementById('activeChat');
+  const chatWithName = document.getElementById('chatWithName');
+  let pollInterval = null;
+
+  // ฟังก์ชันเปิดห้องแชต
+  function openChat(userId, username) {
+    currentUserId = userId;
+    lastMsgCount = 0;
+    chatBox.innerHTML = '';
+    
+    // อัปเดต UI
+    document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active'));
+    document.querySelector(`.user-item[data-id="${userId}"]`).classList.add('active');
+    
+    emptyState.style.display = 'none';
+    activeChat.style.display = 'flex';
+    chatWithName.textContent = 'คุยกับ: ' + username;
+
+    // โหลดข้อความ
+    loadAdminMessages();
+    
+    // เคลียร์ interval เก่า แล้วตั้งใหม่
+    if (pollInterval) clearInterval(pollInterval);
+    pollInterval = setInterval(loadAdminMessages, 3000);
+  }
+
+  // ฟังก์ชันโหลดข้อความ
+  async function loadAdminMessages() {
+    if (!currentUserId) return;
+    try {
+      // ใช้ API เดียวกัน แต่แอดมินดึงของ user_id นั้นๆ (ต้องแก้ API ให้รับ admin ด้วย)
+      const res = await fetch(`/api/chat/messages?user_id=${currentUserId}`);
+      const data = await res.json();
+      
+      if (data.ok) {
+        if (data.messages.length !== lastMsgCount) {
+          lastMsgCount = data.messages.length;
+          chatBox.innerHTML = '';
+          
+          data.messages.forEach(m => {
+            const div = document.createElement('div');
+            div.className = `msg ${m.sender}`;
+            div.innerHTML = `${m.message} <span class="msg-time">${m.time}</span>`;
+            chatBox.appendChild(div);
+          });
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }
+      }
+    } catch (e) { console.error(e); }
+  }
+
+  // ส่งข้อความของแอดมิน
+  chatForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = msgInput.value.trim();
+    if (!text || !currentUserId) return;
+
+    msgInput.value = '';
+    
+    // แสดงข้อความแอดมินทันที
+    const div = document.createElement('div');
+    div.className = 'msg admin';
+    div.innerHTML = `${text} <span class="msg-time">เมื่อสักครู่</span>`;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    // ส่งไปหลังบ้าน
+    await fetch(`/api/admin/chat/${currentUserId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text })
+    });
+    
+    loadAdminMessages();
+  });
+</script>
+{% endblock %}
