@@ -239,4 +239,10 @@
     });
   }
 </script>
+{% if is_admin %}
+  <section style="margin-bottom:40px;">
+    <h2>💬 แชตลูกค้า</h2>
+    {% include "admin_chat_panel.html" %}
+  </section>
+{% endif %}
 {% endblock %}
