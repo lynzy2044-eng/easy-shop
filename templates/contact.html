@@ -89,7 +89,7 @@
 </div>
 
 {% if user %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
 <script>
   const chatBox = document.getElementById('chatBox');
   const chatForm = document.getElementById('chatForm');
@@ -98,7 +98,13 @@
   const emojiPicker = document.getElementById('emojiPicker');
   const attachmentPopup = document.getElementById('attachmentPopup');
 
-  const socket = io({ transports: ['websocket'] });
+  const pusher = new Pusher('{{ pusher_key }}', {
+    cluster: '{{ pusher_cluster }}',
+    channelAuthorization: { endpoint: '{{ url_for("pusher_auth") }}' }
+  });
+  const channel = pusher.subscribe('private-user-{{ user.id }}');
+
+  let seen = new Set();
   let typingTimer = null, lastTypingSent = 0;
 
   function makeWelcome() {
@@ -114,7 +120,7 @@
     row.className = `msg-row ${m.sender}`;
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
-    if (m.body.startsWith('data:image/')) {
+    if (m.body.startsWith('/api/chat/image/')) {
       const img = document.createElement('img');
       img.src = m.body;
       img.onclick = () => window.open(img.src);
@@ -130,55 +136,63 @@
     return row;
   }
 
-  function renderAll(list) {
-    chatBox.innerHTML = '';
-    if (!list.length) chatBox.appendChild(makeWelcome());
-    list.forEach(m => chatBox.appendChild(makeRow(m)));
-    chatBox.scrollTop = chatBox.scrollHeight;
-  }
-
-  function showAdminTyping(show) {
-    adminTyping.style.display = show ? 'block' : 'none';
-  }
-
-  // เชื่อมต่อใหม่ทุกครั้ง แล้วโหลดประวัติของตัวเอง
-  socket.on('connect', () => socket.emit('load_history', {}, renderAll));
-
-  // ข้อความใหม่ (ทั้งของเราและของแอดมิน) ขึ้นทันที
-  socket.on('new_message', m => {
+  function appendMsg(m) {
+    if (seen.has(m.id)) return;
+    seen.add(m.id);
     const w = chatBox.querySelector('.welcome');
     if (w) w.remove();
     chatBox.appendChild(makeRow(m));
     chatBox.scrollTop = chatBox.scrollHeight;
-    if (m.sender === 'admin') showAdminTyping(false);
-  });
+  }
 
-  // แอดมินกำลังพิมพ์
-  socket.on('typing', () => {
-    showAdminTyping(true);
+  function showAdminTyping() {
+    adminTyping.style.display = 'block';
     clearTimeout(typingTimer);
-    typingTimer = setTimeout(() => showAdminTyping(false), 2500);
-  });
+    typingTimer = setTimeout(() => adminTyping.style.display = 'none', 2500);
+  }
 
-  // ส่งสถานะกำลังพิมพ์ ไม่เกินทุก 1.5 วินาที
+  // โหลดประวัติของตัวเอง
+  async function loadHistory() {
+    const res = await fetch("{{ url_for('api_chat_messages') }}");
+    const data = await res.json();
+    chatBox.innerHTML = '';
+    if (!data.messages.length) chatBox.appendChild(makeWelcome());
+    data.messages.forEach(appendMsg);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+  loadHistory();
+
+  channel.bind('new_message', m => {
+    appendMsg(m);
+    if (m.sender === 'admin') adminTyping.style.display = 'none';
+  });
+  channel.bind('client-typing', showAdminTyping);
+
   msgInput.addEventListener('input', () => {
+    if (!channel.subscribed) return;
     const now = Date.now();
     if (now - lastTypingSent > 1500) {
-      socket.emit('typing', {});
+      channel.trigger('client-typing', {});
       lastTypingSent = now;
     }
   });
+
+  function sendMessage(body) {
+    return fetch("{{ url_for('api_chat_send') }}", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: body })
+    }).then(res => {
+      if (!res.ok) alert('ส่งไม่สำเร็จ (ข้อความอาจยาวเกินไปหรือรูปใหญ่เกินไป)');
+    });
+  }
 
   chatForm.addEventListener('submit', e => {
     e.preventDefault();
     const text = msgInput.value.trim();
     if (!text) return;
-    if (!socket.connected) {
-      alert('ยังไม่ได้เชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
-      return;
-    }
-    socket.emit('send_message', { body: text });
     msgInput.value = '';
+    sendMessage(text);
   });
 
   // ส่งรูป
@@ -188,7 +202,7 @@
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) { alert('รูปต้องไม่เกิน 2MB'); return; }
     const reader = new FileReader();
-    reader.onload = e => socket.emit('send_message', { body: e.target.result });
+    reader.onload = e => sendMessage(e.target.result);
     reader.readAsDataURL(file);
   }
 
