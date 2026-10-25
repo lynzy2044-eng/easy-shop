@@ -57,6 +57,8 @@ pusher_client = Pusher(app_id=PUSHER_APP_ID, key=PUSHER_KEY, secret=PUSHER_SECRE
 MAX_TEXT_CHARS = 2000        # ข้อความตัวอักษร (Pusher จำกัดขนาด payload ที่ 10KB)
 MAX_IMAGE_CHARS = 3_000_000  # รูปที่แปลงเป็น base64 (เก็บลง DB ไม่ส่งผ่าน Pusher)
 
+TH_TZ = timezone(timedelta(hours=7))   # เวลาประเทศไทย (UTC+7)
+
 SHOP_NAME = os.getenv("SHOP_NAME", "CapCut PC Course")
 PROMPTPAY_PHONE = os.getenv("PROMPTPAY_PHONE", "")
 ORDER_TTL = timedelta(minutes=30)
@@ -495,13 +497,15 @@ def chat_payload(msg, username):
     body = msg.message
     if body.startswith("data:image/"):
         body = f"/api/chat/image/{msg.id}"   # ส่งแค่ลิงก์รูป ไม่ส่ง base64 ผ่าน Pusher
+    # created_at เก็บเป็น UTC ต้องแปลงเป็นเวลาไทยก่อนแสดงผล
+    local_time = msg.created_at.replace(tzinfo=timezone.utc).astimezone(TH_TZ)
     return {
         "id": msg.id,
         "user_id": msg.user_id,
         "username": username,
         "sender": msg.sender,
         "body": body,
-        "time": msg.created_at.strftime("%H:%M"),
+        "time": local_time.strftime("%H:%M"),
     }
 
 
