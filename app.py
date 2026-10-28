@@ -74,15 +74,15 @@ ADMIN_USERNAMES = {
 # ราคาเป็นตัวอย่าง แก้ได้ตามต้องการ
 PACKAGES = {
     "basic": {
-        "name": "Basic", "price": 10, "tracks": ["basic"],
-        "description": "ตัดต่อพื้นฐาน ตัดคลิปจนส่งออกได้เองทุกขั้นตอน",
+        "name": "Basic", "price": 599, "tracks": ["basic"],
+        "description": "ตัดต่อพื้นฐาน ตัดคลิปจนส่งออกได้เองในระดับพื้นฐาน",
     },
     "advanced": {
-        "name": "Advanced", "price": 890, "tracks": ["advanced"],
-        "description": "จังหวะ คีย์เฟรม สี และเสียง ทำให้งานดูโปร",
+        "name": "Advanced", "price": 1590, "tracks": ["advanced"],
+        "description": "จังหวะ คีย์เฟรม สี เทคนิค และเสียง ทำให้งานดูโปร",
     },
     "bundle": {
-        "name": "Bundle", "price": 1090, "tracks": ["basic", "advanced"],
+        "name": "Bundle", "price": 1990, "tracks": ["basic", "advanced"],
         "description": "ครบทั้ง Basic และ Advanced ประหยัดกว่าซื้อแยก",
     },
 }
